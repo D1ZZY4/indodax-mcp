@@ -56,6 +56,6 @@ metadata, plus Context7/official doc checks where noted.
   binaries via `embedded-postgres` (MIT), reached through the same
   `postgres.js` driver and Drizzle schema as production. Production
   target stays external PostgreSQL via `DATABASE_URL`. Recorded here
-  per deviation policy; see `risk-register.md`.
+  per deviation policy; see [risk register](risk-register.md).
 - No `mcp-server-time` style Node-only assumptions; Bun-native
   fetch, Web Crypto, WebSocket, and AbortSignal are used first.

@@ -45,3 +45,12 @@ Residual: none.
 50+ packages in one autonomous session. Mitigation: phased gates,
 small focused files (350/375), shared core first. Residual:
 schedule pressure on workbench E2E; contract tests cover the seam.
+
+## R8: POST retry idempotency for live orders
+
+`fetchWithRetry()` retries POSTs including state-changing requests.
+Live orders carry `newClientOrderId`, but exchange-side dedup
+semantics are unverified. Mitigation: live order path stays locked
+behind policy plus acknowledgement, and unknown outcomes reconcile
+before any retry. Residual: prove idempotency against the exchange
+before enabling live execution.

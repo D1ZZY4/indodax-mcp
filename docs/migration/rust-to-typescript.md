@@ -1,6 +1,6 @@
 # Rust to TypeScript responsibility mapping
 
-Reference: `docs/migration/recon.md` (observed Rust behavior).
+Reference: [Recon](recon.md) (observed Rust behavior).
 
 | Rust source | TypeScript destination | Notes |
 |---|---|---|

@@ -8,7 +8,7 @@ exercises it, end-to-end means it works through its intended path.
 | --- | --- | --- | --- | --- |
 | Market REST | yes | yes | yes | yes, live tickers |
 | Market WebSocket | snapshot plus managed socket | yes | protocol-level | one-shot live verified |
-| Account | yes | yes | validation-level | blocked, key IP not whitelisted |
+| Account | yes | yes | validation-level | yes, live read verified with whitelisted IP |
 | Orders | yes | yes | yes | paper yes, live locked by policy |
 | Trading | yes | yes | yes | paper yes, live denied by policy |
 | Risk | yes | yes | yes | yes, pure evaluation |

@@ -8,3 +8,13 @@ Read `docs/README.md` inside that installed package first, then read the relevan
 
 This block is written and re-added by `turbo` before repository-scoped commands when an AI agent is detected. In the Turborepo source repository, its template is defined in `crates/turborepo-cli/src/cli/agent_guidance.rs`. Removing the managed block while updates are enabled means a later qualifying invocation will add it again. Set `"agentGuidance": false` in the root `turbo.json` or `turbo.jsonc` to opt out; this does not remove an existing block. Keep the block committed with your work to avoid an uncommitted change on the next agent invocation.
 <!-- END:turborepo-agent-rules -->
+
+## Project guidance (indodax-mcp)
+
+Bun 1.4.2 workspaces plus Turborepo 2.11. TypeScript 5.9 strict, Biome format plus lint, Vitest plus Playwright. MCP SDK v2, protocol 2025-11-25.
+
+Boundaries: MCP handlers stay thin; strategy signals, risk decides, execution performs; generic `mcp-*` and `core` never import INDODAX packages; money is `Decimal` from parse time.
+
+Safety: paper default, live needs `APP_ENV=live` plus `TRADE_ENABLED=true` plus key permission plus IP whitelist plus per-call ack; withdrawal always denied. Never place real orders for validation; paper, mocks, and read-only live calls only.
+
+Gates before finishing: `bun run format:check`, `bun run lint`, `bunx turbo typecheck`, `bunx turbo test`, `bunx turbo build`. Keep authored files at or under 350 lines (375 hard ceiling). No em dashes in any output.

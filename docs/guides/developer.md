@@ -29,7 +29,7 @@ flowchart TD
 3. Register in `packages/indodax-mcp/src/index.ts`.
 4. Cover success, validation failure, and denial in
    `packages/indodax-mcp/test/surface.test.ts`.
-5. Document it in `docs/mcp/surface.md` and the relevant guide.
+5. Document it in [MCP surface](../../mcp/surface.md) and the relevant guide.
 
 Every mutation tool declares capability, risk class, environment,
 auth, destructiveness, idempotency, and audit class in metadata.
@@ -71,7 +71,7 @@ never weaken a gate to turn red green.
 
 ## 6. Migration notes
 
-* `docs/migration/recon.md` maps the original Rust behavior.
-* `docs/migration/rust-to-typescript.md` maps responsibilities.
-* `docs/migration/v1-to-v2.md` is the historical rebuild record.
-* `docs/api/mapping.md` maps every official endpoint to code.
+* [Recon](../migration/recon.md) maps the original Rust behavior.
+* [Rust to TypeScript](../migration/rust-to-typescript.md) maps responsibilities.
+* [Migration v1 to v2](../migration/v1-to-v2.md) is the historical rebuild record.
+* [API mapping](../api/mapping.md) maps every official endpoint to code.

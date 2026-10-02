@@ -16,7 +16,7 @@
   portfolio analytics.
 * Market plus private WebSocket with offset recovery, Deadman Switch
   state machine, typed event bus, scheduler, and observability.
-* Drizzle PostgreSQL schema (19 tables) with repositories and a
+* Drizzle PostgreSQL schema (20 tables) with repositories and a
   migration verified against real PostgreSQL 17.
 * CLI, daemon, HTTP gateway, and React workbench.
 * Playwright E2E over real transports.

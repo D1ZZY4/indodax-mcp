@@ -35,9 +35,10 @@ order. Skipping a stage is a bug, not an optimization.
 ## Boundaries
 
 * `indodax-core`: types, errors, money, orders, risk verdicts.
-* `indodax-auth`, `indodax-transport`, `indodax-rate-limit`: signing,
-  HTTP retry, token bucket. No business logic.
-* `indodax-api`: typed V1/V2 REST calls only.
+* `indodax-auth`, `indodax-transport` (signing, HTTP retry, token
+  bucket inside transport), `indodax-client`: typed V1/V2 REST calls
+  only. No business logic in transport.
+* `indodax-market`, `indodax-account`: normalized reads plus caches.
 * `indodax-market`, `indodax-account`: normalized reads plus caches.
 * `indodax-order`: lifecycle state machine plus reconciliation.
 * `indodax-risk`: deterministic policy. Depends on nothing outside core.
@@ -46,7 +47,8 @@ order. Skipping a stage is a bug, not an optimization.
 * `indodax-trading`: intent validation and risk review orchestration.
 * `indodax-agent`: external AI boundary. Intents and proposals only.
 * `indodax-mcp`: thin tools over services. See [MCP surface](../mcp/surface.md).
-* `indodax-gateway`, `indodax-oauth`: HTTP transport isolation.
+* HTTP transport lives in `apps/mcp-http` (Hono adapter); stdio in
+  `apps/mcp-stdio`. The v1 OAuth flow is intentionally not ported.
 
 Withdrawal uses `WITHDRAW` capability. Trading permission never
 implies it.
