@@ -24,6 +24,14 @@ The rebuild retains these broad responsibilities:
 - Thin MCP tools.
 - CLI, HTTP, stdio, daemon, and workbench application boundaries.
 
+## Expanded scope
+
+The rebuild expands the original CLI scope for **developers**, **beginners**, **advanced users**, and **agent harnesses**. Beginners get a paper-only path with guided market, account, and risk flows. Advanced users get deterministic backtests, portfolio analytics, reconciliation primitives, and operational tooling. Developers get typed packages, explicit boundaries, and test harnesses across MCP, CLI, HTTP, stdio, daemon, and workbench surfaces.
+
+An agent harness can operate an account through the MCP surface, so **supervise your agent harness and do not trust it blindly**. Give it **clear instructions with full context**, and verify proposals against current balances, risk verdicts, and reconciliation state before acting.
+
+The current composition keeps **default safeguards that constrain agent harnesses**, including paper-only server policy, explicit capability metadata, auth and environment guards, deterministic risk review, and no server-side withdrawal path.
+
 ## Important protocol corrections
 
 The current official TAPI v2 documentation specifies:

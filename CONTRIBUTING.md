@@ -2,6 +2,8 @@
 
 Thank you for contributing to infrastructure that can eventually interact with financial accounts. **Review changes as if failure has a cost.**
 
+The owner recognizes this project is **far from perfect or stable**. Contributions are welcome from developers who want to make INDODAX MCP better or add features beyond its current state. If you see a gap, open an issue or a focused pull request and describe what changed, why it matters, and how it was tested.
+
 ## Development workflow
 
 1. Read the relevant architecture page before changing a package boundary.

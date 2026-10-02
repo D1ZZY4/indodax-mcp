@@ -8,7 +8,13 @@
 > [!IMPORTANT]
 > The current application policy is **paper-only**. A live execution adapter exists, but the composed server does **not** currently permit live order placement. Withdrawal is **disabled by design**.
 
-Indodax MCP is a TypeScript/Bun rebuild of [indodax-cli](https://github.com/ibidathoillah/indodax-cli) by ibidathoillah. The original MIT license is preserved in [LICENSE_COPY](LICENSE_COPY/README.md). This repository is licensed under **SSPL v1**; see [LICENSE](LICENSE).
+## History
+
+Indodax MCP is a **rebuild** of [indodax-cli](https://github.com/ibidathoillah/indodax-cli) by ibidathoillah, and has since been **expanded in features, uses, and scope**. The original MIT license is preserved in [LICENSE_COPY](LICENSE_COPY/README.md). This repository is licensed under **SSPL v1**; see [LICENSE](LICENSE). It now serves **developers**, **beginners**, **advanced users**, and **agent harnesses** through shared market, account, paper trading, risk, and operational tooling.
+
+An agent harness can operate your account through the MCP surface, so **supervise your agent harness and do not trust it blindly**. Give it **clear instructions with full context**, and treat its proposals as suggestions until you have verified balances, risk verdicts, and reconciliation state.
+
+The repository ships with **default safeguards that constrain agent harnesses**, including paper-only server policy, explicit capability metadata, auth and environment guards, deterministic risk review, and no server-side withdrawal path.
 
 ## Requirements
 
