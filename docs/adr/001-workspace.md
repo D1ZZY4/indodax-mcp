@@ -1,10 +1,19 @@
 # ADR-001: Workspace boundaries
 
-> Historical record from the Rust workspace. Package names below refer
-> to the original crates; see [Rust to TypeScript](../migration/rust-to-typescript.md) for current locations.
+- Status: historical.
+- Origin: original Rust workspace.
 
-* Status: accepted.
-* Decision: split exchange I/O (`auth`, `transport`, `rate-limit`, `api`,
-  `websocket`) from domain (`core`, `order`, `risk`, `portfolio`) and from
-  interfaces (`mcp`, `gateway`, `cli`, `daemon`).
-* Consequence: risk and execution stay callable without MCP or network.
+## Decision
+
+Separate exchange I/O, domain logic, and interfaces so business rules do not depend directly on MCP, CLI, or network transport.
+
+## Current location
+
+The TypeScript rebuild applies the same boundary principle through Bun workspace packages:
+
+- Exchange and protocol concerns: indodax-auth, transport, indodax-client, indodax-account, indodax-websocket.
+- Domain and execution concerns: core, indodax-orders, indodax-risk, indodax-execution, indodax-paper, indodax-trading.
+- MCP infrastructure: mcp-core, mcp-contracts, mcp-registry, mcp-runtime, mcp-testing.
+- Application composition: indodax-mcp and apps/*.
+
+The Rust crate names in this ADR are historical and should not be used as current import paths.
