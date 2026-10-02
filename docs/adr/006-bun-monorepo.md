@@ -1,9 +1,15 @@
 # ADR-006: Bun monorepo with Turborepo
 
-* Status: accepted.
-* Decision: Bun 1.4.2 runtime plus workspaces, Turborepo 2.11 task
-  graph, Biome format plus lint, TypeScript 5.9 strict, Vitest tests.
-* Rationale: one toolchain for runtime, packages, and scripts;
-  dependency-aware build, typecheck, test, and E2E orchestration.
-* Consequence: `bun.lock` is the only lockfile; npm, pnpm, and yarn
-  are not used.
+- Status: accepted.
+
+## Decision
+
+Use Bun workspaces as the repository package manager and runtime, with Turborepo for task orchestration, Biome for formatting and linting, TypeScript in strict mode, and Vitest for unit and integration tests.
+
+The repository package manager is pinned to Bun 1.4.2.
+
+## Consequences
+
+- bun.lock is the repository lockfile.
+- npm, pnpm, and yarn lockfiles should not be introduced.
+- Task behavior must be verified against the installed Turborepo version rather than assumed from generic documentation.
