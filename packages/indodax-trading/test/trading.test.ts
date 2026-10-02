@@ -1,0 +1,54 @@
+import { describe, expect, it } from "vitest";
+import { createRiskEngine, defaultRiskLimits, paperOnlyPolicy } from "@indodax-mcp/indodax-risk";
+import { TradingService, type TradeIntent } from "../src/index.js";
+
+function intent(): TradeIntent {
+  return {
+    agentId: "a",
+    sessionId: "s",
+    symbol: { base: "btc", quote: "idr" },
+    side: "BUY",
+    orderType: "LIMIT",
+    price: "1000",
+    quantityOrIdr: "100",
+    quantityIsIdr: false,
+    mode: "paper",
+    capability: "PAPER",
+    reason: "test",
+  };
+}
+
+describe("trading service", () => {
+  it("runs propose to order to review with risk approval", () => {
+    const records: { kind: string }[] = [];
+    const service = new TradingService(createRiskEngine(defaultRiskLimits(), paperOnlyPolicy()), {
+      record: (entry) => records.push(entry),
+    });
+    const proposal = service.propose(intent());
+    const order = service.toOrder(proposal, { tenantId: "t", exchangeAccountId: "a" });
+    expect(order.state).toBe("NEW");
+    const decision = service.review(order, {
+      mode: "paper",
+      capability: "PAPER",
+      marketAgeMs: 1_000,
+      accountAgeMs: 1_000,
+      dailyPnl: null,
+      tradeCount: 0,
+      duplicate: false,
+      reconciliationHalted: false,
+      deadmanUnknown: false,
+      balanceSufficient: true,
+    });
+    expect(decision.outcome).toBe("ALLOW");
+    expect(order.state).toBe("ACCEPTED");
+    expect(records.map((record) => record.kind)).toEqual(["AgentIntentCreated", "RiskApproved"]);
+  });
+
+  it("rejects invalid amounts", () => {
+    const records: { kind: string }[] = [];
+    const service = new TradingService(createRiskEngine(defaultRiskLimits(), paperOnlyPolicy()), {
+      record: (entry) => records.push(entry),
+    });
+    expect(() => service.propose({ ...intent(), quantityOrIdr: "0" })).toThrow();
+  });
+});

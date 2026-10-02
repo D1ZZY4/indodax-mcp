@@ -90,6 +90,16 @@
         "vitest": "catalog:",
       },
     },
+    "packages/indodax-audit": {
+      "name": "@indodax-mcp/indodax-audit",
+      "version": "1.0.0",
+      "devDependencies": {
+        "@types/node": "catalog:",
+        "bun-types": "catalog:",
+        "fast-check": "catalog:",
+        "vitest": "catalog:",
+      },
+    },
     "packages/indodax-auth": {
       "name": "@indodax-mcp/indodax-auth",
       "version": "1.0.0",
@@ -116,6 +126,21 @@
         "vitest": "catalog:",
       },
     },
+    "packages/indodax-execution": {
+      "name": "@indodax-mcp/indodax-execution",
+      "version": "1.0.0",
+      "dependencies": {
+        "@indodax-mcp/core": "workspace:*",
+        "@indodax-mcp/errors": "workspace:*",
+        "@indodax-mcp/indodax-orders": "workspace:*",
+      },
+      "devDependencies": {
+        "@types/node": "catalog:",
+        "bun-types": "catalog:",
+        "fast-check": "catalog:",
+        "vitest": "catalog:",
+      },
+    },
     "packages/indodax-market": {
       "name": "@indodax-mcp/indodax-market",
       "version": "1.0.0",
@@ -127,6 +152,80 @@
       "devDependencies": {
         "@types/node": "catalog:",
         "bun-types": "catalog:",
+        "vitest": "catalog:",
+      },
+    },
+    "packages/indodax-orders": {
+      "name": "@indodax-mcp/indodax-orders",
+      "version": "1.0.0",
+      "dependencies": {
+        "@indodax-mcp/core": "workspace:*",
+        "decimal.js": "catalog:",
+      },
+      "devDependencies": {
+        "@types/node": "catalog:",
+        "bun-types": "catalog:",
+        "fast-check": "catalog:",
+        "vitest": "catalog:",
+      },
+    },
+    "packages/indodax-paper": {
+      "name": "@indodax-mcp/indodax-paper",
+      "version": "1.0.0",
+      "dependencies": {
+        "@indodax-mcp/core": "workspace:*",
+        "@indodax-mcp/errors": "workspace:*",
+        "@indodax-mcp/indodax-execution": "workspace:*",
+        "@indodax-mcp/indodax-orders": "workspace:*",
+        "decimal.js": "catalog:",
+      },
+      "devDependencies": {
+        "@types/node": "catalog:",
+        "bun-types": "catalog:",
+        "fast-check": "catalog:",
+        "vitest": "catalog:",
+      },
+    },
+    "packages/indodax-portfolio": {
+      "name": "@indodax-mcp/indodax-portfolio",
+      "version": "1.0.0",
+      "dependencies": {
+        "decimal.js": "catalog:",
+      },
+      "devDependencies": {
+        "@types/node": "catalog:",
+        "bun-types": "catalog:",
+        "fast-check": "catalog:",
+        "vitest": "catalog:",
+      },
+    },
+    "packages/indodax-risk": {
+      "name": "@indodax-mcp/indodax-risk",
+      "version": "1.0.0",
+      "dependencies": {
+        "@indodax-mcp/core": "workspace:*",
+        "decimal.js": "catalog:",
+      },
+      "devDependencies": {
+        "@types/node": "catalog:",
+        "bun-types": "catalog:",
+        "fast-check": "catalog:",
+        "vitest": "catalog:",
+      },
+    },
+    "packages/indodax-trading": {
+      "name": "@indodax-mcp/indodax-trading",
+      "version": "1.0.0",
+      "dependencies": {
+        "@indodax-mcp/core": "workspace:*",
+        "@indodax-mcp/errors": "workspace:*",
+        "@indodax-mcp/indodax-orders": "workspace:*",
+        "@indodax-mcp/indodax-risk": "workspace:*",
+      },
+      "devDependencies": {
+        "@types/node": "catalog:",
+        "bun-types": "catalog:",
+        "fast-check": "catalog:",
         "vitest": "catalog:",
       },
     },
@@ -218,6 +317,16 @@
         "vitest": "catalog:",
       },
     },
+    "packages/storage": {
+      "name": "@indodax-mcp/storage",
+      "version": "1.0.0",
+      "devDependencies": {
+        "@types/node": "catalog:",
+        "bun-types": "catalog:",
+        "fast-check": "catalog:",
+        "vitest": "catalog:",
+      },
+    },
     "packages/transport": {
       "name": "@indodax-mcp/transport",
       "version": "1.0.0",
@@ -299,11 +408,25 @@
 
     "@indodax-mcp/indodax-account": ["@indodax-mcp/indodax-account@workspace:packages/indodax-account"],
 
+    "@indodax-mcp/indodax-audit": ["@indodax-mcp/indodax-audit@workspace:packages/indodax-audit"],
+
     "@indodax-mcp/indodax-auth": ["@indodax-mcp/indodax-auth@workspace:packages/indodax-auth"],
 
     "@indodax-mcp/indodax-client": ["@indodax-mcp/indodax-client@workspace:packages/indodax-client"],
 
+    "@indodax-mcp/indodax-execution": ["@indodax-mcp/indodax-execution@workspace:packages/indodax-execution"],
+
     "@indodax-mcp/indodax-market": ["@indodax-mcp/indodax-market@workspace:packages/indodax-market"],
+
+    "@indodax-mcp/indodax-orders": ["@indodax-mcp/indodax-orders@workspace:packages/indodax-orders"],
+
+    "@indodax-mcp/indodax-paper": ["@indodax-mcp/indodax-paper@workspace:packages/indodax-paper"],
+
+    "@indodax-mcp/indodax-portfolio": ["@indodax-mcp/indodax-portfolio@workspace:packages/indodax-portfolio"],
+
+    "@indodax-mcp/indodax-risk": ["@indodax-mcp/indodax-risk@workspace:packages/indodax-risk"],
+
+    "@indodax-mcp/indodax-trading": ["@indodax-mcp/indodax-trading@workspace:packages/indodax-trading"],
 
     "@indodax-mcp/logging": ["@indodax-mcp/logging@workspace:packages/logging"],
 
@@ -320,6 +443,8 @@
     "@indodax-mcp/mcp-testing": ["@indodax-mcp/mcp-testing@workspace:packages/mcp-testing"],
 
     "@indodax-mcp/secrets": ["@indodax-mcp/secrets@workspace:packages/secrets"],
+
+    "@indodax-mcp/storage": ["@indodax-mcp/storage@workspace:packages/storage"],
 
     "@indodax-mcp/transport": ["@indodax-mcp/transport@workspace:packages/transport"],
 

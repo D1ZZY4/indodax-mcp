@@ -30,7 +30,7 @@ export function isTerminalState(state: ExecutionState): boolean {
 
 export type CancelState = "CANCELLED" | "CANCEL_UNKNOWN";
 
-export type RiskOutcome = "ALLOW" | "DENY" | "REVIEW" | "UNKNOWN";
+export type RiskOutcome = "ALLOW" | "DENY" | "REVIEW" | "HALT" | "UNKNOWN";
 
 export type RiskReason =
   | "MAX_ORDER_SIZE"
