@@ -1,0 +1,23 @@
+{
+  "name": "@indodax-mcp/indodax-backtest",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.json --noEmit",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "lint": "biome lint .",
+    "format:check": "biome format ."
+  },
+  "dependencies": {
+    "decimal.js": "catalog:"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "bun-types": "catalog:",
+    "vitest": "catalog:"
+  }
+}

@@ -133,6 +133,18 @@
         "vitest": "catalog:",
       },
     },
+    "packages/indodax-backtest": {
+      "name": "@indodax-mcp/indodax-backtest",
+      "version": "1.0.0",
+      "dependencies": {
+        "decimal.js": "catalog:",
+      },
+      "devDependencies": {
+        "@types/node": "catalog:",
+        "bun-types": "catalog:",
+        "vitest": "catalog:",
+      },
+    },
     "packages/indodax-client": {
       "name": "@indodax-mcp/indodax-client",
       "version": "1.0.0",
@@ -254,6 +266,18 @@
         "@types/node": "catalog:",
         "bun-types": "catalog:",
         "fast-check": "catalog:",
+        "vitest": "catalog:",
+      },
+    },
+    "packages/indodax-strategy": {
+      "name": "@indodax-mcp/indodax-strategy",
+      "version": "1.0.0",
+      "dependencies": {
+        "@indodax-mcp/core": "workspace:*",
+      },
+      "devDependencies": {
+        "@types/node": "catalog:",
+        "bun-types": "catalog:",
         "vitest": "catalog:",
       },
     },
@@ -497,6 +521,8 @@
 
     "@indodax-mcp/indodax-auth": ["@indodax-mcp/indodax-auth@workspace:packages/indodax-auth"],
 
+    "@indodax-mcp/indodax-backtest": ["@indodax-mcp/indodax-backtest@workspace:packages/indodax-backtest"],
+
     "@indodax-mcp/indodax-client": ["@indodax-mcp/indodax-client@workspace:packages/indodax-client"],
 
     "@indodax-mcp/indodax-deadman": ["@indodax-mcp/indodax-deadman@workspace:packages/indodax-deadman"],
@@ -514,6 +540,8 @@
     "@indodax-mcp/indodax-reconciliation": ["@indodax-mcp/indodax-reconciliation@workspace:packages/indodax-reconciliation"],
 
     "@indodax-mcp/indodax-risk": ["@indodax-mcp/indodax-risk@workspace:packages/indodax-risk"],
+
+    "@indodax-mcp/indodax-strategy": ["@indodax-mcp/indodax-strategy@workspace:packages/indodax-strategy"],
 
     "@indodax-mcp/indodax-trading": ["@indodax-mcp/indodax-trading@workspace:packages/indodax-trading"],
 
