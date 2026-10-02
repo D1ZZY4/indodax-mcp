@@ -1,77 +1,85 @@
 # Developer guide
 
-Reference for contributors extending this monorepo.
-
-```mermaid
-flowchart TD
-    Core["core, errors, config"] --> Infra["transport, storage, events"]
-    Infra --> Exchange["indodax-* domain"]
-    Exchange --> MCP["mcp-* plus indodax-mcp"]
-    MCP --> Apps["cli, daemon, http, workbench"]
-```
+Reference for contributors extending the current Bun monorepo.
 
 ## 1. Boundaries
 
-* Generic packages (`core`, `mcp-*`, `transport`, `storage`) never
-  import INDODAX packages. Apps compose everything.
-* Raw exchange JSON stops at the adapter. Domain code sees zod
-  DTOs and canonical models only.
-* Money is `Decimal` from parse time. No float math on balances,
-  prices, fees, or PnL.
-* Financial core never imports LLM SDKs.
+~~~text
+core / errors / generic MCP infrastructure
+            |
+            v
+transport / storage / exchange adapters
+            |
+            v
+INDODAX domain packages
+            |
+            v
+indodax-mcp application composition
+            |
+            v
+CLI / daemon / HTTP / stdio / workbench
+~~~
+
+Generic packages should not depend on INDODAX domain packages. Exchange protocol details belong in adapters. Financial code uses Decimal and does not import LLM SDKs.
 
 ## 2. Add a tool
 
-1. Define metadata plus zod schemas in
-   `packages/indodax-mcp/src/tools/<domain>.ts`.
-2. Implement the handler: parse args, check capability, call the
-   service, return `ok` or `fail`.
-3. Register in `packages/indodax-mcp/src/index.ts`.
-4. Cover success, validation failure, and denial in
-   `packages/indodax-mcp/test/surface.test.ts`.
-5. Document it in [MCP surface](../../mcp/surface.md) and the relevant guide.
+1. Define metadata and a Zod schema under packages/indodax-mcp/src/tools.
+2. Implement a thin handler: parse arguments, enforce operation-specific guards, call a service, serialize the result.
+3. Register the tool in packages/indodax-mcp/src/index.ts.
+4. Add regression coverage for success, validation, and denial paths.
+5. Update the MCP surface documentation.
 
-Every mutation tool declares capability, risk class, environment,
-auth, destructiveness, idempotency, and audit class in metadata.
-Enforcement is programmatic, not descriptive.
+The registry validates metadata, but mcp-core does not centrally enforce every metadata field. Security-sensitive controls must exist in executable handler or service code.
 
 ## 3. Add a package
 
-1. Scaffold `package.json`, `tsconfig.json`, `src/index.ts`.
-2. Depend only downward in the layer order.
-3. Add unit tests plus property tests for invariants.
-4. Register `test:coverage` so Turbo picks it up.
+1. Add package.json, tsconfig.json, and src/index.ts.
+2. Depend only on lower layers.
+3. Add unit and invariant/property tests where useful.
+4. Expose only the API needed by consumers.
 
-## 4. Storage changes
+Do not introduce a generic dependency on an INDODAX-specific package just to bypass a boundary.
 
-Edit `packages/db/src/schema.ts`, then generate and review the
-migration before applying:
+## 4. Database changes
 
-```bash
+Schema changes belong in packages/db/src/schema.ts.
+
+Generate and review migrations:
+
+~~~bash
 bun --filter @indodax-mcp/db db:generate
 bun --filter @indodax-mcp/db db:migrate
-```
+~~~
 
-Domain code depends on repository interfaces, never on Drizzle
-connections.
+The database package contains PostgreSQL schema and repositories, but the main application composition still uses in-memory state. Do not document PostgreSQL as the runtime source of truth until the composition and integration tests prove it.
 
 ## 5. Quality gates
 
-```bash
+~~~bash
 bun run format:check
 bun run lint
 bunx turbo typecheck
 bunx turbo test
 bunx turbo build
 bunx playwright test
-```
+bun run verify
+~~~
 
-Keep files at or under 350 lines. Fix the underlying problem;
-never weaken a gate to turn red green.
+Fix the underlying problem. Do not weaken a gate to make CI pass.
 
-## 6. Migration notes
+## 6. File size
 
-* [Recon](../migration/recon.md) maps the original Rust behavior.
-* [Rust to TypeScript](../migration/rust-to-typescript.md) maps responsibilities.
-* [Migration v1 to v2](../migration/v1-to-v2.md) is the historical rebuild record.
-* [API mapping](../api/mapping.md) maps every official endpoint to code.
+Keep authored files at or under 350 lines. 375 lines is the hard ceiling.
+
+For broad changes, measure with a consistent command such as:
+
+~~~bash
+wc -l path/to/file.ts path/to/file.md
+~~~
+
+Report path, line count, target, and status. Do not split code mechanically only to satisfy the limit.
+
+## 7. Migration references
+
+Read [Rust to TypeScript](../migration/rust-to-typescript.md), [Recon](../migration/recon.md), and [API mapping](../api/mapping.md) before changing migration-sensitive behavior.
