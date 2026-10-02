@@ -1,70 +1,79 @@
 # Agent harness guide
 
-How an AI agent should drive this MCP server safely and effectively.
-
-```mermaid
-sequenceDiagram
-    participant Agent
-    participant MCP as MCP server
-    participant Risk as RiskEngine
-    participant Exec as Execution
-    Agent->>MCP: validate or propose
-    MCP->>Risk: evaluate with context
-    Risk-->>MCP: ALLOW or DENY plus reasons
-    MCP-->>Agent: verdict, nothing executed
-```
+How an AI agent should operate the current Indodax MCP surface without treating documentation as execution authority.
 
 ## 1. Discover before acting
 
-Start every session with `indodax_health` and
-`indodax_system_capabilities`. If `funding.withdraw` is anything but
-disabled, stop and report; the server is misconfigured.
+Start with indodax_health, indodax_system_capabilities, and indodax_config_status.
 
-## 2. Read before mutating
+The current capability response should be treated as the active server policy. Live order placement remains disabled.
 
-* Prices: `indodax_ticker` for one pair, `indodax_tickers_all`
-  for scans, `indodax_orderbook` for spread.
-* Account: `indodax_account` and `indodax_balances` need
-  credentials and fail cleanly without them.
-* History: `indodax_order_history` and `indodax_trade_history`
-  use v2 endpoints. The v1 names are dead upstream.
+## 2. Read before mutation
 
-## 3. Never place blind
+Use indodax_ticker for one pair, indodax_tickers_all for scans, and indodax_orderbook for spread and depth.
 
-The only path to an order is validate, then propose, then place:
+Use indodax_account and indodax_balances for authenticated reads.
 
-1. `indodax_validate_order` returns the risk verdict.
-2. `indodax_propose_order` returns a proposal id plus verdict.
-3. `indodax_create_order` executes into paper by default.
+Use indodax_order_history and indodax_trade_history for the current v2 history endpoints.
 
-Live requires `mode: "live"` plus `acknowledged: true`, and the
-server still denies it unless explicitly enabled. Treat any live
-success as a deliberate operator decision, not a default.
+## 3. Use the paper workflow
 
-## 4. Read every response envelope
+For paper execution:
 
-Success: `{ status: "ok", data, fetchedAt }` with optional
-`warnings`. Failure: `{ status: "error", code, message, retryable,
-operationId }` with `isError: true`. Branch on `code`, never on
-message text. Retry only when `retryable` is true, and never retry
-order placement after an ambiguous result. Reconcile first with
-`indodax_reconcile_orders` or `indodax_reconcile_trades`.
+1. indodax_validate_order for risk-only validation.
+2. indodax_propose_order for a proposal and correlation id.
+3. indodax_create_order or indodax_paper_order for paper execution.
+4. indodax_paper_fill or indodax_paper_cancel for the next paper action.
 
-## 5. Track work with correlation ids
+A proposal is not an execution receipt.
 
-Proposals return `correlationId`. Follow one operation end to end
-with `indodax_execution_trace`. Unknown outcomes stay `UNKNOWN`
-until reconciliation proves otherwise.
+## 4. Live calls
 
-## 6. Use prompts for reviews
+The current application policy is paper-only. APP_ENV=live does not enable live placement by itself.
 
-`indodax_market_review`, `indodax_portfolio_review`,
-`indodax_order_review`, `indodax_strategy_review`, and
-`indodax_incident_review` structure multi-step analysis. Prompt
-output never contains live market facts; always call the tools.
+Never use a live mutation as a verification probe.
 
-## 7. Memory discipline
+For any future live deployment, require acknowledgement, risk approval, exchange permissions, durable state, client-order idempotency, and reconciliation.
 
-Prior analysis, preferences, and incidents may come from memory.
-Current price, balance, position, permission, and exchange state
-must come from tools or a validated local replica, never memory.
+## 5. Handle responses by code
+
+Success:
+
+~~~json
+{
+  "status": "ok",
+  "data": {},
+  "fetchedAt": "..."
+}
+~~~
+
+Failure:
+
+~~~json
+{
+  "status": "error",
+  "code": "...",
+  "message": "...",
+  "retryable": false
+}
+~~~
+
+Branch on code and retryable, not message text.
+
+An ambiguous state-changing result must be treated as unknown. Do not blindly resubmit. The current reconcile tools are not a complete exchange truth source, so inspect authoritative exchange/account data before making a new decision.
+
+## 6. Correlation and memory
+
+Track proposal correlation ids through the operation.
+
+Historical preferences, prior analysis, and incidents may come from an external memory system. Current price, balance, permission, position, and exchange state must come from authoritative tools or a validated local replica.
+
+The MCP itself does not convert historical memory into current exchange truth.
+
+## 7. Prompts
+
+The five prompts provide review instructions for market, portfolio, orders, strategy, and incidents. They return instructions to the agent and do not execute mutations.
+
+## 8. Safety rule
+
+When evidence is incomplete, report uncertainty instead of inventing a successful order, fill, balance, or reconciliation result.
