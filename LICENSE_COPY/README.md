@@ -8,4 +8,4 @@ project was rebuilt from:
 - File: `MIT-ibidathoillah-indodax-cli` (verbatim copy)
 
 The Indodax MCP project itself is licensed under SSPL v1, copyright
-D1ZZY4. See `../LICENSE`.
+D1ZZY4. See [LICENSE](../LICENSE).

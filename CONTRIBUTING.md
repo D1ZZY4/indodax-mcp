@@ -2,8 +2,8 @@
 
 ## Workflow
 
-1. Read the relevant `docs/architecture` page before moving a boundary.
-2. Record material decisions in `docs/adr`.
+1. Read the relevant [architecture page](docs/architecture/overview.md) before moving a boundary.
+2. Record material decisions in [docs/adr](docs/adr/001-workspace.md).
 3. Keep each file at or under 350 lines. 375 is a hard ceiling.
 4. Run `cargo fmt --all`, `cargo check`, `cargo test`, `cargo clippy`.
 5. Test failure paths, not only happy paths.

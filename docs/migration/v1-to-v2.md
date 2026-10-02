@@ -1,8 +1,8 @@
 # Migration from indodax-cli
 
-Indodax MCP is a rebuild of `indodax-cli` from
-`https://github.com/ibidathoillah/indodax-cli` by ibidathoillah,
-rebuilt for high flexibility and extended features under the name
+Indodax MCP is a rebuild of
+[indodax-cli](https://github.com/ibidathoillah/indodax-cli) by
+ibidathoillah, rebuilt for high flexibility and extended features under the name
 Indodax MCP, with usage expanded for AI agents, humans, and developers.
 The previous repository license is preserved in `LICENSE_COPY/` while
 this project itself is licensed under SSPL v1, copyright D1ZZY4.
@@ -39,5 +39,5 @@ Intentional v2 changes:
 
 * The v1 OAuth Authorization-Code + PKCE browser flow is not ported.
   The gateway uses an optional bridge-secret header instead. See
-  `docs/adr/005-oauth.md` for the reason.
+  [ADR OAuth](../adr/005-oauth.md) for the reason.
 * Paper WASM web UI from v1 docs is out of scope for this backend.

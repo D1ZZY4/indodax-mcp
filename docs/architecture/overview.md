@@ -45,7 +45,7 @@ order. Skipping a stage is a bug, not an optimization.
 * `indodax-paper`: simulation behind the same execution contracts.
 * `indodax-trading`: intent validation and risk review orchestration.
 * `indodax-agent`: external AI boundary. Intents and proposals only.
-* `indodax-mcp`: thin tools over services. See `docs/mcp/surface.md`.
+* `indodax-mcp`: thin tools over services. See [MCP surface](../mcp/surface.md).
 * `indodax-gateway`, `indodax-oauth`: HTTP transport isolation.
 
 Withdrawal uses `Capability::FundingWithdraw`. Trading permission never
