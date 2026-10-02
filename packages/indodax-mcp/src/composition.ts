@@ -1,4 +1,3 @@
-import { z } from "zod";
 import type { AppEnv } from "@indodax-mcp/config";
 import { AuditTrail } from "@indodax-mcp/indodax-audit";
 import { AccountClient } from "@indodax-mcp/indodax-account";
@@ -40,10 +39,6 @@ export interface AppServices {
   privateSocket: ManagedSocket;
   tenantId: string;
   accountId: string;
-}
-
-export function paperOnlyEnvelope() {
-  return z.object({});
 }
 
 export function createApp(env: AppEnv): AppServices {

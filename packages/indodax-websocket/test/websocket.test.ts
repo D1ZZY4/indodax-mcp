@@ -8,6 +8,7 @@ import {
   subscribeMessage,
   unsubscribeMessage,
 } from "../src/protocol.js";
+import { compactPair, summaryRows } from "../src/socket.js";
 import { isStpCancellation, parseOrderUpdate, tokenExpired } from "../src/private.js";
 
 describe("websocket protocol", () => {
@@ -75,5 +76,19 @@ describe("private events", () => {
   it("detects STP cancellations and token expiry", () => {
     expect(tokenExpired(Date.now(), Date.now() - 25 * 60 * 60 * 1000)).toBe(true);
     expect(tokenExpired(Date.now(), Date.now())).toBe(false);
+  });
+});
+
+describe("summary snapshot", () => {
+  it("compacts pair spellings for row matching", () => {
+    expect(compactPair("btc_idr")).toBe("btcidr");
+    expect(compactPair("BTC/IDR")).toBe("btcidr");
+  });
+
+  it("extracts pair rows from summary envelopes", () => {
+    const rows = summaryRows({ data: [["btcidr", 1, 2]], offset: 9 });
+    expect(rows).toEqual([["btcidr", 1, 2]]);
+    expect(summaryRows({ data: "nope", offset: 1 })).toEqual([]);
+    expect(summaryRows(null)).toEqual([]);
   });
 });

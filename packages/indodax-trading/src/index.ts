@@ -63,8 +63,11 @@ export class TradingService {
   ) {}
 
   propose(intent: TradeIntent): TradeProposal {
-    const correlationId = `corr-${this.counter}`;
-    this.counter += 1;
+    const correlationId = `corr-${Date.now().toString(36)}${(this.counter++).toString(36)}${Math.floor(
+      Math.random() * 1296,
+    )
+      .toString(36)
+      .padStart(2, "0")}`;
     if (!isValidClientOrderId(`draft-${correlationId}`)) {
       throw ValidationError("internal correlation id invalid");
     }

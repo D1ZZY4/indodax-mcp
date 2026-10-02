@@ -1,10 +1,10 @@
 import { z } from "zod";
-import { AuthorizationError, RiskDeniedError, ValidationError } from "@indodax-mcp/errors";
+import { AuthorizationError, ValidationError } from "@indodax-mcp/errors";
 import type { Registry } from "@indodax-mcp/mcp-registry";
 import type { ServerHandlers } from "@indodax-mcp/mcp-core";
 import type { Capability, ExecutionMode } from "@indodax-mcp/core";
 import { parseSymbolFlexible } from "@indodax-mcp/core";
-import { ExecutionService } from "@indodax-mcp/indodax-execution";
+import { placePaperOrder } from "./paper.js";
 import type { TradeIntent } from "@indodax-mcp/indodax-trading";
 import { fail, ok, pairArg, parseArgs } from "../respond.js";
 import type { AppServices } from "../composition.js";
@@ -54,6 +54,37 @@ function draftIntent(
     mode,
     capability,
   };
+}
+
+interface HypotheticalArgs {
+  pair: string;
+  side: "BUY" | "SELL";
+  quantity: number;
+  price?: number | undefined;
+  mode?: string | undefined;
+  reason?: string | undefined;
+}
+
+function reviewHypothetical(app: AppServices, args: HypotheticalArgs) {
+  const { intent, capability } = draftIntent(app, args);
+  const proposal = app.trading.propose(intent);
+  const order = app.trading.toOrder(proposal, {
+    tenantId: app.tenantId,
+    exchangeAccountId: app.accountId,
+  });
+  const decision = app.trading.review(order, {
+    mode: intent.mode,
+    capability,
+    marketAgeMs: 5_000,
+    accountAgeMs: 5_000,
+    dailyPnl: null,
+    tradeCount: 0,
+    duplicate: false,
+    reconciliationHalted: false,
+    deadmanUnknown: false,
+    balanceSufficient: null,
+  });
+  return { proposal, order, decision };
 }
 
 export function registerOrderTools(
@@ -153,24 +184,7 @@ export function registerOrderTools(
         }),
         raw,
       );
-      const { intent, capability } = draftIntent(app, args);
-      const proposal = app.trading.propose(intent);
-      const order = app.trading.toOrder(proposal, {
-        tenantId: app.tenantId,
-        exchangeAccountId: app.accountId,
-      });
-      const decision = app.trading.review(order, {
-        mode: intent.mode,
-        capability,
-        marketAgeMs: 5_000,
-        accountAgeMs: 5_000,
-        dailyPnl: null,
-        tradeCount: 0,
-        duplicate: false,
-        reconciliationHalted: false,
-        deadmanUnknown: false,
-        balanceSufficient: null,
-      });
+      const { proposal, order, decision } = reviewHypothetical(app, args);
       return ok({ proposal: proposal.correlationId, order, decision });
     } catch (error) {
       return fail(error);
@@ -190,24 +204,7 @@ export function registerOrderTools(
         }),
         raw,
       );
-      const { intent, capability } = draftIntent(app, args);
-      const proposal = app.trading.propose(intent);
-      const order = app.trading.toOrder(proposal, {
-        tenantId: app.tenantId,
-        exchangeAccountId: app.accountId,
-      });
-      const decision = app.trading.review(order, {
-        mode: intent.mode,
-        capability,
-        marketAgeMs: 5_000,
-        accountAgeMs: 5_000,
-        dailyPnl: null,
-        tradeCount: 0,
-        duplicate: false,
-        reconciliationHalted: false,
-        deadmanUnknown: false,
-        balanceSufficient: null,
-      });
+      const { proposal, order, decision } = reviewHypothetical(app, args);
       return ok({ proposal: proposal.correlationId, order, decision });
     } catch (error) {
       return fail(error);
@@ -227,45 +224,22 @@ export function registerOrderTools(
         }),
         raw,
       );
-      const { intent, mode, capability } = draftIntent(app, args);
+      const { intent, mode } = draftIntent(app, args);
       if (mode !== "paper") {
         if (args.acknowledged !== true) {
           throw AuthorizationError("live execution needs acknowledged true");
         }
         throw AuthorizationError("live mode is disabled by server policy");
       }
-      const proposal = app.trading.propose(intent);
-      const order = app.trading.toOrder(proposal, {
-        tenantId: app.tenantId,
-        exchangeAccountId: app.accountId,
-      });
-      const decision = app.trading.review(order, {
-        mode,
-        capability,
-        marketAgeMs: 5_000,
-        accountAgeMs: 5_000,
-        dailyPnl: null,
-        tradeCount: 0,
-        duplicate: false,
-        reconciliationHalted: false,
-        deadmanUnknown: false,
-        balanceSufficient: null,
-      });
-      if (decision.outcome !== "ALLOW") {
-        throw RiskDeniedError(decision.message);
-      }
-      const execution = new ExecutionService(app.paper);
-      const result = await execution.execute(
-        {
-          order,
-          mode: "paper",
-          capability: "PAPER",
-          correlationId: proposal.correlationId,
-          requestedAt: new Date().toISOString(),
-        },
-        decision,
+      return ok(
+        await placePaperOrder(app, {
+          pair: args.pair,
+          side: args.side,
+          orderType: intent.orderType,
+          ...(args.price === undefined ? {} : { price: args.price }),
+          quantity: args.quantity,
+        }),
       );
-      return ok(result);
     } catch (error) {
       return fail(error);
     }

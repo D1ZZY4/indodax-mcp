@@ -1,34 +1,57 @@
 import { describe, expect, it } from "vitest";
+import type { McpServer } from "@modelcontextprotocol/server";
+import { loadEnv } from "@indodax-mcp/config";
 import { withInMemoryServer } from "@indodax-mcp/mcp-testing";
-import { buildAppServer } from "../src/app.js";
+import { buildIndodaxServer } from "@indodax-mcp/indodax-mcp";
 
-describe("mcp-stdio vertical slice", () => {
-  it("initializes and lists one tool, resource, and prompt", async () => {
-    const harness = await withInMemoryServer(buildAppServer());
+function build(): McpServer {
+  return buildIndodaxServer(loadEnv({})).server;
+}
+
+describe("mcp-stdio production server", () => {
+  it("initializes and lists the full tool surface", async () => {
+    const harness = await withInMemoryServer(build());
     try {
       const tools = await harness.client.listTools();
-      expect(tools.tools.map((tool) => tool.name)).toContain("system_health");
+      const names = tools.tools.map((tool) => tool.name);
+      expect(names).toContain("indodax_health");
+      expect(names).toContain("indodax_ticker");
+      expect(names).toContain("indodax_paper_order");
+      expect(names.length).toBeGreaterThanOrEqual(40);
       const resources = await harness.client.listResources();
       expect(resources.resources.map((resource) => resource.uri)).toContain("system://health");
       const prompts = await harness.client.listPrompts();
-      expect(prompts.prompts.map((prompt) => prompt.name)).toContain("review_status");
+      expect(prompts.prompts.map((prompt) => prompt.name)).toContain("indodax_market_review");
     } finally {
       await harness.close();
     }
   });
 
-  it("invokes system_health with structured success", async () => {
-    const harness = await withInMemoryServer(buildAppServer());
+  it("invokes system health with structured success", async () => {
+    const harness = await withInMemoryServer(build());
     try {
-      const result = await harness.client.callTool({ name: "system_health", arguments: {} });
+      const result = await harness.client.callTool({ name: "indodax_health", arguments: {} });
       expect(result.isError).not.toBe(true);
     } finally {
       await harness.close();
     }
   });
 
+  it("runs paper lifecycle offline", async () => {
+    const harness = await withInMemoryServer(build());
+    try {
+      const placed = await harness.client.callTool({
+        name: "indodax_paper_order",
+        arguments: { pair: "btc_idr", side: "BUY", price: 1000, quantity: 100 },
+      });
+      expect(placed.isError).not.toBe(true);
+    } finally {
+      await harness.close();
+    }
+  });
+
   it("rejects unknown tools", async () => {
-    const harness = await withInMemoryServer(buildAppServer());
+    const harness = await withInMemoryServer(build());
     try {
       await expect(
         harness.client.callTool({ name: "nope_missing", arguments: {} }),
@@ -40,7 +63,8 @@ describe("mcp-stdio vertical slice", () => {
 
   it("serves Streamable HTTP end to end", async () => {
     const { buildHttpApp } = await import("@indodax-mcp/mcp-runtime");
-    const app = buildHttpApp(buildAppServer);
+    const server = build();
+    const app = buildHttpApp(() => server);
     const headers = {
       "content-type": "application/json",
       accept: "application/json, text/event-stream",
@@ -69,6 +93,6 @@ describe("mcp-stdio vertical slice", () => {
     });
     expect(listed.status).toBe(200);
     const listedText = await listed.text();
-    expect(listedText).toContain("system_health");
+    expect(listedText).toContain("indodax_health");
   });
 });

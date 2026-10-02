@@ -1,6 +1,7 @@
 import { loadEnv } from "@indodax-mcp/config";
 import { createLogger } from "@indodax-mcp/logging";
 import { buildIndodaxServer } from "@indodax-mcp/indodax-mcp";
+import { decimalOrNull } from "@indodax-mcp/core";
 import { getTicker } from "@indodax-mcp/indodax-market";
 
 const env = loadEnv();
@@ -10,18 +11,37 @@ const { app } = buildIndodaxServer(env);
 let stopped = false;
 
 async function reconcileOnce(): Promise<void> {
-  const open = app.paper.openOrders().length;
-  logger.info({ open }, "reconcile: paper orders open at startup");
+  const open = app.paper.openOrders();
+  logger.info({ open: open.length }, "reconcile: paper orders open at startup");
+  for (const order of open) {
+    try {
+      const ticker = await getTicker(
+        app.publicClient,
+        `${order.symbol.base}_${order.symbol.quote}`,
+      );
+      const market = decimalOrNull(ticker.last);
+      const limit = decimalOrNull(order.price ?? "0");
+      if (!market || !limit) continue;
+      const fillable = order.side === "BUY" ? market.lte(limit) : market.gte(limit);
+      if (fillable) {
+        logger.info(
+          {
+            orderId: order.internalOrderId,
+            limit: limit.toString(),
+            market: market.toString(),
+          },
+          "reconcile: paper order fillable at live price",
+        );
+      }
+    } catch (error) {
+      logger.warn({ error: String(error) }, "reconcile: market read failed");
+    }
+  }
 }
 
 async function marketRefresh(): Promise<void> {
   try {
     const ticker = await getTicker(app.publicClient, "btc_idr");
-    await app.events.publish({
-      kind: "account.synced",
-      accountId: app.accountId,
-      at: new Date().toISOString(),
-    });
     logger.info({ price: ticker.last }, "market refresh");
   } catch (error) {
     logger.warn({ error: String(error) }, "market refresh failed");

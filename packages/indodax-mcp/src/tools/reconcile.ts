@@ -81,24 +81,29 @@ export function registerReconcileTools(
     try {
       const rows = [];
       for (const order of app.paper.openOrders()) {
-        let market: number | null = null;
+        let market: Decimal | null = null;
         try {
           const ticker = await getTicker(
             app.publicClient,
             `${order.symbol.base}_${order.symbol.quote}`,
           );
-          market = Number(ticker.last);
+          const parsed = new Decimal(ticker.last);
+          market = parsed.isFinite() ? parsed : null;
         } catch {
           market = null;
         }
-        const limit = Number(order.price ?? "0");
+        const limit = new Decimal(order.price ?? "0");
         rows.push({
           orderId: order.internalOrderId,
           state: order.state,
-          limit,
-          market,
+          limit: limit.toString(),
+          market: market?.toString() ?? null,
           fillable:
-            market === null ? false : order.side === "BUY" ? market <= limit : market >= limit,
+            market === null || !limit.isFinite()
+              ? false
+              : order.side === "BUY"
+                ? market.lte(limit)
+                : market.gte(limit),
         });
       }
       return ok({ checked: rows.length, orders: rows });

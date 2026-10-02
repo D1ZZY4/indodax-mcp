@@ -55,6 +55,15 @@ describe("paper executor", () => {
     expect(executor.openOrders()).toHaveLength(0);
   });
 
+  it("fills by exchange order id like cancel does", async () => {
+    const executor = new PaperExecutor();
+    const service = new ExecutionService(executor);
+    const result = await service.execute(paperRequest(), allow);
+    const { fee } = executor.fill(String(result.exchangeOrderId), "1000");
+    expect(Number(fee)).toBeGreaterThan(0);
+    expect(executor.openOrders()).toHaveLength(0);
+  });
+
   it("cancels and refunds reserved quote", async () => {
     const executor = new PaperExecutor();
     const service = new ExecutionService(executor);

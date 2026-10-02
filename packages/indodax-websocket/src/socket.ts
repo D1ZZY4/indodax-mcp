@@ -46,10 +46,11 @@ export class ManagedSocket {
   async connect(options: SocketOptions): Promise<void> {
     this.disconnect();
     this.state = "RECONNECTING";
+    const timeoutMs = options.timeoutMs ?? 10_000;
     const socket = new WebSocket(options.url);
     this.socket = socket;
     await new Promise<void>((resolve, reject) => {
-      const timer = setTimeout(() => reject(WebSocketError("connect timed out")), 10_000);
+      const timer = setTimeout(() => reject(WebSocketError("connect timed out")), timeoutMs);
       socket.onopen = () => {
         clearTimeout(timer);
         resolve();
@@ -117,6 +118,78 @@ export class ManagedSocket {
       duplicate,
     });
   }
+}
+
+export const SUMMARY_CHANNEL = "market:summary-24h";
+
+export function summaryRows(data: unknown): string[][] {
+  if (typeof data !== "object" || data === null) return [];
+  const inner = (data as Record<string, unknown>).data;
+  if (!Array.isArray(inner)) return [];
+  return inner.filter((row): row is string[] => Array.isArray(row) && typeof row[0] === "string");
+}
+
+export function compactPair(value: string): string {
+  return value.trim().toLowerCase().replace(/[-/_]/g, "");
+}
+
+export async function oneShotPairSnapshot(
+  pair: string,
+  token: string = DEFAULT_PUBLIC_TOKEN,
+  url: string = PUBLIC_WS_URL,
+  timeoutMs = 15_000,
+): Promise<StreamEvent> {
+  const wanted = compactPair(pair);
+  return new Promise<StreamEvent>((resolve, reject) => {
+    const socket = new WebSocket(url);
+    const timer = setTimeout(() => {
+      try {
+        socket.close();
+      } catch {
+        // ignore
+      }
+      reject(WebSocketError("snapshot timed out"));
+    }, timeoutMs);
+    let authed = false;
+    socket.onopen = () => socket.send(authMessage(token));
+    socket.onerror = () => {
+      clearTimeout(timer);
+      reject(WebSocketError("snapshot failed"));
+    };
+    socket.onmessage = (message) => {
+      let value: unknown;
+      try {
+        value = JSON.parse(String(message.data));
+      } catch {
+        return;
+      }
+      const record = value as Record<string, unknown>;
+      if (!authed) {
+        if (record.id === 1) {
+          authed = true;
+          socket.send(subscribeMessage(SUMMARY_CHANNEL));
+        }
+        return;
+      }
+      const envelope = parseEnvelope(value);
+      const rows = summaryRows(envelope?.data);
+      if (envelope?.channel && rows.length > 0) {
+        clearTimeout(timer);
+        try {
+          socket.close();
+        } catch {
+          // ignore
+        }
+        const match = rows.find((row) => row[0] === wanted) ?? null;
+        resolve({
+          channel: envelope.channel,
+          offset: envelope.offset,
+          data: { pair: wanted, row: match, rows },
+          duplicate: false,
+        });
+      }
+    };
+  });
 }
 
 export async function oneShotSnapshot(

@@ -1,7 +1,7 @@
 import { z } from "zod";
 import type { Registry } from "@indodax-mcp/mcp-registry";
 import type { ServerHandlers } from "@indodax-mcp/mcp-core";
-import { getTicker } from "@indodax-mcp/indodax-market";
+import { getTicker, toCompactPair } from "@indodax-mcp/indodax-market";
 import { fail, ok, pairArg, parseArgs } from "../respond.js";
 import type { AppServices } from "../composition.js";
 
@@ -129,7 +129,7 @@ export function registerMarketTools(
   handlers.tools.set("indodax_orderbook", async (raw) => {
     try {
       const args = parseArgs(z.object({ pair: pairArg, levels: z.number().optional() }), raw);
-      const book = await app.publicClient.depth(args.pair);
+      const book = await app.publicClient.depth(toCompactPair(args.pair));
       const levels = Math.min(100, Math.max(1, Math.floor(args.levels ?? 20)));
       return ok({ buy: book.buy.slice(0, levels), sell: book.sell.slice(0, levels) });
     } catch (error) {
@@ -139,7 +139,7 @@ export function registerMarketTools(
   handlers.tools.set("indodax_trades", async (raw) => {
     try {
       const args = parseArgs(z.object({ pair: pairArg }), raw);
-      return ok(await app.publicClient.trades(args.pair));
+      return ok(await app.publicClient.trades(toCompactPair(args.pair)));
     } catch (error) {
       return fail(error);
     }
@@ -157,7 +157,7 @@ export function registerMarketTools(
       );
       const now = Math.floor(Date.now() / 1000);
       const bars = await app.publicClient.ohlc(
-        args.symbol.toUpperCase(),
+        toCompactPair(args.symbol).toUpperCase(),
         args.timeframe ?? "60",
         args.from ?? now - 86_400,
         args.to ?? now,

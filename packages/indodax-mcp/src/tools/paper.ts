@@ -20,6 +20,94 @@ const PAPER = {
 
 const PAPER_READ = { ...PAPER, riskClass: "read" as const, auditClass: "read" as const };
 
+const PAPER_REVIEW = {
+  mode: "paper" as const,
+  capability: "PAPER" as const,
+  marketAgeMs: 5_000,
+  accountAgeMs: 5_000,
+  dailyPnl: null,
+  tradeCount: 0,
+  duplicate: false,
+  reconciliationHalted: false,
+  deadmanUnknown: false,
+  balanceSufficient: null,
+};
+
+export interface PaperPlacement {
+  pair: string;
+  side: "BUY" | "SELL";
+  orderType?: "LIMIT" | "MARKET" | undefined;
+  price?: number | undefined;
+  quantity: number;
+}
+
+export async function placePaperOrder(app: AppServices, placement: PaperPlacement) {
+  const symbol = parseSymbolFlexible(placement.pair);
+  if (!symbol) throw ValidationError(`invalid pair: ${placement.pair}`);
+  const orderType = placement.orderType ?? "LIMIT";
+  const price = placement.price === undefined ? null : new Decimal(placement.price);
+  const quantity = new Decimal(placement.quantity);
+  const notional = price === null ? null : price.mul(quantity);
+  const ledger = app.paper.snapshot();
+  const lastSubmitted = ledger.orders
+    .map((order) => Date.parse(order.submittedAt))
+    .filter((value) => Number.isFinite(value));
+  const intent = {
+    agentId: "mcp",
+    sessionId: `mcp-${Date.now().toString(36)}`,
+    symbol,
+    side: placement.side,
+    orderType,
+    price: price?.toString() ?? null,
+    quantityOrIdr: quantity.toString(),
+    quantityIsIdr: false,
+    mode: "paper" as const,
+    capability: "PAPER" as const,
+    reason: "paper_order",
+  };
+  const proposal = app.trading.propose(intent);
+  const order = app.trading.toOrder(proposal, {
+    tenantId: app.tenantId,
+    exchangeAccountId: app.accountId,
+  });
+  const decision = app.trading.review(order, {
+    ...PAPER_REVIEW,
+    tradeCount: ledger.tradeCount,
+    lastOrderAtMs: lastSubmitted.length > 0 ? Math.max(...lastSubmitted) : null,
+    balanceSufficient: hasPaperBalance(ledger.balances, symbol, placement.side, notional, quantity),
+  });
+  if (decision.outcome !== "ALLOW") throw RiskDeniedError(decision.message);
+  const execution = new ExecutionService(app.paper);
+  return execution.execute(
+    {
+      order,
+      mode: "paper",
+      capability: "PAPER",
+      correlationId: proposal.correlationId,
+      requestedAt: new Date().toISOString(),
+    },
+    decision,
+  );
+}
+
+function hasPaperBalance(
+  balances: Record<string, string>,
+  symbol: { base: string; quote: string },
+  side: "BUY" | "SELL",
+  notional: Decimal | null,
+  quantity: Decimal,
+): boolean | null {
+  try {
+    if (side === "BUY") {
+      if (notional === null) return null;
+      return new Decimal(balances[symbol.quote] ?? "0").gte(notional);
+    }
+    return new Decimal(balances[symbol.base] ?? "0").gte(quantity);
+  } catch {
+    return null;
+  }
+}
+
 export function registerPaperTools(
   registry: Registry,
   handlers: ServerHandlers,
@@ -122,51 +210,7 @@ export function registerPaperTools(
         }),
         raw,
       );
-      const symbol = parseSymbolFlexible(args.pair);
-      if (!symbol) throw ValidationError(`invalid pair: ${args.pair}`);
-      const intent = {
-        agentId: "mcp",
-        sessionId: `mcp-${Date.now().toString(36)}`,
-        symbol,
-        side: args.side,
-        orderType: "LIMIT" as const,
-        price: String(args.price),
-        quantityOrIdr: String(args.quantity),
-        quantityIsIdr: false,
-        mode: "paper" as const,
-        capability: "PAPER" as const,
-        reason: "paper_order",
-      };
-      const proposal = app.trading.propose(intent);
-      const order = app.trading.toOrder(proposal, {
-        tenantId: app.tenantId,
-        exchangeAccountId: app.accountId,
-      });
-      const decision = app.trading.review(order, {
-        mode: "paper",
-        capability: "PAPER",
-        marketAgeMs: 5_000,
-        accountAgeMs: 5_000,
-        dailyPnl: null,
-        tradeCount: 0,
-        duplicate: false,
-        reconciliationHalted: false,
-        deadmanUnknown: false,
-        balanceSufficient: null,
-      });
-      if (decision.outcome !== "ALLOW") throw RiskDeniedError(decision.message);
-      const execution = new ExecutionService(app.paper);
-      const result = await execution.execute(
-        {
-          order,
-          mode: "paper",
-          capability: "PAPER",
-          correlationId: proposal.correlationId,
-          requestedAt: new Date().toISOString(),
-        },
-        decision,
-      );
-      return ok(result);
+      return ok(await placePaperOrder(app, args));
     } catch (error) {
       return fail(error);
     }

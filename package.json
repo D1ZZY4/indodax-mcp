@@ -81,11 +81,7 @@
     "@types/node": "catalog:",
     "bun-types": "catalog:",
     "turbo": "catalog:",
-    "typescript": "catalog:",
-    "@types/bun": "latest"
+    "typescript": "catalog:"
   },
-  "packageManager": "bun@1.4.2",
-  "dependencies": {
-    "indodax-mcp": "/tmp/indodax-mcp-1.0.0.tgz"
-  }
+  "packageManager": "bun@1.4.2"
 }

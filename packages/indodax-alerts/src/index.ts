@@ -1,3 +1,5 @@
+import Decimal from "decimal.js";
+
 export type AlertCondition =
   | { type: "above"; price: string }
   | { type: "below"; price: string }
@@ -17,20 +19,24 @@ export interface PriceAlert {
 }
 
 export function shouldTrigger(condition: AlertCondition, price: number): boolean {
+  const current = new Decimal(price);
+  if (!current.isFinite()) return false;
   switch (condition.type) {
     case "above":
-      return price >= Number(condition.price);
+      return current.gte(new Decimal(condition.price));
     case "below":
-      return price <= Number(condition.price);
+      return current.lte(new Decimal(condition.price));
     case "risePct": {
-      const reference = Number(condition.reference);
-      if (reference <= 0) return false;
-      return ((price - reference) / reference) * 100 >= Number(condition.percent);
+      const reference = new Decimal(condition.reference);
+      if (!reference.isFinite() || reference.lte(0)) return false;
+      const change = current.minus(reference).div(reference).mul(100);
+      return change.gte(new Decimal(condition.percent));
     }
     case "fallPct": {
-      const reference = Number(condition.reference);
-      if (reference <= 0) return false;
-      return ((reference - price) / reference) * 100 >= Number(condition.percent);
+      const reference = new Decimal(condition.reference);
+      if (!reference.isFinite() || reference.lte(0)) return false;
+      const change = reference.minus(current).div(reference).mul(100);
+      return change.gte(new Decimal(condition.percent));
     }
   }
 }

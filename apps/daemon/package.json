@@ -14,6 +14,7 @@
   },
   "dependencies": {
     "@indodax-mcp/config": "workspace:*",
+    "@indodax-mcp/core": "workspace:*",
     "@indodax-mcp/indodax-market": "workspace:*",
     "@indodax-mcp/indodax-mcp": "workspace:*",
     "@indodax-mcp/logging": "workspace:*"

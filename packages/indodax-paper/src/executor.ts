@@ -125,7 +125,10 @@ export class PaperExecutor implements ExecutionBackend {
   fill(internalOrderId: string, fillPrice: string): { fee: string } {
     const price = new Decimal(fillPrice);
     if (!price.isFinite() || price.lte(0)) throw ValidationError("fill price must be positive");
-    const record = this.ledger.orders.find((order) => order.internalOrderId === internalOrderId);
+    const record = this.ledger.orders.find(
+      (order) =>
+        order.internalOrderId === internalOrderId || order.exchangeOrderId === internalOrderId,
+    );
     if (!record || (record.state !== "ACCEPTED" && record.state !== "PARTIALLY_FILLED")) {
       throw OrderRejectedError("only open paper orders can be filled");
     }

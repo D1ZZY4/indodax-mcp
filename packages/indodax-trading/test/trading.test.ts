@@ -51,4 +51,15 @@ describe("trading service", () => {
     });
     expect(() => service.propose({ ...intent(), quantityOrIdr: "0" })).toThrow();
   });
+
+  it("issues unique correlation ids across service instances", () => {
+    const make = () =>
+      new TradingService(createRiskEngine(defaultRiskLimits(), paperOnlyPolicy()), {
+        record: () => {},
+      });
+    const first = make().propose(intent()).correlationId;
+    const second = make().propose(intent()).correlationId;
+    expect(first).not.toBe(second);
+    expect(`draft-${first}`).toMatch(/^[A-Za-z0-9_-]{1,36}$/);
+  });
 });

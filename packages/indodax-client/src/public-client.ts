@@ -3,6 +3,7 @@ import { ExchangeApiError, ValidationError } from "@indodax-mcp/errors";
 import {
   OFFICIAL_PUBLIC_BUCKET,
   RateLimiter,
+  appThrottleBucket,
   type FetchFn,
   fetchWithRetry,
 } from "@indodax-mcp/transport";
@@ -33,20 +34,14 @@ export interface PublicClientOptions {
 export class PublicClient {
   private readonly fetchFn: FetchFn;
   private readonly limiter: RateLimiter;
+  private readonly appThrottle: boolean;
 
   constructor(options: PublicClientOptions = {}) {
     this.fetchFn = options.fetchFn ?? fetch;
+    this.appThrottle = options.rateLimitRps !== undefined;
     this.limiter = new RateLimiter([
       OFFICIAL_PUBLIC_BUCKET,
-      ...(options.rateLimitRps !== undefined
-        ? [
-            {
-              key: "app-throttle",
-              capacity: options.rateLimitRps,
-              refillPerSecond: options.rateLimitRps,
-            },
-          ]
-        : []),
+      ...(options.rateLimitRps !== undefined ? [appThrottleBucket(options.rateLimitRps)] : []),
     ]);
   }
 
@@ -56,6 +51,7 @@ export class PublicClient {
     query?: Record<string, string>,
   ): Promise<T> {
     await this.limiter.acquire("public-rest");
+    if (this.appThrottle) await this.limiter.acquire("app-throttle");
     const url = query
       ? `${PUBLIC_BASE}${path}?${new URLSearchParams(query).toString()}`
       : `${PUBLIC_BASE}${path}`;

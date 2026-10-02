@@ -61,6 +61,24 @@ describe("risk engine", () => {
     expect(engine.evaluate(order("100000"), context()).outcome).toBe("HALT");
   });
 
+  it("denies overfull positions and rapid repeats", () => {
+    const engine = createRiskEngine(defaultRiskLimits(), paperOnlyPolicy());
+    const position = engine.evaluate(order("100000"), {
+      ...context(),
+      positionNotional: new Decimal("200000000"),
+    });
+    expect(position.outcome).toBe("DENY");
+    expect(position.reasons).toContain("MAX_POSITION_EXPOSURE");
+    const cooldown = engine.evaluate(order("100000"), { ...context(), lastOrderAtMs: Date.now() });
+    expect(cooldown.outcome).toBe("DENY");
+    expect(cooldown.reasons).toContain("COOLDOWN_ACTIVE");
+    const stale = engine.evaluate(order("100000"), {
+      ...context(),
+      lastOrderAtMs: Date.now() - 60_000,
+    });
+    expect(stale.outcome).toBe("ALLOW");
+  });
+
   it("fail-closes on unknown deadman for live", () => {
     const engine = createRiskEngine(defaultRiskLimits(), {
       ...paperOnlyPolicy(),

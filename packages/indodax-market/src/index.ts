@@ -1,4 +1,4 @@
-import { asPair, parseSymbolFlexible, type SymbolParts } from "@indodax-mcp/core";
+import { asCompact, asPair, parseSymbolFlexible, type SymbolParts } from "@indodax-mcp/core";
 import { ValidationError } from "@indodax-mcp/errors";
 import type { PublicClient, TickerBody } from "@indodax-mcp/indodax-client";
 import { decimalOrNull } from "@indodax-mcp/core";
@@ -15,6 +15,11 @@ export function normalizePair(input: string): SymbolParts {
   const symbol = parseSymbolFlexible(input);
   if (!symbol) throw ValidationError(`invalid pair: ${input}`);
   return symbol;
+}
+
+/** Compact pair spelling required by depth, trades, and candles endpoints (e.g. btcidr). */
+export function toCompactPair(input: string): string {
+  return asCompact(normalizePair(input));
 }
 
 export async function getTicker(client: PublicClient, pair: string): Promise<MarketTicker> {

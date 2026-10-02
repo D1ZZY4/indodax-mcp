@@ -4,7 +4,10 @@ import { AppError } from "@indodax-mcp/errors";
 import type { Registry } from "@indodax-mcp/mcp-registry";
 
 export interface ToolContext {
-  signal?: AbortSignal;
+  // Intentionally empty: SDK 2.2.0 exposes no per-call abort signal to
+  // tool callbacks (cancellation only tears down the transport), so no
+  // fake signal is provided here.
+  signal?: never;
 }
 
 export type ToolHandler = (

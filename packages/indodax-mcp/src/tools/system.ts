@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { AuthorizationError } from "@indodax-mcp/errors";
-import { oneShotSnapshot } from "@indodax-mcp/indodax-websocket";
+import { oneShotPairSnapshot } from "@indodax-mcp/indodax-websocket";
 import type { Registry } from "@indodax-mcp/mcp-registry";
 import type { ServerHandlers } from "@indodax-mcp/mcp-core";
 import { fail, ok, pairArg, parseArgs } from "../respond.js";
@@ -79,7 +79,7 @@ export function registerSystemTools(
       name: "indodax_ws_ticker",
       title: "WebSocket ticker",
       description:
-        "Read-only. One-shot live ticker over WebSocket, 10s timeout. Args: pair default btc_idr.",
+        "Read-only. One-shot live market summary snapshot over WebSocket with the requested pair row when present, 15s timeout. Args: pair default btc_idr.",
       ...SYSTEM,
     },
     inputSchema: z.object({ pair: pairArg.optional() }),
@@ -145,7 +145,7 @@ export function registerSystemTools(
     try {
       const args = parseArgs(z.object({ pair: pairArg.optional() }), raw);
       const token = app.env.INDODAX_WS_TOKEN;
-      const event = await oneShotSnapshot(args.pair ?? "btc_idr", token);
+      const event = await oneShotPairSnapshot(args.pair ?? "btc_idr", token);
       return ok(event);
     } catch (error) {
       return fail(error);

@@ -79,7 +79,14 @@ export class LiveExecutor implements ExecutionBackend {
   }
 
   async cancelByExchangeId(symbol: string, orderId: string): Promise<boolean> {
-    await this.signed("DELETE", "/api/v2/order", { symbol, orderId });
+    const raw = await this.signed<Record<string, unknown>>("DELETE", "/api/v2/order", {
+      symbol,
+      orderId,
+    });
+    const code = (raw as { code?: number }).code;
+    if (typeof code === "number" && code !== 0) {
+      throw OrderRejectedError(`exchange rejected cancel: ${JSON.stringify(raw).slice(0, 200)}`);
+    }
     return true;
   }
 }

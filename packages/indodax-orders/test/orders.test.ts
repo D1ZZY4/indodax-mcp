@@ -47,13 +47,19 @@ describe("order machine", () => {
 
 describe("reconcile compare", () => {
   it("matches identical sets", () => {
-    expect(compareOrderIds(["a"], ["a", "b"]).state).toBe("MATCH");
+    expect(compareOrderIds(["a"], ["a"]).state).toBe("MATCH");
   });
 
   it("flags missing exchange orders", () => {
     const outcome = compareOrderIds(["a"], []);
     expect(outcome.state).toBe("MISMATCH");
     expect(outcome.mismatchedOrders).toEqual(["a"]);
+  });
+
+  it("flags exchange-only orders", () => {
+    const outcome = compareOrderIds(["a"], ["a", "b"]);
+    expect(outcome.state).toBe("MISMATCH");
+    expect(outcome.exchangeOnlyIds).toEqual(["b"]);
   });
 
   it("compares balances within tolerance", () => {

@@ -66,6 +66,10 @@ export interface RiskContext {
   reconciliationHalted: boolean;
   deadmanUnknown: boolean;
   balanceSufficient: boolean | null;
+  /** Current position notional in quote currency. Null skips the max-position check. */
+  positionNotional?: Decimal | null | undefined;
+  /** Epoch ms of the most recent order. Null skips the cooldown check. */
+  lastOrderAtMs?: number | null | undefined;
 }
 
 export interface RiskEngine {
@@ -134,6 +138,13 @@ function evaluateInternal(
   }
   if (context.tradeCount >= limits.maxTradeCount) push("MAX_TRADE_COUNT");
   if (context.balanceSufficient === false) push("INSUFFICIENT_BALANCE");
+  if (context.positionNotional?.gt(limits.maxPositionNotional) === true) {
+    push("MAX_POSITION_EXPOSURE");
+  }
+  if (context.lastOrderAtMs != null) {
+    const elapsed = Date.now() - context.lastOrderAtMs;
+    if (elapsed >= 0 && elapsed < limits.orderCooldownMs) push("COOLDOWN_ACTIVE");
+  }
 
   if (outcome === "ALLOW") return { outcome, reasons: [], message: "allowed" };
   return { outcome: "DENY", reasons, message: `denied: ${reasons.join(", ")}` };
