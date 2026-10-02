@@ -1,21 +1,21 @@
 # Code of Conduct
 
-This project moves real money when live mode is enabled. Review accordingly.
+Indodax MCP is financial infrastructure. Contributors are expected to communicate professionally and review changes with care.
 
-## Standard
+## Standards
 
-Be respectful, professional, and constructive. Critique code rigorously without personal attacks. Financial software demands careful review; disagreement about risk controls or money handling is resolved with evidence, not volume.
+Be respectful, constructive, and specific. Critique code, designs, documentation, and decisions without personal attacks.
 
-Harassment, discrimination, abusive behavior, and harassment of new contributors are not tolerated in issues, pull requests, discussions, or any project space.
+Harassment, discrimination, intimidation, threats, and targeted abuse are not acceptable in issues, pull requests, discussions, or project spaces.
 
 ## Scope
 
-Applies to all project spaces: repository, issue tracker, pull requests, releases, and any communication channel maintained for this project.
+This code applies to the repository, issue tracker, pull requests, discussions, releases, and other channels maintained for the project.
 
 ## Reporting
 
-Report suspected violations privately to the maintainer before opening a public issue. Include links or screenshots, dates, and the accounts involved. Reports are handled confidentially.
+Report violations privately to the maintainer with the relevant links, dates, accounts, and supporting context. Do not publish sensitive report details in a public issue.
 
 ## Enforcement
 
-Valid reports lead to warnings, temporary interaction limits, or permanent bans depending on severity and repetition. Enforcement decisions rest with the maintainer.
+The maintainer may issue warnings, restrict participation temporarily, or remove access depending on severity, repetition, and available evidence.
