@@ -1,74 +1,71 @@
 # Advanced guide
 
-For operators who understand the beginner path and want live reads,
-tighter risk, automation, and self-hosting.
+For operators who need authenticated reads, paper automation, and a clear path toward future live readiness.
 
-```mermaid
-flowchart TD
-    Creds["Add API credentials"] --> Verify["Verify read-only access"]
-    Verify --> Risk["Tune risk limits"]
-    Risk --> Deadman["Arm Deadman"]
-    Deadman --> Daemon["Run the daemon"]
-    Daemon --> PG["Persist to PostgreSQL"]
-```
+## 1. Authenticated reads
 
-## 1. Credentials and read-only verification
+Add INDODAX_API_KEY and INDODAX_API_SECRET to .env.
 
-Add `INDODAX_API_KEY` and `INDODAX_API_SECRET` to `.env`. TAPI v2
-needs a dedicated v2 key with the client IP whitelisted.
-
-```bash
+~~~bash
 bun apps/cli/src/main.ts account info
 bun apps/cli/src/main.ts account balances
-```
+~~~
 
-If the exchange answers `-2015`, the key works but the IP grant is
-missing. Fix it on the exchange dashboard, never in code.
+Use a dedicated TAPI v2 key with the appropriate exchange-side IP restrictions.
 
-## 2. Risk tuning
+Treat authentication or IP errors as exchange configuration signals until the signing and endpoint path has been independently verified.
 
-Defaults live in `defaultRiskLimits`: 10,000,000 IDR max order,
-10,000 IDR minimum, 100,000,000 max position, 5,000,000 daily loss,
-5 second cooldown, 60 second market staleness. Change them in the
-composition root for your deployment, then re-run the risk tests.
-Every denial carries a reason code; alert on `HALT`, review `DENY`.
+## 2. Application risk
 
-## 3. Deadman Switch
+Current defaults from defaultRiskLimits():
 
-Arm before any autonomous live session:
+| Limit | Default |
+| --- | ---: |
+| Maximum order notional | 10,000,000 |
+| Minimum order notional | 10,000 |
+| Maximum position notional | 100,000,000 |
+| Maximum daily loss | 5,000,000 |
+| Maximum trade count | 100 |
+| Order cooldown | 5,000 ms |
+| Maximum market age | 60,000 ms |
+| Maximum account age | 120,000 ms |
 
-1. `indodax_deadman_arm` with pairs and `countdownMs`.
-2. Refresh on a timer shorter than the countdown.
-3. Watch `indodax_deadman_status`. `STALE` or `EXPIRED` halts new
-   live trading until an operator clears it.
+These are application limits, not exchange limits.
 
-Paper never calls the exchange Deadman endpoint.
+Several MCP callers currently supply fixed freshness values or null daily PnL. The risk engine is deterministic, but caller context is not yet fully authoritative.
 
-## 4. Daemon operations
+## 3. Deadman
 
-```bash
+The Deadman package implements its own state machine and tool surface. The current application does not expose a supported live trading path, so Deadman is currently an operational state model rather than a switch that can enable live trading.
+
+Future live work must fail closed when the Deadman heartbeat is stale or unknown.
+
+## 4. Daemon
+
+~~~bash
 bun apps/daemon/src/main.ts
-```
+~~~
 
-Startup logs open paper orders with live-price fillable flags,
-then runs market refresh every 30 seconds and snapshots every
-60 seconds. `SIGINT` or `SIGTERM` stops the scheduler for a clean exit.
+The current daemon refreshes market data, reports paper-order fillability against live prices, records snapshots, and shuts down cleanly on SIGINT or SIGTERM.
+
+This is operational scaffolding, not a durable live trading engine.
 
 ## 5. PostgreSQL
 
-Set `DATABASE_URL` and apply migrations:
+Set DATABASE_URL when working with the database package:
 
-```bash
+~~~bash
 bun --filter @indodax-mcp/db db:migrate
-```
+~~~
 
-Compose ships Postgres 17 plus the HTTP gateway. Point production at
-a managed instance with the same schema.
+The current main composition does not use PostgreSQL as its runtime source of truth.
 
-## 6. Backtests before strategies
+## 6. Backtests
 
-Replay closes with `indodax_backtest_run`, compare runs with
-`indodax_backtest_compare`, and read the journal with
-`indodax_backtest_get`. Backtests never imply live profitability.
+Run deterministic strategy replays with indodax_backtest_run, compare runs with indodax_backtest_compare, and inspect results with indodax_backtest_get.
 
-Next: [Agent harness guide](agent-harness.md).
+Current backtest results are stored in process memory. They are not durable historical records and do not demonstrate profitability.
+
+## 7. Future live-readiness
+
+Before enabling any live path, prove durable state, authoritative risk context, exchange reconciliation, idempotent order handling, state-changing retry policy, private WebSocket handling, Deadman lifecycle, audit persistence, and end-to-end safety tests.
