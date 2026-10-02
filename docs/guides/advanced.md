@@ -2,6 +2,15 @@
 
 For operators who need authenticated reads, paper automation, and a clear path toward future live readiness.
 
+```mermaid
+flowchart TD
+    Creds["Add API credentials"] --> Verify["Verify read-only access"]
+    Verify --> Risk["Tune risk limits"]
+    Risk --> Deadman["Arm Deadman"]
+    Deadman --> Daemon["Run the daemon"]
+    Daemon --> PG["Persist to PostgreSQL"]
+```
+
 ## 1. Authenticated reads
 
 Add INDODAX_API_KEY and INDODAX_API_SECRET to .env.

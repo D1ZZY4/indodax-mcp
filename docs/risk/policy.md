@@ -17,37 +17,16 @@ This means the live execution branch is not enabled by configuration alone. The 
 
 ## Evaluation order
 
-~~~text
-kill switch
-    |
-circuit breaker
-    |
-reconciliation halt
-    |
-allowed mode
-    |
-allowed capability
-    |
-live Deadman state
-    |
-duplicate
-    |
-market freshness
-    |
-account freshness
-    |
-order notional limits
-    |
-daily loss
-    |
-trade count
-    |
-balance
-    |
-position exposure
-    |
-cooldown
-~~~
+```mermaid
+flowchart TD
+    Req["Order plus context"] --> Halt{"Kill switch, breaker, halted reconcile?"}
+    Halt -->|"Yes"| HaltOut["HALT: path closed"]
+    Halt -->|"No"| Live{"Live mode and TradePlace?"}
+    Live -->|"Missing"| Deny1["DENY: capability denial"]
+    Live -->|"Present"| Checks{"Limits, loss, stale data, duplicate, cooldown?"}
+    Checks -->|"Fail"| Deny2["DENY with RiskReason"]
+    Checks -->|"Pass"| Allow["ALLOW"]
+```
 
 A failed rule produces a machine-readable RiskReason. Kill switch, circuit breaker, and reconciliation halt produce HALT; other rule failures produce DENY.
 

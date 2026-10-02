@@ -40,13 +40,13 @@ Impact: private order-event synchronization cannot yet be treated as production-
 
 Mitigation: implement a dedicated private protocol adapter with token generation, renewal, reconnect, and order-event reconciliation tests.
 
-## R6. MCP metadata is not a centralized enforcement layer
+## R6. MCP metadata is partially centralized
 
-Tool metadata describes capability, environment, authentication, destructiveness, idempotency, and audit class, but mcp-core dispatch does not enforce all of those fields centrally.
+Tool metadata describes capability, environment, authentication, destructiveness, idempotency, and audit class. A central guard enforces authentication and environment; capability, risk, and audit enforcement stays in handlers and the risk engine.
 
-Impact: a new mutation tool can be incorrectly guarded if its handler/service implementation is incomplete.
+Impact: a new mutation tool with incomplete handler guards can still be misguarded for capability or risk paths.
 
-Mitigation: add centralized policy middleware or make executable policy guards mandatory at the service boundary.
+Mitigation: keep executable policy guards mandatory at the service boundary and extend central coverage only with matching tests.
 
 ## R7. Exchange quota and application throttle are separate controls
 

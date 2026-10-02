@@ -16,9 +16,21 @@ bunx playwright test
 bun run verify
 ~~~
 
-The active GitHub workflow currently runs format, lint, typecheck, test, and build. End-to-end and consumer verification are available through repository commands but are not part of that workflow.
+The active GitHub workflow runs format, lint, typecheck, test, build, end-to-end, consumer verification, and migration drift checks.
 
 ## Health
+
+```mermaid
+stateDiagram-v2
+    [*] --> healthy
+    healthy --> degraded : minor check fails
+    degraded --> healthy : recovers
+    degraded --> unhealthy : more checks fail
+    unhealthy --> degraded : partial recovery
+    unhealthy --> halted : risk or reconcile halts
+    degraded --> halted : risk or reconcile halts
+    halted --> healthy : operator clears condition
+```
 
 Use indodax_health for the service rollup.
 

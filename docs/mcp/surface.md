@@ -16,7 +16,7 @@ The registry currently contains 73 tools, 11 resources, and 5 prompts.
 
 | Area | Current role |
 | --- | --- |
-| Market | Public market data and WebSocket snapshots |
+| Market | Public market data |
 | Account | Authenticated account and order reads |
 | Orders | Validation, proposal, paper placement, and cancellation |
 | Portfolio | Paper exposure, positions, and PnL views |
@@ -46,6 +46,6 @@ Five prompts guide market, portfolio, order, strategy, and incident review. Prom
 
 Tool metadata declares capability, risk class, environment, authentication, destructiveness, idempotency class, and audit class.
 
-The generic mcp-core dispatcher validates and dispatches registrations but does not centrally enforce every metadata field. Operational enforcement is currently distributed across tool handlers and services.
+A central guard enforces authentication and environment for every tool. Capability, risk, and audit enforcement stays in handlers and services.
 
 For new mutation tools, metadata and executable guards are both required. Never treat metadata alone as a security control.

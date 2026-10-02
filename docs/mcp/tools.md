@@ -2,6 +2,21 @@
 
 MCP tools are protocol adapters around the application services and exchange-facing packages. Tool handlers should remain small so the same behavior can be tested without an MCP transport.
 
+```mermaid
+sequenceDiagram
+    participant A as Agent
+    participant M as MCP tool
+    participant T as TradingService
+    participant R as RiskEngine
+    participant E as ExecutionService
+    A->>M: propose trade
+    M->>T: validate intent
+    T->>R: evaluate context
+    R-->>T: ALLOW or DENY with reason
+    T-->>M: proposal plus verdict
+    M-->>A: result, nothing executed yet
+```
+
 ## Handler pattern
 
 ~~~text

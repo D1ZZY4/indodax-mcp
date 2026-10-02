@@ -2,6 +2,14 @@
 
 This page is a historical migration record for the rebuild from [indodax-cli](https://github.com/ibidathoillah/indodax-cli). Current implementation status is documented separately in the architecture and completeness pages.
 
+```mermaid
+flowchart LR
+    V1["indodax-cli behavior"] --> Map["Domain mapping"]
+    Map --> Arch["New architecture"]
+    Arch --> Slice["Vertical slices"]
+    Slice --> Verify["Regression tests"]
+```
+
 ## Preserved responsibilities
 
 The rebuild retains these broad responsibilities:

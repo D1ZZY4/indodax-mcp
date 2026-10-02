@@ -1,5 +1,17 @@
 # Agent harness guide
 
+```mermaid
+sequenceDiagram
+    participant Agent
+    participant MCP as MCP server
+    participant Risk as RiskEngine
+    participant Exec as Execution
+    Agent->>MCP: validate or propose
+    MCP->>Risk: evaluate with context
+    Risk-->>MCP: ALLOW or DENY plus reasons
+    MCP-->>Agent: verdict, nothing executed
+```
+
 How an AI agent should operate the current Indodax MCP surface without treating documentation as execution authority.
 
 ## 1. Discover before acting

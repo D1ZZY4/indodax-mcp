@@ -4,21 +4,13 @@ Reference for contributors extending the current Bun monorepo.
 
 ## 1. Boundaries
 
-~~~text
-core / errors / generic MCP infrastructure
-            |
-            v
-transport / storage / exchange adapters
-            |
-            v
-INDODAX domain packages
-            |
-            v
-indodax-mcp application composition
-            |
-            v
-CLI / daemon / HTTP / stdio / workbench
-~~~
+```mermaid
+flowchart TD
+    Core["core, errors, generic MCP infrastructure"] --> Infra["transport, storage, exchange adapters"]
+    Infra --> Exchange["INDODAX domain packages"]
+    Exchange --> MCP["indodax-mcp application composition"]
+    MCP --> Apps["CLI, daemon, HTTP, stdio, workbench"]
+```
 
 Generic packages should not depend on INDODAX domain packages. Exchange protocol details belong in adapters. Financial code uses Decimal and does not import LLM SDKs.
 
@@ -30,7 +22,7 @@ Generic packages should not depend on INDODAX domain packages. Exchange protocol
 4. Add regression coverage for success, validation, and denial paths.
 5. Update the MCP surface documentation.
 
-The registry validates metadata, but mcp-core does not centrally enforce every metadata field. Security-sensitive controls must exist in executable handler or service code.
+The registry validates metadata, and a central guard enforces authentication and environment. Capability, risk, and audit enforcement stays in executable handler or service code.
 
 ## 3. Add a package
 

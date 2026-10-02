@@ -4,27 +4,23 @@ The repository separates exchange protocol handling, financial domain logic, app
 
 ## Runtime direction
 
-~~~text
-MCP / CLI
-   |
-   v
-indodax-mcp application composition
-   |
-   +--> market / account / strategy / portfolio services
-   |
-   +--> TradingService
-           |
-           v
-        RiskEngine
-           |
-           v
-      ExecutionService
-        /          \
-   PaperExecutor  LiveExecutor
-                         |
-                         v
-                  INDODAX TAPI v2
-~~~
+```mermaid
+flowchart TD
+    subgraph Interface["Interface"]
+        direction LR
+        MCP["MCP"] & CLI["CLI"] & Daemon["Daemon"]
+    end
+    subgraph App["Application"]
+        direction LR
+        Intent["Agent intent / TradingService"] --> Risk["RiskEngine"]
+    end
+    subgraph Exec["Execution"]
+        direction LR
+        Svc["ExecutionService"] --> Paper["PaperBackend"]
+        Svc --> Live["LiveBackend"]
+    end
+    Interface --> App --> Exec --> API["Indodax API"]
+```
 
 The main composition currently uses paper execution and in-memory application state. The live backend is constructed when credentials exist, but the composed policy permits only paper execution.
 

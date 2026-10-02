@@ -1,6 +1,6 @@
-# Indodax MCP
+<h1 align="center">INDODAX MCP</h1>
 
-Community MCP server and trading infrastructure for INDODAX, built for AI agents, CLI workflows, and operators.
+<p align="center">Community MCP server and trading infrastructure for INDODAX, built for AI agents, CLI workflows, and operators.</p>
 
 > [!CAUTION]
 > Unofficial community software. It is not affiliated with, endorsed by, or supported by INDODAX. Cryptocurrency trading can result in loss of funds.
@@ -9,24 +9,6 @@ Community MCP server and trading infrastructure for INDODAX, built for AI agents
 > The current application policy is paper-only. A live execution adapter exists, but the composed server does not currently permit live order placement. Withdrawal is disabled by design.
 
 Indodax MCP is a TypeScript/Bun rebuild of [indodax-cli](https://github.com/ibidathoillah/indodax-cli) by ibidathoillah. The original MIT license is preserved in [LICENSE_COPY](LICENSE_COPY/README.md). This repository is licensed under SSPL v1; see [LICENSE](LICENSE).
-
-## Current status
-
-The repository is a Bun workspaces monorepo with Turborepo, strict TypeScript, Biome, Vitest, Playwright, the official MCP SDK v2 family, Decimal-based financial math, a Drizzle/PostgreSQL persistence layer, and dedicated INDODAX adapters.
-
-At the current main commit:
-
-- 73 MCP tools
-- 11 MCP resources
-- 5 MCP prompts
-- Paper execution enabled
-- Live executor implemented but locked by application policy
-- Withdrawal endpoint intentionally unavailable
-- PostgreSQL schema and repositories implemented, while the main runtime still uses in-memory application state
-- Reconciliation primitives implemented, while the MCP reconciliation surface is currently paper/local oriented
-- Full verification is available through the verify script
-
-Treat the status above as the implementation baseline. Do not infer production capabilities from architecture documents alone.
 
 ## Requirements
 
@@ -91,29 +73,23 @@ Never commit real credentials. Rotate an exchange key immediately if it is expos
 
 The supported execution model today is:
 
-~~~text
-Agent / MCP / CLI
-        |
-        v
-Trade intent
-        |
-        v
-Validation + risk review
-        |
-        v
-Paper execution
-~~~
+```mermaid
+flowchart TD
+    Agent["Agent / MCP / CLI"] --> Trading["TradingService"]
+    Trading --> Risk["RiskEngine"]
+    Risk --> Exec["ExecutionService"]
+    Exec --> Paper["Paper backend"]
+    Exec --> Live["Live backend"]
+    Live --> API["Indodax API"]
+```
 
 The live branch is intentionally closed:
 
-~~~text
-Live intent
-    |
-    v
-server policy
-    |
-    +--> DENY
-~~~
+```mermaid
+flowchart TD
+    Intent["Live intent"] --> Policy{"Server policy?"}
+    Policy -->|"Locked"| Deny["DENY"]
+```
 
 The live backend is maintained behind the execution interface so it can be hardened and verified independently before any production enablement.
 
@@ -123,15 +99,13 @@ Withdrawal has no server-side grant path.
 
 The current server exposes 73 tools, 11 resources, and 5 prompts.
 
-Tool areas include market data, account reads, order validation and paper execution, portfolio views, risk, strategies, backtests, alerts, reconciliation, audit, system status, funding reads, history, operations, and WebSocket inspection.
+Tool areas include market data, account reads, order validation and paper execution, portfolio views, risk, strategies, backtests, alerts, reconciliation, audit, system status, funding reads, history, and WebSocket inspection.
 
 See [MCP surface](docs/mcp/surface.md), [MCP implementation notes](docs/mcp/tools.md), and the [agent harness guide](docs/guides/agent-harness.md).
 
 ## Safety model
 
-Paper execution is the default. Mutation tools use explicit metadata and handler-level checks. Risk evaluation is deterministic and fail-closed for kill switch, circuit breaker, reconciliation halt, mode/capability mismatch, stale state, limits, and other configured constraints.
-
-The generic MCP dispatcher does not centrally enforce every metadata field. Individual mutation handlers currently perform the operational checks. Metadata is therefore a contract, not proof of enforcement.
+Paper execution is the default. Mutation tools use explicit metadata, a central auth and environment guard, plus handler-level checks. Risk evaluation is deterministic and fail-closed for kill switch, circuit breaker, reconciliation halt, mode/capability mismatch, stale state, limits, and other configured constraints.
 
 For live trading, the application policy currently allows only paper mode, so APP_ENV=live does not enable order placement.
 

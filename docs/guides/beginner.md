@@ -2,6 +2,15 @@
 
 This guide keeps execution in paper mode while you learn the MCP, CLI, and risk model.
 
+```mermaid
+flowchart TD
+    Install["Install plus paper env"] --> Health["Check health"]
+    Health --> Market["Read live market"]
+    Market --> Paper["Paper trade"]
+    Paper --> Risk["Understand risk verdicts"]
+    Risk --> Done["Ready for advanced guide"]
+```
+
 ## 1. Install
 
 ~~~bash

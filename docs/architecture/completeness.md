@@ -33,7 +33,7 @@ Definitions:
 | MCP tools | 73 | yes | yes | protocol harness |
 | MCP resources | 11 | yes | protocol | protocol path |
 | MCP prompts | 5 | yes | protocol | protocol path |
-| MCP metadata contracts | yes | yes | schema tests | metadata not centrally enforced |
+| MCP metadata contracts | yes | guard for auth/environment | schema tests | handler plus risk checks stay downstream |
 | HTTP gateway | yes | yes | yes | Playwright path |
 | MCP stdio server | yes | yes | yes | consumer/protocol path |
 | Deadman state machine | yes | yes | yes | state-machine coverage |

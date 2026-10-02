@@ -4,56 +4,57 @@ The repository uses one execution contract for paper and live backends. The supp
 
 ## Runtime flow
 
-~~~text
-TradeIntent
-   |
-   v
-TradingService.propose()
-   |
-   v
-TradingService.toOrder()
-   |
-   v
-TradingService.review()
-   |
-   v
-RiskEngine.evaluate()
-   |
-   +--> DENY / HALT
-   |
-   +--> ALLOW
-            |
-            v
-      ExecutionService.execute()
-         /                \
-   PaperExecutor       LiveExecutor
-~~~
+```mermaid
+flowchart TD
+    Intent["TradeIntent from agent or CLI"] --> Propose["TradingService propose"]
+    Propose --> Order["Build OrderRecord in NEW"]
+    Order --> Review["Review: NEW to SUBMITTING"]
+    Review --> Risk{"RiskEngine verdict?"}
+    Risk -->|"Allow"| Submit["ExecutionService"]
+    Risk -->|"Deny"| Rejected["REJECTED"]
+    Risk -->|"Halt"| Halted["HALT"]
+    Submit --> Backend{"Backend result?"}
+    Backend -->|"Ack"| Open["ACCEPTED"]
+    Backend -->|"Timeout"| Unknown["UNKNOWN"]
+    Unknown --> Recon["Reconcile before retry"]
+    Recon --> Submit
+    Open --> Done["FILLED / CANCELLED"]
+```
 
 Paper order placement follows the full intent, proposal, risk review, and execution path.
 
 ## Order lifecycle
 
-~~~text
-NEW
- |
- v
-SUBMITTING
- |       |        \
- v       v         v
-ACCEPTED REJECTED UNKNOWN
- |                    |
- |                    v
- |                RECONCILING
- |              /      |       \
- |             v       v        v
- |        RECONCILED ACCEPTED FILLED
- |
- +--> PARTIALLY_FILLED --> FILLED
- |
- +--> CANCELLING --> CANCELLED
- |                    \
- +--------------------> FILLED
-~~~
+```mermaid
+stateDiagram-v2
+    [*] --> NEW
+    NEW --> SUBMITTING
+    SUBMITTING --> ACCEPTED
+    SUBMITTING --> REJECTED
+    SUBMITTING --> UNKNOWN
+    UNKNOWN --> ACCEPTED
+    UNKNOWN --> FILLED
+    UNKNOWN --> REJECTED
+    UNKNOWN --> RECONCILING
+    RECONCILING --> RECONCILED
+    RECONCILING --> ACCEPTED
+    RECONCILING --> FILLED
+    RECONCILING --> CANCELLED
+    ACCEPTED --> PARTIALLY_FILLED
+    ACCEPTED --> FILLED
+    ACCEPTED --> CANCELLING
+    ACCEPTED --> RECONCILING
+    PARTIALLY_FILLED --> FILLED
+    PARTIALLY_FILLED --> CANCELLING
+    PARTIALLY_FILLED --> RECONCILING
+    CANCELLING --> CANCELLED
+    CANCELLING --> FILLED
+    CANCELLING --> UNKNOWN
+    REJECTED --> [*]
+    FILLED --> [*]
+    CANCELLED --> [*]
+    RECONCILED --> [*]
+```
 
 Canonical order states live in @indodax-mcp/indodax-orders.
 

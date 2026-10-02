@@ -4,18 +4,16 @@ The repository models paper, live, and shadow execution modes. The current appli
 
 ## Current behavior
 
-~~~text
-mutation request
-      |
-      v
-mode selection
-      |
-      +--> paper --> risk review --> PaperExecutor
-      |
-      +--> live ---> server policy ---> DENY
-      |
-      +--> shadow -> no supported live execution path
-~~~
+```mermaid
+flowchart LR
+    Call["Mutation tool call"] --> Mode{"Explicit live mode?"}
+    Mode -->|"No"| Paper["Paper backend"]
+    Mode -->|"Yes"| Cap{"Live capability plus ack?"}
+    Cap -->|"No"| Denied["Denied"]
+    Cap -->|"Yes"| Policy{"Server policy allows?"}
+    Policy -->|"No"| Denied
+    Policy -->|"Yes"| Live["Live backend"]
+```
 
 Paper is the safe default.
 
