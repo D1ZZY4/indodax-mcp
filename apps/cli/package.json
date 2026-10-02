@@ -1,10 +1,9 @@
 {
   "name": "@indodax-mcp/cli",
   "version": "1.0.0",
-  "private": true,
   "type": "module",
   "scripts": {
-    "build": "bun build ./src/main.ts --outfile ./dist/index.js --target bun",
+    "build": "bun build ./src/main.ts --outfile ./dist/index.js --target bun --banner '#!/usr/bin/env bun' && chmod +x ./dist/index.js",
     "dev": "bun --watch ./src/main.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
@@ -12,17 +11,26 @@
     "format:check": "biome format .",
     "test:coverage": "vitest run --coverage"
   },
-  "dependencies": {
+  "devDependencies": {
     "@indodax-mcp/config": "workspace:*",
     "@indodax-mcp/indodax-market": "workspace:*",
     "@indodax-mcp/indodax-mcp": "workspace:*",
     "@indodax-mcp/logging": "workspace:*",
-    "citty": "catalog:"
-  },
-  "devDependencies": {
     "@types/node": "catalog:",
     "@vitest/coverage-v8": "catalog:",
     "bun-types": "catalog:",
+    "citty": "catalog:",
     "vitest": "catalog:"
+  },
+  "description": "INDODAX command line interface",
+  "license": "SSPL-1.0",
+  "bin": {
+    "indodax": "./dist/index.js"
+  },
+  "files": [
+    "dist/"
+  ],
+  "publishConfig": {
+    "access": "public"
   }
 }

@@ -10,9 +10,13 @@ describe("scheduler", () => {
     vi.useFakeTimers();
     const scheduler = new Scheduler();
     let runs = 0;
-    scheduler.start({ name: "tick", intervalMs: 10, task: () => {
+    scheduler.start({
+      name: "tick",
+      intervalMs: 10,
+      task: () => {
         runs += 1;
-      } });
+      },
+    });
     scheduler.start({
       name: "boom",
       intervalMs: 10,

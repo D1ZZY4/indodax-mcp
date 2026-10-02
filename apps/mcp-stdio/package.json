@@ -1,10 +1,9 @@
 {
-  "name": "@indodax-mcp/mcp-stdio",
+  "name": "indodax-mcp",
   "version": "1.0.0",
-  "private": true,
   "type": "module",
   "scripts": {
-    "build": "bun build ./src/main.ts --outfile ./dist/index.js --target bun",
+    "build": "bun build ./src/main.ts --outfile ./dist/index.js --target bun --banner '#!/usr/bin/env bun' && chmod +x ./dist/index.js",
     "dev:mcp": "bun --watch ./src/main.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
@@ -12,22 +11,31 @@
     "format:check": "biome format .",
     "test:coverage": "vitest run --coverage"
   },
-  "dependencies": {
+  "devDependencies": {
+    "@biomejs/biome": "catalog:",
     "@indodax-mcp/errors": "workspace:*",
     "@indodax-mcp/logging": "workspace:*",
     "@indodax-mcp/mcp-contracts": "workspace:*",
     "@indodax-mcp/mcp-core": "workspace:*",
     "@indodax-mcp/mcp-registry": "workspace:*",
     "@indodax-mcp/mcp-runtime": "workspace:*",
-    "@modelcontextprotocol/server": "catalog:",
-    "zod": "catalog:"
-  },
-  "devDependencies": {
-    "@biomejs/biome": "catalog:",
     "@indodax-mcp/mcp-testing": "workspace:*",
     "@modelcontextprotocol/client": "catalog:",
+    "@modelcontextprotocol/server": "catalog:",
     "@vitest/coverage-v8": "catalog:",
     "typescript": "catalog:",
-    "vitest": "catalog:"
+    "vitest": "catalog:",
+    "zod": "catalog:"
+  },
+  "description": "INDODAX MCP server over stdio and Streamable HTTP",
+  "license": "SSPL-1.0",
+  "bin": {
+    "indodax-mcp": "./dist/index.js"
+  },
+  "files": [
+    "dist/"
+  ],
+  "publishConfig": {
+    "access": "public"
   }
 }

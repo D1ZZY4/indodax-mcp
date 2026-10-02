@@ -65,15 +65,27 @@
     "test:coverage": "turbo test:coverage",
     "e2e": "turbo e2e",
     "check": "turbo check",
-    "verify": "turbo verify"
+    "verify": "turbo verify",
+    "build:apps": "turbo build --filter=./apps/*",
+    "build:packages": "turbo build --filter=./packages/*",
+    "clean": "bun scripts/clean.ts",
+    "changeset": "changeset",
+    "version-packages": "changeset version",
+    "release:dry": "bun scripts/release-preview.ts",
+    "verify:consumer": "bun scripts/verify-consumer.ts"
   },
   "devDependencies": {
     "@biomejs/biome": "catalog:",
+    "@changesets/cli": "3.0.3",
     "@playwright/test": "catalog:",
     "@types/node": "catalog:",
     "bun-types": "catalog:",
     "turbo": "catalog:",
-    "typescript": "catalog:"
+    "typescript": "catalog:",
+    "@types/bun": "latest"
   },
-  "packageManager": "bun@1.4.2"
+  "packageManager": "bun@1.4.2",
+  "dependencies": {
+    "indodax-mcp": "/tmp/indodax-mcp-1.0.0.tgz"
+  }
 }
