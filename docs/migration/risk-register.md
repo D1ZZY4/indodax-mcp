@@ -1,59 +1,63 @@
 # Risk register
 
-## R1: No system PostgreSQL in build environment
+## R1. Runtime persistence is not durable
 
-No server binaries, no Docker, no passwordless sudo. Mitigation:
-`embedded-postgres` supplies real PostgreSQL binaries for
-dev/test/CI behind the same `postgres.js` plus Drizzle path used in
-production. Residual: first test run downloads binaries (network).
+The repository contains PostgreSQL schema and repository implementations, but the main application composition currently uses in-memory paper, alert, audit, and runtime state.
 
-## R2: TypeScript 7 on latest tag
+Impact: process restart can lose application state, so persistence must not be described as complete.
 
-Registry `latest` points at the native 7.x preview. Mitigation: pin
-TypeScript 5.9 line until SDK and Vitest/Playwright explicitly
-support 7.x. Residual: none while pinned.
+Mitigation: wire repositories into the application composition and add restart/recovery integration tests.
 
-## R3: MCP SDK v2 API drift
+## R2. Reconciliation is only partially integrated
 
-Installed 2.2.0 may differ from prompt-time examples. Mitigation:
-verified `registerTool`, `serveStdio`,
-`createMcpHandler`/`createMcpHonoApp`, client auto negotiation against
-the installed package.
-Residual: re-verify exports right after install; record deviations.
+Reconciliation primitives compare local and exchange orders, fills, and balances, but the MCP reconciliation tools are currently paper/local oriented.
 
-## R4: Trade API v2 key separation
+Impact: an application-local result is not equivalent to exchange truth.
 
-v2 needs a dedicated key plus IP whitelist; this environment uses a
-v2-typed key with IPv4 plus IPv6 grants verified working 2026-10-03.
-Mitigation: live verification stays read-only; the ISP allocation is
-dynamic, so a returning -2015 means the grant needs refreshing, not
-that the code is broken. Residual: live trading needs funding above
-exchange minimums plus explicit enablement.
+Mitigation: wire authenticated exchange order/trade reads into a durable reconciliation workflow before any live enablement.
 
-## R5: Public throttle vs official limit
+## R3. Risk context is incomplete at some entrypoints
 
-App default 7 rps exceeds official public 180/min if applied to
-public reads. Mitigation: per-endpoint buckets from the official
-table; 7 rps documented as application safety default only.
-Residual: none after bucket implementation.
+The risk engine supports freshness, daily loss, position exposure, cooldown, balance, and other checks, but some MCP callers pass fixed freshness values, null PnL, or omit position context.
 
-## R6: v1 history decommission
+Impact: the policy primitive is deterministic, but the inputs are not always authoritative.
 
-`tradeHistory`/`orderHistory` dead since 2026-04-07. Mitigation:
-v2 endpoints are the only preferred path; legacy isolated.
-Residual: none.
+Mitigation: build runtime risk context from current market, account, portfolio, and reconciliation state.
 
-## R7: Monorepo size vs context
+## R4. State-changing retries are not idempotency-aware
 
-50+ packages in one autonomous session. Mitigation: phased gates,
-small focused files (350/375), shared core first. Residual:
-schedule pressure on workbench E2E; contract tests cover the seam.
+The generic transport retry helper retries 429, 5xx, and timeouts without distinguishing GET from state-changing POST requests.
 
-## R8: POST retry idempotency for live orders
+Impact: a lost response after a successful order submission could create an ambiguous client state.
 
-`fetchWithRetry()` retries POSTs including state-changing requests.
-Live orders carry `newClientOrderId`, but exchange-side dedup
-semantics are unverified. Mitigation: live order path stays locked
-behind policy plus acknowledgement, and unknown outcomes reconcile
-before any retry. Residual: prove idempotency against the exchange
-before enabling live execution.
+Mitigation: preserve client order IDs, classify retry safety by operation, reconcile unknown order state before resubmission, and test duplicate scenarios.
+
+## R5. Private WebSocket lifecycle is incomplete
+
+The official private WebSocket uses a generated private token and a private-channel connection/subscription message shape. The current managed socket abstraction is built around the market-style protocol.
+
+Impact: private order-event synchronization cannot yet be treated as production-complete.
+
+Mitigation: implement a dedicated private protocol adapter with token generation, renewal, reconnect, and order-event reconciliation tests.
+
+## R6. MCP metadata is not a centralized enforcement layer
+
+Tool metadata describes capability, environment, authentication, destructiveness, idempotency, and audit class, but mcp-core dispatch does not enforce all of those fields centrally.
+
+Impact: a new mutation tool can be incorrectly guarded if its handler/service implementation is incomplete.
+
+Mitigation: add centralized policy middleware or make executable policy guards mandatory at the service boundary.
+
+## R7. Exchange quota and application throttle are separate controls
+
+The official API publishes endpoint-specific limits. The repository also has application throttle buckets.
+
+Impact: an application setting should not be interpreted as the exchange quota.
+
+Mitigation: maintain endpoint-specific exchange limit documentation and treat local throttle as an additional safety control.
+
+## R8. Protocol and dependency drift
+
+MCP SDK, Vite, TypeScript, INDODAX API, and WebSocket behavior can change independently.
+
+Mitigation: keep compatibility snapshots, official source references, and regression tests current.
