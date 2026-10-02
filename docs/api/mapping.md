@@ -1,42 +1,53 @@
 # INDODAX API mapping
 
-Every official endpoint maps to implementation, schema, service,
-MCP tool, and test. Only documented endpoints are official.
+This page maps documented exchange endpoints to the current TypeScript implementation. It distinguishes implemented adapters from MCP paths that remain paper-only or locked.
 
-## Public REST (`packages/indodax-client`)
+## Public REST
 
-| Endpoint | Schema | Service | MCP tool | Test |
-|---|---|---|---|---|
-| `GET /api/server_time` | `serverTimeSchema` | `PublicClient.serverTime` | `indodax_server_time` | live check |
-| `GET /api/pairs` | `pairsSchema` | `PublicClient.pairs` | `indodax_pairs` | live check |
-| `GET /api/price_increments` | raw JSON | `PublicClient.raw` | `indodax_price_increments` | stub shape |
-| `GET /api/summaries` | `summariesSchema` | `PublicClient.summaries` | (resource data) | stub shape |
-| `GET /api/ticker/{pair}` | `tickerResponseSchema` | `getTicker` + cache | `indodax_ticker` | stub + live |
-| `GET /api/ticker_all` | `tickerAllSchema` | `PublicClient.tickerAll` | `indodax_tickers_all` | stub shape |
-| `GET /api/trades/{pair}` | `tradesSchema` | `PublicClient.trades` | `indodax_trades` | stub shape |
-| `GET /api/depth/{pair}` | `depthSchema` | `PublicClient.depth` | `indodax_orderbook` | stub shape |
-| `GET /tradingview/history_v2` | `ohlcSchema` | `PublicClient.ohlc` | `indodax_candles` | param test |
+Base URL: https://indodax.com.
 
-## TAPI v2 (`packages/indodax-auth`, `indodax-account`, execution)
+| Endpoint | Implementation | MCP surface | Verification |
+| --- | --- | --- | --- |
+| GET /api/server_time | PublicClient.serverTime | indodax_server_time | adapter/test |
+| GET /api/pairs | PublicClient.pairs | indodax_pairs | adapter/test |
+| GET /api/price_increments | PublicClient.raw | indodax_price_increments | shape-level |
+| GET /api/summaries | PublicClient.summaries | resource path | shape-level |
+| GET /api/ticker/{pair} | PublicClient.ticker plus market cache | indodax_ticker | adapter/test |
+| GET /api/ticker_all | PublicClient.tickerAll | indodax_tickers_all | adapter/test |
+| GET /api/trades/{pair} | PublicClient.trades | indodax_trades | adapter/test |
+| GET /api/depth/{pair} | PublicClient.depth | indodax_orderbook | adapter/test |
+| GET /tradingview/history_v2 | PublicClient.ohlc | indodax_candles | parameter tests |
 
-| Endpoint | Signing | Service | MCP tool |
-|---|---|---|---|
-| `POST /api/v2/order` | HMAC-SHA256 sorted body | `LiveExecutor.submit` | `indodax_create_order` (live path locked) |
-| `DELETE /api/v2/order` | HMAC-SHA256 sorted query | `LiveExecutor.cancelByExchangeId` | `indodax_cancel_order` (live path locked) |
-| `GET /api/v2/openOrders` | HMAC-SHA256 | planned live reconcile | `indodax_reconcile_orders` (paper now) |
-| `GET /api/v2/order` | HMAC-SHA256 | planned live lookup | `indodax_order` |
-| `GET /api/v2/account` | HMAC-SHA256 | `AccountClient` | `indodax_account`, `indodax_balances` |
-| capital histories | HMAC-SHA256 | funding tools | `indodax_withdraw_history`, `indodax_deposit_history` |
-| `GET /api/v2/fiat/orders` | HMAC-SHA256 | funding tools | `indodax_fiat_history` |
-| deposit address list | HMAC-SHA256 | funding tools | `indodax_deposit_address` |
-| `POST /api/v2/capital/withdraw/apply` | HMAC-SHA256 | NOT implemented (locked) | always denied |
-| `POST /api/v2/fiat/withdraw` | HMAC-SHA256 | NOT implemented (locked) | always denied |
-| `GET /api/v2/order/histories` | HMAC-SHA256 | account history helper | `indodax_order_history` |
-| `GET /api/v2/myTrades` | HMAC-SHA256 | account history helper | `indodax_trade_history` |
+The official public limit is 180 requests per minute. Repository throttling is an application control and is not the exchange quota.
+
+## TAPI v2
+
+Base URL: https://api.indodax.com.
+
+The current official Trade API v2 documentation specifies HMAC-SHA256 signatures. GET and DELETE parameters use the query string. POST parameters use application/x-www-form-urlencoded. Signed requests include a timestamp or nonce, with recvWindow available for timestamp validity.
+
+| Endpoint | Implementation | MCP surface | Status |
+| --- | --- | --- | --- |
+| POST /api/v2/order | LiveExecutor.submit | indodax_create_order | adapter implemented, live locked |
+| DELETE /api/v2/order | LiveExecutor.cancelByExchangeId | indodax_cancel_order | adapter implemented, live locked |
+| GET /api/v2/openOrders | AccountClient.openOrders | indodax_open_orders | implemented |
+| GET /api/v2/order | AccountClient.getOrder | indodax_order | implemented |
+| GET /api/v2/account | AccountClient.getAccount | indodax_account, indodax_balances | implemented |
+| GET /api/v2/capital/withdraw/history | funding helper | indodax_withdraw_history | read-only |
+| GET /api/v2/capital/deposit/hisrec | funding helper | indodax_deposit_history | read-only |
+| GET /api/v2/fiat/orders | funding helper | indodax_fiat_history | read-only |
+| GET /api/v2/capital/deposit/address/list | funding helper | indodax_deposit_address | read-only |
+| GET /api/v2/order/histories | AccountClient.orderHistories | indodax_order_history | implemented |
+| GET /api/v2/myTrades | AccountClient.myTrades | indodax_trade_history | implemented |
+| POST /api/v2/capital/withdraw/apply | not implemented | withdrawal tool | always denied |
+| POST /api/v2/fiat/withdraw | not implemented | withdrawal tool | always denied |
 
 ## Legacy v1
 
-Isolated `LegacyTapiSigner` (HMAC-SHA512) plus nonce. Used only
-for `withdrawFee` reads and the private WebSocket token request.
-`tradeHistory` and `orderHistory` are decommissioned and have no
-preferred path.
+Legacy signing remains isolated as HMAC-SHA512.
+
+The current code uses the legacy path only for the withdrawFee compatibility read. Old v1 order/history methods are not the preferred implementation path.
+
+## Source of truth
+
+Use [Source references](../references/sources.md) when changing endpoint, signing, parameter, or rate-limit documentation.
