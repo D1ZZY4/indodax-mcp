@@ -1,149 +1,200 @@
-<h1 align="center">Indodax MCP</h1>
+# Indodax MCP
 
-<p align="center">Community MCP server for the Indodax exchange: live market data, paper trading, and risk-guarded order flow for AI agents.</p>
+Community MCP server and trading infrastructure for INDODAX, built for AI agents, CLI workflows, and operators.
 
 > [!CAUTION]
-> Unofficial community project. Not affiliated with, endorsed, or supported by Indodax. Trading cryptocurrency carries risk of loss. Paper mode is the default; live mode moves real funds and requires explicit opt-in plus exchange-side key permissions and IP whitelisting.
+> Unofficial community software. It is not affiliated with, endorsed by, or supported by INDODAX. Cryptocurrency trading can result in loss of funds.
 
-Indodax MCP is a rebuild of [indodax-cli](https://github.com/ibidathoillah/indodax-cli) by ibidathoillah, extended for AI agents, CLI users, and operators. The original MIT license is preserved in [LICENSE_COPY](LICENSE_COPY/README.md). This project itself is SSPL v1, copyright D1ZZY4, see [LICENSE](LICENSE).
+> [!IMPORTANT]
+> The current application policy is paper-only. A live execution adapter exists, but the composed server does not currently permit live order placement. Withdrawal is disabled by design.
+
+Indodax MCP is a TypeScript/Bun rebuild of [indodax-cli](https://github.com/ibidathoillah/indodax-cli) by ibidathoillah. The original MIT license is preserved in [LICENSE_COPY](LICENSE_COPY/README.md). This repository is licensed under SSPL v1; see [LICENSE](LICENSE).
+
+## Current status
+
+The repository is a Bun workspaces monorepo with Turborepo, strict TypeScript, Biome, Vitest, Playwright, the official MCP SDK v2 family, Decimal-based financial math, a Drizzle/PostgreSQL persistence layer, and dedicated INDODAX adapters.
+
+At the current main commit:
+
+- 73 MCP tools
+- 11 MCP resources
+- 5 MCP prompts
+- Paper execution enabled
+- Live executor implemented but locked by application policy
+- Withdrawal endpoint intentionally unavailable
+- PostgreSQL schema and repositories implemented, while the main runtime still uses in-memory application state
+- Reconciliation primitives implemented, while the MCP reconciliation surface is currently paper/local oriented
+- Full verification is available through the verify script
+
+Treat the status above as the implementation baseline. Do not infer production capabilities from architecture documents alone.
+
+## Requirements
+
+- Bun 1.4.2, matching the repository package manager
+- PostgreSQL 17 when working with the database package and its integration path
+- A supported INDODAX TAPI v2 key for authenticated read operations
+
+The main MCP composition does not require a database to start because its current application state is in memory. PostgreSQL is part of the persistence layer and its integration tests, not yet the runtime source of truth.
 
 ## Install
 
-Prerequisites: Bun 1.4.2 or newer. PostgreSQL 17 for persistent storage (or a `DATABASE_URL` pointing at one; dev and tests use embedded PostgreSQL binaries).
-
-```bash
+~~~bash
 cp .env.example .env
 bun install
 bun run check
-```
+~~~
 
-`scripts/check.sh` runs install, format check, lint, typecheck, tests, and build through Turborepo.
+CI currently runs format, lint, typecheck, test, and build.
 
 ## Quickstart
 
-No credentials needed for market reads and paper trading:
+Public market reads and paper trading work without credentials:
 
-```bash
+~~~bash
 bun apps/cli/src/main.ts market ticker btc_idr
 bun apps/cli/src/main.ts paper status
 bun apps/cli/src/main.ts risk limits
-```
+~~~
 
-MCP over stdio (used by OpenCode and other MCP hosts):
+Run MCP over stdio:
 
-```bash
+~~~bash
 bun apps/mcp-stdio/src/main.ts
-```
+~~~
 
-MCP over Streamable HTTP (default port `8000`, override with `MCP_PORT`):
+Run MCP over Streamable HTTP:
 
-```bash
+~~~bash
 bun apps/mcp-http/src/main.ts
-```
+~~~
 
-Both transports share one registry and dispatch, so behavior is identical. Protocol `2025-11-25`.
+The HTTP server binds to 127.0.0.1 and defaults to port 8000; override with MCP_PORT.
 
-## What it exposes
-
-73 tools with the `indodax_` prefix (for example `indodax_ticker`, `indodax_account`, `indodax_create_order`), plus 11 resources and 5 prompts. Full surface: [MCP surface](docs/mcp/surface.md). Tool implementation notes: [MCP tool implementation](docs/mcp/tools.md).
-
-Groups: market (10), account plus history, orders (validate, propose, create, cancel), portfolio, risk, paper (9), strategy plus backtest, alerts, reconciliation, audit, system, funding reads, history, operations, WebSocket.
+Both transports use the same server registry and handler set. The current SDK environment negotiates MCP protocol 2025-11-25.
 
 ## Configuration
 
-Copy [.env.example](.env.example) to `.env`. Only these keys belong there:
+The exchange credential contract is intentionally small:
 
-```dotenv
+~~~dotenv
 INDODAX_API_KEY=your_api_key_here
 INDODAX_API_SECRET=your_api_secret_here
 # INDODAX_RATE_LIMIT=5
 # INDODAX_WS_TOKEN=your_ws_token_here
-# APP_ENV=paper
-# TRADE_ENABLED=true
-```
+~~~
 
-> [!IMPORTANT]
-> Never commit real secrets. `.env` is git-ignored; only `.env.example` is tracked.
+Server configuration also supports DATABASE_URL, MCP_PORT, APP_ENV, TRADE_ENABLED, and WITHDRAW_ENABLED. See [.env.example](.env.example) and the [documentation index](docs/README.md).
 
-Runtime mode files live in [config](config/default.toml) (`default.toml`, `development.toml`, `paper.toml`, `live.toml.example`). Paper is the default.
+Never commit real credentials. Rotate an exchange key immediately if it is exposed.
 
-## Modes and safety
+## Trading model
 
-* `paper` (default): virtual funds, no exchange contact for orders. Cannot spend real money.
-* `live` (explicit opt-in): requires `APP_ENV=live` plus `TRADE_ENABLED=true` plus a TAPI v2 key with trading permission plus whitelisted client IP. Every live order still passes risk review and needs `acknowledged: true` per call.
-* Withdrawal is always denied by this server, regardless of mode.
+The supported execution model today is:
 
-```mermaid
-flowchart TD
-    Agent["Agent / MCP / CLI"] --> Trading["TradingService"]
-    Trading --> Risk["RiskEngine"]
-    Risk --> Exec["ExecutionService"]
-    Exec --> Paper["Paper backend"]
-    Exec --> Live["Live backend"]
-    Live --> API["Indodax API"]
-```
+~~~text
+Agent / MCP / CLI
+        |
+        v
+Trade intent
+        |
+        v
+Validation + risk review
+        |
+        v
+Paper execution
+~~~
 
-```text
-Agent/MCP/CLI
-→ TradingService
-→ RiskEngine
-→ ExecutionService
-→ Paper | Live backend
-→ Indodax API
-```
+The live branch is intentionally closed:
 
-No path from MCP, agent intent, strategy, CLI, or Workbench reaches live placement without passing validation, risk review, capability, and server policy. See [Trading modes](docs/trading/modes.md) and [Risk policy](docs/risk/policy.md).
+~~~text
+Live intent
+    |
+    v
+server policy
+    |
+    +--> DENY
+~~~
 
-> [!WARNING]
-> Minimum order sizes are enforced by the exchange (Rp10.000 on IDR pairs, 1 USDT on USDT pairs, at time of writing). Orders below minimum are rejected before anything is sent.
+The live backend is maintained behind the execution interface so it can be hardened and verified independently before any production enablement.
 
-## Usage
+Withdrawal has no server-side grant path.
 
-CLI (paper by default, exits non-zero with usage errors):
+## MCP surface
 
-```bash
-bun apps/cli/src/main.ts market ticker btc_idr --output json
-bun apps/cli/src/main.ts account balances
-bun apps/cli/src/main.ts paper balances
-bun apps/cli/src/main.ts system capabilities
-```
+The current server exposes 73 tools, 11 resources, and 5 prompts.
 
-Agent path over MCP (validate, then propose, then place into paper):
+Tool areas include market data, account reads, order validation and paper execution, portfolio views, risk, strategies, backtests, alerts, reconciliation, audit, system status, funding reads, history, operations, and WebSocket inspection.
 
-1. `indodax_validate_order` returns the risk verdict. Nothing is executed.
-2. `indodax_propose_order` returns a proposal id plus verdict. Still nothing executed.
-3. `indodax_create_order` executes into paper by default. Live stays denied unless explicitly enabled as above.
+See [MCP surface](docs/mcp/surface.md), [MCP implementation notes](docs/mcp/tools.md), and the [agent harness guide](docs/guides/agent-harness.md).
 
-Response envelope is `{ status: "ok", data, fetchedAt }` on success and `{ status: "error", code, message, retryable, operationId }` with `isError: true` on failure. Branch on `code`, retry only when `retryable` is true. Agent playbook: [Agent harness guide](docs/guides/agent-harness.md).
+## Safety model
+
+Paper execution is the default. Mutation tools use explicit metadata and handler-level checks. Risk evaluation is deterministic and fail-closed for kill switch, circuit breaker, reconciliation halt, mode/capability mismatch, stale state, limits, and other configured constraints.
+
+The generic MCP dispatcher does not centrally enforce every metadata field. Individual mutation handlers currently perform the operational checks. Metadata is therefore a contract, not proof of enforcement.
+
+For live trading, the application policy currently allows only paper mode, so APP_ENV=live does not enable order placement.
+
+See [Risk policy](docs/risk/policy.md), [Trading modes](docs/trading/modes.md), and [Security](SECURITY.md).
+
+## API integration
+
+The implementation separates:
+
+- Public REST at https://indodax.com
+- TAPI v2 at https://api.indodax.com
+- Market WebSocket at wss://ws3.indodax.com/ws/
+- Private WebSocket at wss://pws.indodax.com/ws/?cf_ws_frame_ping_pong=true
+- Legacy v1 signing only where a compatibility path still uses it
+
+TAPI v2 uses the documented HMAC-SHA256 signing model, while legacy private API calls use HMAC-SHA512. See [API mapping](docs/api/mapping.md) and [source references](docs/references/sources.md).
 
 ## Development
 
-```bash
+~~~bash
 bun run format:check
 bun run lint
 bunx turbo typecheck
 bunx turbo test
-bunx playwright test
 bunx turbo build
-```
+bunx playwright test
+~~~
 
-Rules: keep each authored file at or under 350 lines (375 hard ceiling). MCP handlers stay thin: validate, guard, call service, serialize. Money is `Decimal` from parse time, never float. Fix the underlying problem; never weaken a gate to turn red green. Contributor rules: [Contributing](CONTRIBUTING.md). Security policy: [Security](SECURITY.md).
+For the combined repository gate:
 
-## Docs
+~~~bash
+bun run verify
+~~~
 
-* [Beginner guide](docs/guides/beginner.md)
-* [Advanced guide](docs/guides/advanced.md)
-* [Agent harness guide](docs/guides/agent-harness.md)
-* [Developer guide](docs/guides/developer.md)
-* [System overview](docs/architecture/overview.md)
-* [Execution flow](docs/architecture/execution.md)
-* [Completeness](docs/architecture/completeness.md)
-* [MCP surface](docs/mcp/surface.md)
-* [MCP tool implementation](docs/mcp/tools.md)
-* [API mapping](docs/api/mapping.md)
-* [Trading modes](docs/trading/modes.md)
-* [Risk policy](docs/risk/policy.md)
-* [Operations runbook](docs/operations/runbook.md)
-* [Migration v1 to v2](docs/migration/v1-to-v2.md)
-* [Upstream sources](docs/references/sources.md)
-* [Security](SECURITY.md), [Contributing](CONTRIBUTING.md), [Changelog](CHANGELOG.md)
+Repository rules:
+
+- Keep authored files at or under 350 lines; 375 is the hard ceiling.
+- Use Decimal for financial quantities and avoid floating-point accounting.
+- Keep MCP handlers thin.
+- Keep generic MCP/core packages independent from INDODAX domain packages.
+- Do not weaken a gate to make CI green.
+- Measure and report line counts for authored files when making broad repository changes.
+
+## Documentation
+
+Start at the [documentation index](docs/README.md).
+
+Key references:
+
+- [Architecture overview](docs/architecture/overview.md)
+- [Execution flow](docs/architecture/execution.md)
+- [Completeness matrix](docs/architecture/completeness.md)
+- [MCP surface](docs/mcp/surface.md)
+- [API mapping](docs/api/mapping.md)
+- [Risk policy](docs/risk/policy.md)
+- [Trading modes](docs/trading/modes.md)
+- [Operations runbook](docs/operations/runbook.md)
+- [Agent harness guide](docs/guides/agent-harness.md)
+- [Migration notes](docs/migration/rust-to-typescript.md)
+
+Project policies:
+
+- [Contributing](CONTRIBUTING.md)
+- [Security](SECURITY.md)
+- [Code of Conduct](CODE_OF_CONDUCT.md)
+- [Changelog](CHANGELOG.md)
