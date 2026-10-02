@@ -1,15 +1,16 @@
-# ADR-005: HTTP auth without v1 OAuth flow
+# ADR-005: HTTP authentication boundary
 
-> Historical record from the Rust workspace. The bridge-secret model
-> carries over to `apps/mcp-http`.
+- Status: accepted.
+- Current location: apps/mcp-http and mcp-runtime.
 
-* Status: accepted.
-* Decision: the gateway authenticates bridge calls with an optional
-  `BRIDGE_SECRET` header plus process-env credentials, instead of
-  porting the v1 OAuth Authorization-Code + PKCE browser flow. Rationale:
-  this platform has no browser UX, the bridge is single-operator, and a
-  full authorization server would add unaudited attack surface for no
-  functional gain. The v1 flow is documented here as intentionally not
-  ported, not accidentally dropped.
-* Consequence: ChatGPT-style third-party OAuth connectors are out of
-  scope until a real multi-user requirement exists.
+## Decision
+
+Do not port the original Rust browser OAuth Authorization Code + PKCE flow into the current local HTTP gateway.
+
+The current gateway is a localhost-oriented MCP transport. It is intentionally kept small rather than acting as a general-purpose authorization server.
+
+## Consequence
+
+A future multi-user deployment needs a separate authentication and authorization design. The current local bridge must not be exposed publicly and treated as though it already provides a complete identity boundary.
+
+See [Security](../../SECURITY.md) for current transport guidance.
