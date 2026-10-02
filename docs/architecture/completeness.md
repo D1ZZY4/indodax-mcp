@@ -1,41 +1,54 @@
 # Completeness matrix
 
-Verified against the live workspace. Implemented means behavior exists,
-wired means runtime integration exists, tested means a real test
-exercises it, end-to-end means it works through its intended path.
+This matrix describes the current repository state, not the intended architecture.
+
+Definitions:
+
+- Implemented: relevant code exists.
+- Wired: capability is connected to the current application composition.
+- Tested: automated tests cover the capability at some level.
+- End-to-end: the intended external path is exercised without relying only on unit-level mocks.
 
 | Capability | Implemented | Wired | Tested | End-to-end |
 | --- | --- | --- | --- | --- |
-| Market REST | yes | yes | yes | yes, live tickers |
-| Market WebSocket | snapshot plus managed socket | yes | protocol-level | one-shot live verified |
-| Account | yes | yes | validation-level | yes, live read verified with whitelisted IP |
-| Orders | yes | yes | yes | paper yes, live locked by policy |
-| Trading | yes | yes | yes | paper yes, live denied by policy |
-| Risk | yes | yes | yes | yes, pure evaluation |
-| Portfolio | yes | yes | yes | paper yes, valued at live prices |
-| Paper | yes | yes | yes | yes, CLI, MCP, and workbench flows |
-| Live Execution | yes, v2 order API | yes | signing-level | locked by policy |
-| Reconciliation | yes | yes | yes | paper vs market yes |
-| Audit | yes | yes | yes | yes, in-memory plus Drizzle repo |
-| Alerts | yes | yes | yes | yes, create check cancel |
-| Strategy | yes, 2 builtins | yes | yes | yes, pure evaluation |
-| Backtest | yes, stored runs | yes | yes | yes, replay plus journal |
-| Event Bus | yes, typed | daemon wiring | yes | CLI and daemon paths |
-| Scheduler | yes | yes, daemon jobs | yes | yes |
-| Storage | yes, Drizzle PG | yes | yes, real PG 17 | yes, migrate plus repos |
-| Observability | yes | yes | yes | yes, health and counters |
-| Agent Contract | yes | yes | yes | yes, propose flow |
-| MCP Tools | 73 tools | yes | yes | yes, protocol verified |
-| MCP Resources | 11 | yes | protocol verified | yes |
-| MCP Prompts | 5 | yes | protocol verified | yes |
-| MCP Safety | yes | yes | yes | withdrawal denied live |
-| HTTP Gateway | yes, Hono adapter | yes | yes, E2E | yes |
-| Deadman | yes, state machine | yes | yes | paper simulated |
-| CLI | yes | yes | yes, subprocess | yes, paper flow live |
-| Daemon | yes | yes | yes, lifecycle | yes, boot and persist |
-| Workbench | yes, 3 pages | yes | render plus E2E | yes |
-| Security | yes | yes | yes | no secrets in tree |
-| Deployment | compose, docker, systemd | n/a | n/a | documented |
+| Public REST market | yes | yes | yes | adapter path |
+| Market WebSocket | yes | yes | protocol | one-shot snapshot path |
+| Account reads | yes | yes | yes | authenticated adapter path |
+| Order model/lifecycle | yes | yes | yes | paper lifecycle |
+| Trading service | yes | yes | yes | paper proposal/review |
+| Risk engine | yes | yes | yes | deterministic evaluation |
+| Portfolio | yes | yes | yes | paper state with market valuation |
+| Paper execution | yes | yes | yes | MCP/CLI path |
+| Live execution adapter | yes | constructed | adapter/signing | blocked by server policy |
+| Reconciliation primitives | yes | partial | yes | not a full exchange reconciliation flow |
+| Audit trail | yes | yes, in-memory | yes | application path |
+| PostgreSQL schema | yes | package-level | real PG tests | not main runtime source of truth |
+| DB repositories | yes | not main composition | repository tests | no |
+| Alerts | yes | yes, in-memory | yes | application path |
+| Strategies | yes | yes | yes | deterministic evaluation |
+| Backtests | yes | yes | yes | in-process stored results |
+| Event bus | yes | daemon | yes | daemon path |
+| Scheduler | yes | daemon | yes | daemon lifecycle |
+| Observability | yes | yes | yes | health/runtime path |
+| MCP tools | 73 | yes | yes | protocol harness |
+| MCP resources | 11 | yes | protocol | protocol path |
+| MCP prompts | 5 | yes | protocol | protocol path |
+| MCP metadata contracts | yes | yes | schema tests | metadata not centrally enforced |
+| HTTP gateway | yes | yes | yes | Playwright path |
+| MCP stdio server | yes | yes | yes | consumer/protocol path |
+| Deadman state machine | yes | yes | yes | state-machine coverage |
+| CLI | yes | yes | yes | subprocess path |
+| Daemon | yes | yes | yes | startup/lifecycle path |
+| Workbench | yes | yes | render/E2E | browser path |
+| Security controls | yes | handler/package level | yes | no live-order path |
+| Deployment descriptors | yes | n/a | no | documented only |
 
-Live private paths stay gated on the operator IP grant on the
-exchange API key, which can change with dynamic ISP allocation.
+## Current gaps
+
+1. PostgreSQL is implemented as a database package but is not the runtime source of truth.
+2. The MCP reconciliation tools are not a complete local-versus-exchange reconciliation workflow.
+3. Some MCP risk callers supply fixed freshness values and null daily PnL, so risk context is not fully authoritative at every entrypoint.
+4. The transport retry helper is not idempotency-aware for state-changing requests.
+5. Live order placement remains disabled by server policy.
+
+Promote a capability to a stronger status only when its wiring and tests are updated with it.
