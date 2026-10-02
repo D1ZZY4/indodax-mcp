@@ -17,7 +17,7 @@
 
 ## 1.0.1: foundation
 
-* Modular workspace scaffold with strongly typed domain model.
+* Layered workspace scaffold with strongly typed domain model.
 * Isolated auth, transport, rate limiting, and exchange API layers.
 * Explicit order lifecycle with reconciliation states.
 * Deterministic risk engine with machine-readable reasons.

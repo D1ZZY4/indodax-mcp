@@ -1,6 +1,6 @@
 <h1 align="center">Indodax MCP</h1>
 
-<p align="center">Modular trading infrastructure with MCP integration.</p>
+<p align="center">Trading infrastructure with MCP integration.</p>
 
 Indodax MCP is a rebuild of
 [indodax-cli](https://github.com/ibidathoillah/indodax-cli) by
