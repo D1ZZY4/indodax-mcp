@@ -73,6 +73,18 @@
         "vitest": "catalog:",
       },
     },
+    "packages/events": {
+      "name": "@indodax-mcp/events",
+      "version": "1.0.0",
+      "dependencies": {
+        "@indodax-mcp/core": "workspace:*",
+      },
+      "devDependencies": {
+        "@types/node": "catalog:",
+        "bun-types": "catalog:",
+        "vitest": "catalog:",
+      },
+    },
     "packages/indodax-account": {
       "name": "@indodax-mcp/indodax-account",
       "version": "1.0.0",
@@ -84,6 +96,15 @@
         "decimal.js": "catalog:",
         "zod": "catalog:",
       },
+      "devDependencies": {
+        "@types/node": "catalog:",
+        "bun-types": "catalog:",
+        "vitest": "catalog:",
+      },
+    },
+    "packages/indodax-alerts": {
+      "name": "@indodax-mcp/indodax-alerts",
+      "version": "1.0.0",
       "devDependencies": {
         "@types/node": "catalog:",
         "bun-types": "catalog:",
@@ -120,6 +141,15 @@
         "@indodax-mcp/transport": "workspace:*",
         "zod": "catalog:",
       },
+      "devDependencies": {
+        "@types/node": "catalog:",
+        "bun-types": "catalog:",
+        "vitest": "catalog:",
+      },
+    },
+    "packages/indodax-deadman": {
+      "name": "@indodax-mcp/indodax-deadman",
+      "version": "1.0.0",
       "devDependencies": {
         "@types/node": "catalog:",
         "bun-types": "catalog:",
@@ -199,6 +229,20 @@
         "vitest": "catalog:",
       },
     },
+    "packages/indodax-reconciliation": {
+      "name": "@indodax-mcp/indodax-reconciliation",
+      "version": "1.0.0",
+      "dependencies": {
+        "@indodax-mcp/core": "workspace:*",
+        "@indodax-mcp/indodax-orders": "workspace:*",
+        "decimal.js": "catalog:",
+      },
+      "devDependencies": {
+        "@types/node": "catalog:",
+        "bun-types": "catalog:",
+        "vitest": "catalog:",
+      },
+    },
     "packages/indodax-risk": {
       "name": "@indodax-mcp/indodax-risk",
       "version": "1.0.0",
@@ -226,6 +270,20 @@
         "@types/node": "catalog:",
         "bun-types": "catalog:",
         "fast-check": "catalog:",
+        "vitest": "catalog:",
+      },
+    },
+    "packages/indodax-websocket": {
+      "name": "@indodax-mcp/indodax-websocket",
+      "version": "1.0.0",
+      "dependencies": {
+        "@indodax-mcp/core": "workspace:*",
+        "@indodax-mcp/errors": "workspace:*",
+        "zod": "catalog:",
+      },
+      "devDependencies": {
+        "@types/node": "catalog:",
+        "bun-types": "catalog:",
         "vitest": "catalog:",
       },
     },
@@ -301,6 +359,29 @@
         "@modelcontextprotocol/client": "catalog:",
         "@modelcontextprotocol/server": "catalog:",
         "zod": "catalog:",
+      },
+      "devDependencies": {
+        "@types/node": "catalog:",
+        "bun-types": "catalog:",
+      },
+    },
+    "packages/observability": {
+      "name": "@indodax-mcp/observability",
+      "version": "1.0.0",
+      "dependencies": {
+        "@indodax-mcp/core": "workspace:*",
+      },
+      "devDependencies": {
+        "@types/node": "catalog:",
+        "bun-types": "catalog:",
+        "vitest": "catalog:",
+      },
+    },
+    "packages/scheduler": {
+      "name": "@indodax-mcp/scheduler",
+      "version": "1.0.0",
+      "dependencies": {
+        "vitest": "catalog:",
       },
       "devDependencies": {
         "@types/node": "catalog:",
@@ -406,13 +487,19 @@
 
     "@indodax-mcp/errors": ["@indodax-mcp/errors@workspace:packages/errors"],
 
+    "@indodax-mcp/events": ["@indodax-mcp/events@workspace:packages/events"],
+
     "@indodax-mcp/indodax-account": ["@indodax-mcp/indodax-account@workspace:packages/indodax-account"],
+
+    "@indodax-mcp/indodax-alerts": ["@indodax-mcp/indodax-alerts@workspace:packages/indodax-alerts"],
 
     "@indodax-mcp/indodax-audit": ["@indodax-mcp/indodax-audit@workspace:packages/indodax-audit"],
 
     "@indodax-mcp/indodax-auth": ["@indodax-mcp/indodax-auth@workspace:packages/indodax-auth"],
 
     "@indodax-mcp/indodax-client": ["@indodax-mcp/indodax-client@workspace:packages/indodax-client"],
+
+    "@indodax-mcp/indodax-deadman": ["@indodax-mcp/indodax-deadman@workspace:packages/indodax-deadman"],
 
     "@indodax-mcp/indodax-execution": ["@indodax-mcp/indodax-execution@workspace:packages/indodax-execution"],
 
@@ -424,9 +511,13 @@
 
     "@indodax-mcp/indodax-portfolio": ["@indodax-mcp/indodax-portfolio@workspace:packages/indodax-portfolio"],
 
+    "@indodax-mcp/indodax-reconciliation": ["@indodax-mcp/indodax-reconciliation@workspace:packages/indodax-reconciliation"],
+
     "@indodax-mcp/indodax-risk": ["@indodax-mcp/indodax-risk@workspace:packages/indodax-risk"],
 
     "@indodax-mcp/indodax-trading": ["@indodax-mcp/indodax-trading@workspace:packages/indodax-trading"],
+
+    "@indodax-mcp/indodax-websocket": ["@indodax-mcp/indodax-websocket@workspace:packages/indodax-websocket"],
 
     "@indodax-mcp/logging": ["@indodax-mcp/logging@workspace:packages/logging"],
 
@@ -441,6 +532,10 @@
     "@indodax-mcp/mcp-stdio": ["@indodax-mcp/mcp-stdio@workspace:apps/mcp-stdio"],
 
     "@indodax-mcp/mcp-testing": ["@indodax-mcp/mcp-testing@workspace:packages/mcp-testing"],
+
+    "@indodax-mcp/observability": ["@indodax-mcp/observability@workspace:packages/observability"],
+
+    "@indodax-mcp/scheduler": ["@indodax-mcp/scheduler@workspace:packages/scheduler"],
 
     "@indodax-mcp/secrets": ["@indodax-mcp/secrets@workspace:packages/secrets"],
 

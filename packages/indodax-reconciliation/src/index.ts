@@ -1,0 +1,86 @@
+import Decimal from "decimal.js";
+import type { ReconciliationState } from "@indodax-mcp/core";
+import { compareBalance, compareOrderIds } from "@indodax-mcp/indodax-orders";
+
+export interface LocalOrderView {
+  internalOrderId: string;
+  exchangeOrderId: string | null;
+  state: string;
+}
+
+export interface ExchangeOrderView {
+  exchangeOrderId: string;
+  state: string;
+}
+
+export interface LocalFillView {
+  exchangeOrderId: string;
+  quantity: string;
+}
+
+export interface ExchangeFillView {
+  exchangeOrderId: string;
+  quantity: string;
+}
+
+export interface ReconciliationReport {
+  orders: ReturnType<typeof compareOrderIds>;
+  fills: { state: ReconciliationState; checked: number; mismatched: string[] };
+  balances: { asset: string; state: ReconciliationState }[];
+  overall: ReconciliationState;
+}
+
+export function reconcileFills(
+  local: LocalFillView[],
+  exchange: ExchangeFillView[],
+): { state: ReconciliationState; checked: number; mismatched: string[] } {
+  const byOrder = new Map<string, Decimal>();
+  for (const fill of exchange) {
+    const current = byOrder.get(fill.exchangeOrderId) ?? new Decimal(0);
+    byOrder.set(fill.exchangeOrderId, current.plus(new Decimal(fill.quantity)));
+  }
+  const mismatched: string[] = [];
+  for (const fill of local) {
+    const expected = byOrder.get(fill.exchangeOrderId);
+    if (!expected || !expected.eq(new Decimal(fill.quantity))) {
+      mismatched.push(fill.exchangeOrderId);
+    }
+  }
+  return {
+    state: mismatched.length === 0 ? "MATCH" : "MISMATCH",
+    checked: local.length,
+    mismatched,
+  };
+}
+
+export function reconcileAll(input: {
+  localOrders: LocalOrderView[];
+  exchangeOrders: ExchangeOrderView[];
+  localFills: LocalFillView[];
+  exchangeFills: ExchangeFillView[];
+  balances: { asset: string; local: string; exchange: string; tolerance: string }[];
+}): ReconciliationReport {
+  const openLocal = input.localOrders
+    .filter((order) => ["ACCEPTED", "PARTIALLY_FILLED"].includes(order.state))
+    .map((order) => order.exchangeOrderId ?? order.internalOrderId);
+  const orders = compareOrderIds(
+    openLocal,
+    input.exchangeOrders.map((order) => order.exchangeOrderId),
+  );
+  const fills = reconcileFills(input.localFills, input.exchangeFills);
+  const balances = input.balances.map((balance) => ({
+    asset: balance.asset,
+    state: compareBalance(
+      new Decimal(balance.local),
+      new Decimal(balance.exchange),
+      new Decimal(balance.tolerance),
+    ),
+  }));
+  const states = [orders.state, fills.state, ...balances.map((balance) => balance.state)];
+  const overall: ReconciliationState = states.includes("MISMATCH")
+    ? "MISMATCH"
+    : states.includes("UNKNOWN")
+      ? "UNKNOWN"
+      : "MATCH";
+  return { orders, fills, balances, overall };
+}
