@@ -1,0 +1,31 @@
+{
+  "name": "@indodax-mcp/mcp-stdio",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "bun build ./src/main.ts --outdir ./dist --target bun",
+    "dev:mcp": "bun --watch ./src/main.ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "lint": "biome lint .",
+    "format:check": "biome format ."
+  },
+  "dependencies": {
+    "@indodax-mcp/errors": "workspace:*",
+    "@indodax-mcp/logging": "workspace:*",
+    "@indodax-mcp/mcp-contracts": "workspace:*",
+    "@indodax-mcp/mcp-core": "workspace:*",
+    "@indodax-mcp/mcp-registry": "workspace:*",
+    "@indodax-mcp/mcp-runtime": "workspace:*",
+    "@modelcontextprotocol/server": "catalog:",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@indodax-mcp/mcp-testing": "workspace:*",
+    "@modelcontextprotocol/client": "catalog:",
+    "@biomejs/biome": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}
