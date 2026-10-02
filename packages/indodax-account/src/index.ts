@@ -3,7 +3,7 @@ import { ValidationError } from "@indodax-mcp/errors";
 import Decimal from "decimal.js";
 import { decimalOrNull } from "@indodax-mcp/core";
 import type { FetchFn } from "@indodax-mcp/transport";
-import { fetchWithRetry } from "@indodax-mcp/transport";
+import { OFFICIAL_V2_BUCKET, RateLimiter, fetchWithRetry } from "@indodax-mcp/transport";
 import type { TapiV2Signer } from "@indodax-mcp/indodax-auth";
 import type { Capability } from "@indodax-mcp/core";
 
@@ -56,6 +56,7 @@ export interface AccountClientOptions {
   signer: TapiV2Signer;
   fetchFn?: FetchFn;
   omitZeroBalances?: boolean;
+  limiter?: RateLimiter | undefined;
 }
 
 export interface HistoryOptions {
@@ -66,9 +67,14 @@ export interface HistoryOptions {
 }
 
 export class AccountClient {
-  constructor(private readonly options: AccountClientOptions) {}
+  private readonly limiter: RateLimiter;
+
+  constructor(private readonly options: AccountClientOptions) {
+    this.limiter = options.limiter ?? new RateLimiter([OFFICIAL_V2_BUCKET]);
+  }
 
   private async signedGet<T>(path: string, params: Record<string, string>): Promise<T> {
+    await this.limiter.acquire("v2-rest");
     const signer = this.options.signer;
     const query = signer.buildTimestampParams(params);
     const signature = signer.signQuery(query);
@@ -104,6 +110,7 @@ export class AccountClient {
   }
 
   async getAccount(): Promise<AccountInfo> {
+    await this.limiter.acquire("v2-rest");
     const params: Record<string, string> = {};
     if (this.options.omitZeroBalances ?? true) params.omitZeroBalances = "true";
     const query = this.options.signer.buildTimestampParams(params);

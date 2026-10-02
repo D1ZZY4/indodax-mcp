@@ -1,5 +1,6 @@
 import type { Registry } from "@indodax-mcp/mcp-registry";
 import type { ServerHandlers } from "@indodax-mcp/mcp-core";
+import { cacheSize } from "@indodax-mcp/indodax-market";
 import type { AppServices } from "./composition.js";
 
 export function registerResources(
@@ -79,7 +80,7 @@ export function registerResources(
 
   handlers.resources.set("market://snapshot", async () => {
     const time = await app.publicClient.serverTime().catch(() => null);
-    return JSON.stringify({ cachedTickers: 0, serverTime: time });
+    return JSON.stringify({ cachedTickers: cacheSize(), serverTime: time });
   });
   handlers.resources.set("pairs://metadata", async () =>
     JSON.stringify(await app.publicClient.pairs()),
@@ -98,9 +99,16 @@ export function registerResources(
   handlers.resources.set("risk://state", async () =>
     JSON.stringify({ policy: app.policy, deadman: app.deadman.snapshot() }),
   );
-  handlers.resources.set("reconciliation://state", async () =>
-    JSON.stringify({ openOrders: app.paper.openOrders().length }),
-  );
+  handlers.resources.set("reconciliation://state", async () => {
+    const snapshot = app.paper.snapshot();
+    return JSON.stringify({
+      scope: "paper-local",
+      openOrders: snapshot.orders.filter((order) => order.state === "ACCEPTED").length,
+      fills: snapshot.orders.filter((order) => order.state === "FILLED").length,
+      tradeCount: snapshot.tradeCount,
+      note: "paper ledger counts only; use reconcile tools for exchange comparison",
+    });
+  });
   handlers.resources.set("audit://recent", async () => JSON.stringify(app.audit.list().slice(-20)));
   handlers.resources.set("system://health", async () =>
     JSON.stringify({ status: app.health.overall(), components: app.health.snapshot() }),

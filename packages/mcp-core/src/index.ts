@@ -1,6 +1,7 @@
 import { McpServer } from "@modelcontextprotocol/server";
 import { z } from "zod";
 import { AppError } from "@indodax-mcp/errors";
+import type { ToolMetadata } from "@indodax-mcp/mcp-contracts";
 import type { Registry } from "@indodax-mcp/mcp-registry";
 
 export interface ToolContext {
@@ -42,14 +43,27 @@ export interface BuildServerOptions {
   version: string;
   registry: Registry;
   handlers: ServerHandlers;
+  /**
+   * Optional central policy gate. Runs before every tool handler.
+   * Throw to deny. Capability, risk, and audit-class enforcement stay
+   * with handlers and the risk engine; this gate covers only the
+   * mechanical metadata dimensions (auth, environment).
+   */
+  guard?: (metadata: ToolMetadata, args: Record<string, unknown>) => void | Promise<void>;
 }
 
 function toErrorPayload(error: unknown): { text: string; isError: true } {
   if (error instanceof AppError) {
     return { text: JSON.stringify(error.toJSON(), null, 2), isError: true };
   }
-  const message = error instanceof Error ? error.message : String(error);
-  return { text: JSON.stringify({ code: "InternalError", message }, null, 2), isError: true };
+  return {
+    text: JSON.stringify(
+      { code: "InternalError", message: "unexpected internal failure" },
+      null,
+      2,
+    ),
+    isError: true,
+  };
 }
 
 export function buildServer(options: BuildServerOptions): McpServer {
@@ -64,6 +78,7 @@ export function buildServer(options: BuildServerOptions): McpServer {
       { description: entry.metadata.description, inputSchema },
       async (args) => {
         try {
+          await options.guard?.(entry.metadata, args as Record<string, unknown>);
           const result = await handler(args as Record<string, unknown>, {});
           return {
             content: result.content,

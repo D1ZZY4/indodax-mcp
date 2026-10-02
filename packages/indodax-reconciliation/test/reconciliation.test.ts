@@ -24,4 +24,16 @@ describe("reconciliation", () => {
     expect(result.state).toBe("MISMATCH");
     expect(result.mismatched).toEqual(["1"]);
   });
+
+  it("flags exchange-only fills", () => {
+    const result = reconcileFills(
+      [{ exchangeOrderId: "1", quantity: "2" }],
+      [
+        { exchangeOrderId: "1", quantity: "2" },
+        { exchangeOrderId: "2", quantity: "3" },
+      ],
+    );
+    expect(result.state).toBe("MISMATCH");
+    expect(result.exchangeOnly).toEqual(["2"]);
+  });
 });

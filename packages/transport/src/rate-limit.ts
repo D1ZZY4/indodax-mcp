@@ -79,6 +79,17 @@ export const OFFICIAL_PUBLIC_BUCKET: BucketSpec = {
   refillPerSecond: 3,
 };
 
+/**
+ * Conservative shared bucket for authenticated TAPI v2 calls.
+ * Set below the documented create-order rule (20/s per user per pair)
+ * so all private traffic stays under known limits by default.
+ */
+export const OFFICIAL_V2_BUCKET: BucketSpec = {
+  key: "v2-rest",
+  capacity: 10,
+  refillPerSecond: 10,
+};
+
 export function appThrottleBucket(requestsPerSecond: number): BucketSpec {
   const rps = Math.max(1, Math.floor(requestsPerSecond));
   return { key: "app-throttle", capacity: rps, refillPerSecond: rps };

@@ -4,6 +4,7 @@ import { ValidationError } from "@indodax-mcp/errors";
 import type { Registry } from "@indodax-mcp/mcp-registry";
 import type { ServerHandlers } from "@indodax-mcp/mcp-core";
 import { getTicker } from "@indodax-mcp/indodax-market";
+import { reconcileFills } from "@indodax-mcp/indodax-reconciliation";
 import type { BacktestReport } from "@indodax-mcp/indodax-backtest";
 import { fail, ok, parseArgs } from "../respond.js";
 import type { AppServices } from "../composition.js";
@@ -201,7 +202,9 @@ export function registerOpsTools(
         if (!run) throw ValidationError(`backtest ${id} not found`);
         return { id, netPnl: run.report.netPnl, fills: run.report.hypotheticalFills };
       });
-      const ranked = [...rows].sort((a, b) => Number(b.netPnl) - Number(a.netPnl));
+      const ranked = [...rows].sort((a, b) =>
+        new Decimal(b.netPnl).comparedTo(new Decimal(a.netPnl)),
+      );
       return ok({ rows, best: ranked[0]?.id ?? null });
     } catch (error) {
       return fail(error);
@@ -236,13 +239,20 @@ export function registerOpsTools(
       const exchange = (await app.accountClient.myTrades({ symbol: args.symbol })) as {
         data?: { orderId?: string; qty?: string }[];
       };
-      const exchangeQty = new Map<string, Decimal>();
-      for (const trade of exchange.data ?? []) {
-        if (!trade.orderId) continue;
-        const current = exchangeQty.get(trade.orderId) ?? new Decimal(0);
-        exchangeQty.set(trade.orderId, current.plus(new Decimal(trade.qty ?? "0")));
-      }
-      return ok({ symbol: args.symbol, exchangeOrders: exchangeQty.size });
+      const exchangeFills = (exchange.data ?? [])
+        .filter((trade) => typeof trade.orderId === "string")
+        .map((trade) => ({
+          exchangeOrderId: trade.orderId as string,
+          quantity: trade.qty ?? "0",
+        }));
+      const localFills = app.paper
+        .snapshot()
+        .orders.filter((order) => order.state === "FILLED")
+        .map((order) => ({
+          exchangeOrderId: order.exchangeOrderId ?? order.internalOrderId,
+          quantity: new Decimal(order.quantity).minus(new Decimal(order.remaining)).toString(),
+        }));
+      return ok({ symbol: args.symbol, ...reconcileFills(localFills, exchangeFills) });
     } catch (error) {
       return fail(error);
     }

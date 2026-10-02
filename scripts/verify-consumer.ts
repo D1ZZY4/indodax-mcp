@@ -59,6 +59,13 @@ for (const dir of PUBLISHABLE) {
   const { existsSync: tarballExists } = await import("node:fs");
   check(`${manifest.name} pack`, tarballExists(tarball), tarball);
   if (!tarballExists(tarball)) continue;
+  const listed = Bun.spawnSync(["tar", "tzf", tarball], { cwd: ROOT });
+  const contents = listed.stdout.toString();
+  check(
+    `${manifest.name} tarball entrypoint`,
+    contents.includes("package/dist/index.js"),
+    "dist/index.js in tarball",
+  );
 
   const sandbox = mkdtempSync(join(tmpdir(), "consumer-"));
   Bun.spawnSync(["bun", "init", "-y"], { cwd: sandbox });

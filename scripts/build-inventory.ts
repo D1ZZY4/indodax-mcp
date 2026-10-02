@@ -8,11 +8,12 @@ interface InventoryEntry {
   version: string;
   path: string;
   publishable: boolean;
-  buildStatus: "built" | "missing";
+  buildStatus: "built" | "missing" | "broken";
   entrypoints: string[];
   outputs: string[];
   exportMap: Record<string, unknown> | null;
   binaryNames: string[];
+  missingTargets: string[];
 }
 
 function readJson(path: string): Record<string, unknown> {
@@ -40,21 +41,49 @@ export function buildInventory(): InventoryEntry[] {
       if (!existsSync(manifestPath)) continue;
       const pkg = readJson(manifestPath);
       const outputs = listOutputs(join(base, name, "dist"));
+      const outputSet = new Set(outputs);
       const bin = pkg.bin as Record<string, string> | string | undefined;
       const entrypoints = new Set<string>();
+      const resolved: string[] = [];
+      const missing: string[] = [];
       if (typeof pkg.main === "string") entrypoints.add(pkg.main);
       if (typeof bin === "string") entrypoints.add(bin);
       else if (bin) for (const target of Object.values(bin)) entrypoints.add(target);
+      for (const entry of entrypoints) {
+        const rel = entry.replace(/^\.\//, "").replace(/^dist\//, "");
+        if (outputSet.has(rel)) resolved.push(entry);
+        else missing.push(entry);
+      }
+      const exportMap = (pkg.exports as Record<string, unknown> | undefined) ?? null;
+      const exportTargets: string[] = [];
+      if (exportMap) {
+        const walk = (node: unknown): void => {
+          if (typeof node === "string") exportTargets.push(node);
+          else if (node && typeof node === "object") {
+            for (const value of Object.values(node as Record<string, unknown>)) walk(value);
+          }
+        };
+        walk(exportMap);
+      }
+      const missingExports = exportTargets.filter(
+        (target) => !outputSet.has(target.replace(/^\.\//, "").replace(/^dist\//, "")),
+      );
       entries.push({
         package: String(pkg.name ?? name),
         version: String(pkg.version ?? "0.0.0"),
         path: `${area}/${name}`,
         publishable: pkg.private !== true,
-        buildStatus: outputs.length > 0 ? "built" : "missing",
+        buildStatus:
+          outputs.length === 0
+            ? "missing"
+            : missing.length + missingExports.length > 0
+              ? "broken"
+              : "built",
         entrypoints: [...entrypoints],
         outputs,
         exportMap: (pkg.exports as Record<string, unknown> | undefined) ?? null,
         binaryNames: typeof bin === "string" ? [] : Object.keys(bin ?? {}),
+        missingTargets: [...missing, ...missingExports],
       });
     }
   }
@@ -78,9 +107,13 @@ export function renderMarkdown(entries: InventoryEntry[]): string {
 
 if (import.meta.main) {
   const entries = buildInventory();
-  const missing = entries.filter((entry) => entry.buildStatus === "missing");
+  const missing = entries.filter((entry) => entry.buildStatus !== "built");
   await Bun.write(join(ROOT, "build-inventory.json"), `${JSON.stringify(entries, null, 2)}\n`);
   await Bun.write(join(ROOT, "build-inventory.md"), renderMarkdown(entries));
-  console.log(`inventory: ${entries.length} entries, ${missing.length} missing builds`);
-  for (const entry of missing) console.log(`  MISSING: ${entry.package}`);
+  console.log(`inventory: ${entries.length} entries, ${missing.length} missing or broken builds`);
+  for (const entry of missing) {
+    console.log(
+      `  ${entry.buildStatus.toUpperCase()}: ${entry.package} (${entry.missingTargets.join(", ")})`,
+    );
+  }
 }

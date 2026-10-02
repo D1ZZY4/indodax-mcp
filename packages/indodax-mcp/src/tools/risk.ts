@@ -109,6 +109,7 @@ export function registerRiskTools(
           duplicate: false,
           reconciliationHalted: false,
           deadmanUnknown: mode === "live" && app.deadman.snapshot().state === "DISARMED",
+          deadmanState: app.deadman.snapshot().state,
           balanceSufficient: null,
         },
       );

@@ -56,4 +56,27 @@ describe("indodax-mcp surface", () => {
       await harness.close();
     }
   });
+
+  it("denies private tools centrally without credentials", async () => {
+    const { server } = build();
+    const harness = await withInMemoryServer(server);
+    try {
+      const denied = await harness.client.callTool({ name: "indodax_account", arguments: {} });
+      expect(denied.isError).toBe(true);
+    } finally {
+      await harness.close();
+    }
+  });
+
+  it("keeps memory audit trail without a database", async () => {
+    const { app } = build();
+    expect(app.env.DATABASE_URL).toBeUndefined();
+    const harness = await withInMemoryServer(build().server);
+    try {
+      const events = await harness.client.callTool({ name: "indodax_audit_events", arguments: {} });
+      expect(events.isError).not.toBe(true);
+    } finally {
+      await harness.close();
+    }
+  });
 });

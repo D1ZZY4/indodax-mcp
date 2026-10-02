@@ -16,6 +16,7 @@
   "dependencies": {
     "@indodax-mcp/config": "workspace:*",
     "@indodax-mcp/core": "workspace:*",
+    "@indodax-mcp/db": "workspace:*",
     "@indodax-mcp/errors": "workspace:*",
     "@indodax-mcp/events": "workspace:*",
     "@indodax-mcp/indodax-account": "workspace:*",
@@ -30,6 +31,7 @@
     "@indodax-mcp/indodax-orders": "workspace:*",
     "@indodax-mcp/indodax-paper": "workspace:*",
     "@indodax-mcp/indodax-portfolio": "workspace:*",
+    "@indodax-mcp/indodax-reconciliation": "workspace:*",
     "@indodax-mcp/indodax-risk": "workspace:*",
     "@indodax-mcp/indodax-strategy": "workspace:*",
     "@indodax-mcp/indodax-trading": "workspace:*",

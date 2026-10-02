@@ -70,6 +70,11 @@ export interface RiskContext {
   positionNotional?: Decimal | null | undefined;
   /** Epoch ms of the most recent order. Null skips the cooldown check. */
   lastOrderAtMs?: number | null | undefined;
+  /**
+   * Live Deadman Switch state. STALE or EXPIRED denies live trading.
+   * Null or undefined skips the check (use deadmanUnknown for unknown state).
+   */
+  deadmanState?: "DISARMED" | "ARMED" | "STALE" | "EXPIRED" | null | undefined;
 }
 
 export interface RiskEngine {
@@ -119,6 +124,12 @@ function evaluateInternal(
   }
   if (context.deadmanUnknown && context.mode === "live") {
     return deny("DEADMAN_UNKNOWN", "deadman state unknown for live trading");
+  }
+  if (
+    context.mode === "live" &&
+    (context.deadmanState === "STALE" || context.deadmanState === "EXPIRED")
+  ) {
+    return deny("DEADMAN_UNKNOWN", `deadman ${context.deadmanState} halts live trading`);
   }
   if (context.duplicate) push("DUPLICATE_ORDER");
   if (context.marketAgeMs !== null && context.marketAgeMs > limits.maxMarketAgeMs) {

@@ -11,6 +11,7 @@ import { HealthTracker, Counters } from "@indodax-mcp/observability";
 import { PaperExecutor } from "@indodax-mcp/indodax-paper";
 import { createRiskEngine, defaultRiskLimits, paperOnlyPolicy } from "@indodax-mcp/indodax-risk";
 import type { RiskEngine, RiskLimits, RiskPolicy } from "@indodax-mcp/indodax-risk";
+import { OFFICIAL_V2_BUCKET, RateLimiter } from "@indodax-mcp/transport";
 import { TradingService } from "@indodax-mcp/indodax-trading";
 import { ManagedSocket } from "@indodax-mcp/indodax-websocket";
 import { Scheduler } from "@indodax-mcp/scheduler";
@@ -35,6 +36,7 @@ export interface AppServices {
   metrics: Counters;
   events: EventBus;
   scheduler: Scheduler;
+  limiter: RateLimiter;
   marketSocket: ManagedSocket;
   privateSocket: ManagedSocket;
   tenantId: string;
@@ -47,11 +49,12 @@ export function createApp(env: AppEnv): AppServices {
     rateLimitRps: env.INDODAX_RATE_LIMIT,
   });
   const hasCreds = Boolean(env.INDODAX_API_KEY && env.INDODAX_API_SECRET);
+  const limiter = new RateLimiter([OFFICIAL_V2_BUCKET]);
   const signer = hasCreds
     ? new TapiV2Signer(env.INDODAX_API_KEY as string, env.INDODAX_API_SECRET as string)
     : null;
-  const accountClient = signer ? new AccountClient({ signer }) : null;
-  const liveExecutor = signer ? new LiveExecutor({ signer }) : null;
+  const accountClient = signer ? new AccountClient({ signer, limiter }) : null;
+  const liveExecutor = signer ? new LiveExecutor({ signer, limiter }) : null;
   const paper = new PaperExecutor();
   const alerts = new AlertStore();
   const audit = new AuditTrail();
@@ -92,6 +95,7 @@ export function createApp(env: AppEnv): AppServices {
     metrics: new Counters(),
     events: new EventBus(),
     scheduler: new Scheduler(),
+    limiter,
     marketSocket: new ManagedSocket(() => {}),
     privateSocket: new ManagedSocket(() => {}),
     tenantId: "local",

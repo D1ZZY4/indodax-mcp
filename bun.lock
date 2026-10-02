@@ -323,6 +323,7 @@
       "dependencies": {
         "@indodax-mcp/config": "workspace:*",
         "@indodax-mcp/core": "workspace:*",
+        "@indodax-mcp/db": "workspace:*",
         "@indodax-mcp/errors": "workspace:*",
         "@indodax-mcp/events": "workspace:*",
         "@indodax-mcp/indodax-account": "workspace:*",
@@ -337,6 +338,7 @@
         "@indodax-mcp/indodax-orders": "workspace:*",
         "@indodax-mcp/indodax-paper": "workspace:*",
         "@indodax-mcp/indodax-portfolio": "workspace:*",
+        "@indodax-mcp/indodax-reconciliation": "workspace:*",
         "@indodax-mcp/indodax-risk": "workspace:*",
         "@indodax-mcp/indodax-strategy": "workspace:*",
         "@indodax-mcp/indodax-trading": "workspace:*",
@@ -513,6 +515,7 @@
       "version": "1.0.0",
       "dependencies": {
         "@indodax-mcp/errors": "workspace:*",
+        "@indodax-mcp/mcp-contracts": "workspace:*",
         "@indodax-mcp/mcp-registry": "workspace:*",
         "@modelcontextprotocol/server": "catalog:",
         "zod": "catalog:",
@@ -586,13 +589,11 @@
     "packages/scheduler": {
       "name": "@indodax-mcp/scheduler",
       "version": "1.0.0",
-      "dependencies": {
-        "vitest": "catalog:",
-      },
       "devDependencies": {
         "@types/node": "catalog:",
         "@vitest/coverage-v8": "catalog:",
         "bun-types": "catalog:",
+        "vitest": "catalog:",
       },
     },
     "packages/secrets": {

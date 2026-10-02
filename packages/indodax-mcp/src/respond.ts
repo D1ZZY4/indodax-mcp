@@ -22,13 +22,15 @@ export function ok(data: unknown, warnings: string[] = []): ToolSuccess {
 }
 
 export function fail(error: unknown): ToolFailure {
-  const payload =
+  // Only typed AppErrors carry their message to consumers. Anything else
+  // becomes a generic failure so internal details never leak over MCP.
+  const payload: Record<string, unknown> =
     error instanceof AppError
       ? { status: "error", ...error.toJSON() }
       : {
           status: "error",
           code: "InternalError",
-          message: error instanceof Error ? error.message : String(error),
+          message: "unexpected internal failure",
           retryable: false,
         };
   return { content: [{ type: "text", text: JSON.stringify(payload, null, 2) }], isError: true };

@@ -104,12 +104,25 @@ if (import.meta.main) {
   const reports = inspectWorkspace(ROOT);
   const publishable = reports.filter((report) => report.publishable);
   console.log(`workspaces: ${reports.length}, publishable: ${publishable.length}`);
+  let broken = 0;
   for (const report of publishable) {
     console.log(`- ${report.name}@${report.version} (${report.path})`);
     console.log(`  entrypoints: ${report.entrypoints.join(", ") || "none"}`);
     console.log(`  outputs: ${report.outputs.length} files`);
     console.log(`  binaries: ${JSON.stringify(report.binaries)}`);
+    const missing = report.entrypoints.filter(
+      (entry) => !report.outputs.includes(entry.replace(/^\.\//, "").replace(/^dist\//, "")),
+    );
+    if (missing.length > 0) {
+      broken += 1;
+      console.log(`  BROKEN entrypoints: ${missing.join(", ")}`);
+    }
     const forbidden = checkForbiddenFiles(report);
     if (forbidden.length > 0) console.log(`  FORBIDDEN: ${forbidden.join(", ")}`);
   }
+  if (broken > 0) {
+    console.log(`release preview failed: ${broken} publishable packages with missing entrypoints`);
+    process.exit(1);
+  }
+  console.log(`release preview ok: ${publishable.length} publishable packages`);
 }

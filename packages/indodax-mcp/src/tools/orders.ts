@@ -82,6 +82,7 @@ function reviewHypothetical(app: AppServices, args: HypotheticalArgs) {
     duplicate: false,
     reconciliationHalted: false,
     deadmanUnknown: false,
+    deadmanState: app.deadman.snapshot().state,
     balanceSufficient: null,
   });
   return { proposal, order, decision };

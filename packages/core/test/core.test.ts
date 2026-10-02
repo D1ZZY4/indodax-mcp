@@ -41,6 +41,11 @@ describe("core symbols", () => {
     expect(asPair({ base: "btc", quote: "idr" })).toBe("btc_idr");
     expect(asCompact({ base: "btc", quote: "idr" })).toBe("btcidr");
   });
+
+  it("accepts caller-supplied quote assets", () => {
+    expect(parseSymbolFlexible("XBTSOL", ["sol"])).toEqual({ base: "xbt", quote: "sol" });
+    expect(parseSymbolFlexible("XBTSOL")).toBeNull();
+  });
 });
 
 describe("core order validation", () => {

@@ -33,6 +33,10 @@ const PAPER_REVIEW = {
   balanceSufficient: null,
 };
 
+function liveDeadmanState(app: AppServices): "DISARMED" | "ARMED" | "STALE" | "EXPIRED" {
+  return app.deadman.snapshot().state;
+}
+
 export interface PaperPlacement {
   pair: string;
   side: "BUY" | "SELL";
@@ -74,6 +78,7 @@ export async function placePaperOrder(app: AppServices, placement: PaperPlacemen
     ...PAPER_REVIEW,
     tradeCount: ledger.tradeCount,
     lastOrderAtMs: lastSubmitted.length > 0 ? Math.max(...lastSubmitted) : null,
+    deadmanState: liveDeadmanState(app),
     balanceSufficient: hasPaperBalance(ledger.balances, symbol, placement.side, notional, quantity),
   });
   if (decision.outcome !== "ALLOW") throw RiskDeniedError(decision.message);

@@ -1,5 +1,5 @@
 const ASSET_PATTERN = /^[a-z0-9]{1,16}$/;
-const KNOWN_QUOTES = ["usdt", "usdc", "idr", "btc", "eth"] as const;
+const DEFAULT_QUOTES = ["usdt", "usdc", "idr", "btc", "eth"] as const;
 
 export function normalizeAsset(code: string): string | null {
   const normalized = code.trim().toLowerCase();
@@ -21,11 +21,14 @@ export function parseSymbol(pair: string): SymbolParts | null {
   return { base, quote };
 }
 
-export function parseSymbolFlexible(pair: string): SymbolParts | null {
+export function parseSymbolFlexible(
+  pair: string,
+  quotes: readonly string[] = DEFAULT_QUOTES,
+): SymbolParts | null {
   const direct = parseSymbol(pair);
   if (direct !== null) return direct;
   const compact = pair.trim().toLowerCase().replace(/[-/_]/g, "");
-  for (const quote of KNOWN_QUOTES) {
+  for (const quote of quotes) {
     if (compact.endsWith(quote) && compact.length > quote.length) {
       const base = compact.slice(0, compact.length - quote.length);
       if (normalizeAsset(base) !== null) return { base, quote };

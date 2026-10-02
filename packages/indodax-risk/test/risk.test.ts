@@ -94,4 +94,25 @@ describe("risk engine", () => {
     expect(decision.outcome).toBe("DENY");
     expect(decision.reasons).toContain("DEADMAN_UNKNOWN");
   });
+
+  it("halts live trading on stale or expired deadman state", () => {
+    const engine = createRiskEngine(defaultRiskLimits(), {
+      ...paperOnlyPolicy(),
+      allowedModes: ["live", "paper"],
+      allowedCapabilities: ["READ", "PAPER", "TRADE"],
+    });
+    const base = {
+      ...context(),
+      mode: "live" as const,
+      capability: "TRADE" as const,
+      deadmanUnknown: false,
+    };
+    for (const state of ["STALE", "EXPIRED"] as const) {
+      const decision = engine.evaluate(order("100000"), { ...base, deadmanState: state });
+      expect(decision.outcome).toBe("DENY");
+      expect(decision.reasons).toContain("DEADMAN_UNKNOWN");
+    }
+    const armed = engine.evaluate(order("100000"), { ...base, deadmanState: "ARMED" });
+    expect(armed.outcome).toBe("ALLOW");
+  });
 });

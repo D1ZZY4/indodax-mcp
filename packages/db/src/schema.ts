@@ -45,7 +45,10 @@ export const balances = pgTable(
     locked: numeric("locked", { precision: 36, scale: 18 }).notNull(),
     capturedAt: timestamp("captured_at", { withTimezone: true }).defaultNow().notNull(),
   },
-  (table) => [index("balances_account_idx").on(table.accountId)],
+  (table) => [
+    index("balances_account_idx").on(table.accountId),
+    uniqueIndex("balances_account_asset_uidx").on(table.accountId, table.asset),
+  ],
 );
 
 export const orders = pgTable(
@@ -139,7 +142,10 @@ export const positions = pgTable(
     initial: numeric("initial", { precision: 36, scale: 18 }).notNull(),
     capturedAt: timestamp("captured_at", { withTimezone: true }).defaultNow().notNull(),
   },
-  (table) => [index("positions_tenant_idx").on(table.tenantId)],
+  (table) => [
+    index("positions_tenant_idx").on(table.tenantId),
+    uniqueIndex("positions_tenant_asset_uidx").on(table.tenantId, table.asset),
+  ],
 );
 
 export const portfolioSnapshots = pgTable("portfolio_snapshots", {
@@ -243,16 +249,20 @@ export const websocketOffsets = pgTable(
   (table) => [uniqueIndex("websocket_offsets_scope_uidx").on(table.scope, table.channel)],
 );
 
-export const deadmanState = pgTable("deadman_state", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  tenantId: uuid("tenant_id")
-    .notNull()
-    .references(() => tenants.id),
-  state: text("state").notNull(),
-  pairs: jsonb("pairs").notNull(),
-  countdownMs: integer("countdown_ms"),
-  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
-});
+export const deadmanState = pgTable(
+  "deadman_state",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenants.id),
+    state: text("state").notNull(),
+    pairs: jsonb("pairs").notNull(),
+    countdownMs: integer("countdown_ms"),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [uniqueIndex("deadman_state_tenant_uidx").on(table.tenantId)],
+);
 
 export const alerts = pgTable(
   "alerts",

@@ -18,6 +18,7 @@ async function legacyPost(
   if (!app.env.INDODAX_API_KEY || !app.env.INDODAX_API_SECRET) {
     throw AuthenticationError("no API credentials configured for this private tool");
   }
+  await app.limiter.acquire("v2-rest");
   const signer = new LegacyTapiSigner(app.env.INDODAX_API_KEY, app.env.INDODAX_API_SECRET);
   const body = new URLSearchParams({
     method,
@@ -45,6 +46,7 @@ async function v2Get(
   params: Record<string, string>,
 ): Promise<unknown> {
   if (!app.signer) throw AuthenticationError("no API credentials configured for this private tool");
+  await app.limiter.acquire("v2-rest");
   const query = app.signer.buildTimestampParams(params);
   const signature = app.signer.signQuery(query);
   const response = await fetchWithRetry(`${V2_BASE}${path}?${query}`, {

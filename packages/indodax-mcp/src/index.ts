@@ -2,6 +2,8 @@ import { Registry } from "@indodax-mcp/mcp-registry";
 import { buildServer } from "@indodax-mcp/mcp-core";
 import type { ServerHandlers } from "@indodax-mcp/mcp-core";
 import { createApp, type AppServices } from "./composition.js";
+import { buildGuard } from "./guard.js";
+import { attachAuditPersistence } from "./audit-store.js";
 import { registerMarketTools } from "./tools/market.js";
 import { registerAccountTools } from "./tools/account.js";
 import { registerOrderTools } from "./tools/orders.js";
@@ -29,6 +31,7 @@ export function emptyHandlers(): ServerHandlers {
 
 export function buildIndodaxServer(env: AppEnv) {
   const app: AppServices = createApp(env);
+  void attachAuditPersistence(app);
   const registry = new Registry();
   const handlers = emptyHandlers();
   registerMarketTools(registry, handlers, app);
@@ -47,7 +50,13 @@ export function buildIndodaxServer(env: AppEnv) {
   registerOpsTools(registry, handlers, app);
   registerResources(registry, handlers, app);
   registerPrompts(registry, handlers, app);
-  const server = buildServer({ name: SERVER_NAME, version: SERVER_VERSION, registry, handlers });
+  const server = buildServer({
+    name: SERVER_NAME,
+    version: SERVER_VERSION,
+    registry,
+    handlers,
+    guard: buildGuard(app),
+  });
   return { server, app, registry };
 }
 

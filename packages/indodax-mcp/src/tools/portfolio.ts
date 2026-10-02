@@ -2,7 +2,7 @@ import { z } from "zod";
 import Decimal from "decimal.js";
 import type { Registry } from "@indodax-mcp/mcp-registry";
 import type { ServerHandlers } from "@indodax-mcp/mcp-core";
-import { equityIdr } from "@indodax-mcp/indodax-portfolio";
+import { equityIdr, pnl } from "@indodax-mcp/indodax-portfolio";
 import { fail, ok } from "../respond.js";
 import type { AppServices } from "../composition.js";
 
@@ -58,7 +58,7 @@ export function registerPortfolioTools(
   handlers.tools.set("indodax_portfolio", async () => {
     try {
       const { state } = snapshot();
-      const prices = await livePrices();
+      const { prices, incomplete } = await livePrices();
       const holdings = Object.entries(state.balances).map(([asset, amount]) => ({
         asset,
         available: new Decimal(amount),
@@ -68,7 +68,13 @@ export function registerPortfolioTools(
         Object.entries(prices).map(([pair, last]) => [pair, new Decimal(last)]),
       );
       const { equity, positions } = equityIdr(holdings, priceMap);
-      return ok({ balances: state.balances, equityIdr: equity.toString(), positions, prices });
+      return ok({
+        balances: state.balances,
+        equityIdr: equity.toString(),
+        positions,
+        prices,
+        incomplete,
+      });
     } catch (error) {
       return fail(error);
     }
@@ -76,7 +82,24 @@ export function registerPortfolioTools(
   handlers.tools.set("indodax_positions", async () => {
     try {
       const { state } = snapshot();
-      return ok({ positions: state.orders.length, balances: state.balances });
+      const initial = state.initialBalances;
+      const { prices, incomplete } = await livePrices();
+      const priceMap = new Map(
+        Object.entries(prices).map(([pair, last]) => [pair, new Decimal(last)]),
+      );
+      const rows = Object.entries(state.balances).map(([asset, amount]) => {
+        const current = new Decimal(amount);
+        const start = new Decimal(initial[asset] ?? "0");
+        const price = asset === "idr" ? new Decimal(1) : (priceMap.get(`${asset}_idr`) ?? null);
+        return {
+          asset,
+          current: current.toString(),
+          initial: start.toString(),
+          pnl: pnl(current, start).toString(),
+          valueIdr: price === null ? null : current.mul(price).toString(),
+        };
+      });
+      return ok({ positions: rows, incomplete });
     } catch (error) {
       return fail(error);
     }
@@ -84,23 +107,50 @@ export function registerPortfolioTools(
   handlers.tools.set("indodax_pnl", async () => {
     try {
       const { state } = snapshot();
-      return ok({ tradeCount: state.tradeCount, totalFees: state.totalFees });
+      const { prices, incomplete } = await livePrices();
+      const priceMap = new Map(
+        Object.entries(prices).map(([pair, last]) => [pair, new Decimal(last)]),
+      );
+      let total = new Decimal(0);
+      let valued = 0;
+      for (const [asset, amount] of Object.entries(state.balances)) {
+        const current = new Decimal(amount);
+        const start = new Decimal(state.initialBalances[asset] ?? "0");
+        const diff = pnl(current, start);
+        if (asset === "idr") {
+          total = total.plus(diff);
+          valued += 1;
+          continue;
+        }
+        const price = priceMap.get(`${asset}_idr`);
+        if (!price) continue;
+        total = total.plus(diff.mul(price));
+        valued += 1;
+      }
+      return ok({
+        tradeCount: state.tradeCount,
+        totalFees: state.totalFees,
+        pnlIdr: total.toString(),
+        valuedAssets: valued,
+        incomplete,
+      });
     } catch (error) {
       return fail(error);
     }
   });
 
-  async function livePrices(): Promise<Record<string, string>> {
-    const out: Record<string, string> = {};
+  async function livePrices(): Promise<{ prices: Record<string, string>; incomplete: string[] }> {
+    const prices: Record<string, string> = {};
+    const incomplete: string[] = [];
     for (const code of Object.keys(app.paper.snapshot().balances)) {
       if (code === "idr") continue;
       try {
         const ticker = await app.publicClient.ticker(`${code}_idr`);
-        out[`${code}_idr`] = ticker.last;
+        prices[`${code}_idr`] = ticker.last;
       } catch {
-        // leave missing prices out rather than failing the tool
+        incomplete.push(code);
       }
     }
-    return out;
+    return { prices, incomplete };
   }
 }

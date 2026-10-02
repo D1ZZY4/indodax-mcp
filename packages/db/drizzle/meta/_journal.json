@@ -8,6 +8,13 @@
       "when": 1790960829378,
       "tag": "0000_mighty_sentinels",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1790979942244,
+      "tag": "0001_strong_scarlet_witch",
+      "breakpoints": true
     }
   ]
 }

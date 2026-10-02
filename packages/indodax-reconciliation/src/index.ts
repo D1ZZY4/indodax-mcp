@@ -33,12 +33,18 @@ export interface ReconciliationReport {
 export function reconcileFills(
   local: LocalFillView[],
   exchange: ExchangeFillView[],
-): { state: ReconciliationState; checked: number; mismatched: string[] } {
+): {
+  state: ReconciliationState;
+  checked: number;
+  mismatched: string[];
+  exchangeOnly: string[];
+} {
   const byOrder = new Map<string, Decimal>();
   for (const fill of exchange) {
     const current = byOrder.get(fill.exchangeOrderId) ?? new Decimal(0);
     byOrder.set(fill.exchangeOrderId, current.plus(new Decimal(fill.quantity)));
   }
+  const localIds = new Set(local.map((fill) => fill.exchangeOrderId));
   const mismatched: string[] = [];
   for (const fill of local) {
     const expected = byOrder.get(fill.exchangeOrderId);
@@ -46,11 +52,9 @@ export function reconcileFills(
       mismatched.push(fill.exchangeOrderId);
     }
   }
-  return {
-    state: mismatched.length === 0 ? "MATCH" : "MISMATCH",
-    checked: local.length,
-    mismatched,
-  };
+  const exchangeOnly = [...byOrder.keys()].filter((id) => !localIds.has(id));
+  const state = mismatched.length === 0 && exchangeOnly.length === 0 ? "MATCH" : "MISMATCH";
+  return { state, checked: local.length, mismatched, exchangeOnly };
 }
 
 export function reconcileAll(input: {

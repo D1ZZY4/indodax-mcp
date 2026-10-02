@@ -1,6 +1,11 @@
 import { OrderRejectedError, ValidationError } from "@indodax-mcp/errors";
 import type { TapiV2Signer } from "@indodax-mcp/indodax-auth";
-import { fetchWithRetry, type FetchFn } from "@indodax-mcp/transport";
+import {
+  OFFICIAL_V2_BUCKET,
+  RateLimiter,
+  fetchWithRetry,
+  type FetchFn,
+} from "@indodax-mcp/transport";
 import type { ExecutionBackend, ExecutionRequest, ExecutionResult } from "./index.js";
 
 const V2_BASE = "https://api.indodax.com";
@@ -8,18 +13,23 @@ const V2_BASE = "https://api.indodax.com";
 export interface LiveExecutorOptions {
   signer: TapiV2Signer;
   fetchFn?: FetchFn;
+  limiter?: RateLimiter | undefined;
 }
 
 export class LiveExecutor implements ExecutionBackend {
   readonly name = "live";
+  private readonly limiter: RateLimiter;
 
-  constructor(private readonly options: LiveExecutorOptions) {}
+  constructor(private readonly options: LiveExecutorOptions) {
+    this.limiter = options.limiter ?? new RateLimiter([OFFICIAL_V2_BUCKET]);
+  }
 
   private async signed<T>(
     method: "GET" | "POST" | "DELETE",
     path: string,
     params: Record<string, string>,
   ): Promise<T> {
+    await this.limiter.acquire("v2-rest");
     const query = this.options.signer.buildTimestampParams(params);
     const signature = this.options.signer.signQuery(query);
     const headers = {

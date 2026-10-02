@@ -44,4 +44,13 @@ describe("indodax-account", () => {
     expect(seenHeaders["X-APIKEY"]).toBe("k");
     expect(seenHeaders.Sign).toHaveLength(64);
   });
+
+  it("acquires the private rate-limit slot per call", async () => {
+    const { RateLimiter } = await import("@indodax-mcp/transport");
+    const fetchFn = (async () => new Response(JSON.stringify(ACCOUNT))) as FetchFn;
+    const limiter = new RateLimiter([{ key: "v2-rest", capacity: 10, refillPerSecond: 10 }]);
+    const client = new AccountClient({ signer: new TapiV2Signer("k", "s"), fetchFn, limiter });
+    await client.getAccount();
+    expect(limiter.remaining("v2-rest")).toBe(9);
+  });
 });

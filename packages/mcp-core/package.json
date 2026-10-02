@@ -15,6 +15,7 @@
   },
   "dependencies": {
     "@indodax-mcp/errors": "workspace:*",
+    "@indodax-mcp/mcp-contracts": "workspace:*",
     "@indodax-mcp/mcp-registry": "workspace:*",
     "@modelcontextprotocol/server": "catalog:",
     "zod": "catalog:"

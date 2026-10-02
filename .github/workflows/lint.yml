@@ -19,3 +19,41 @@ jobs:
       - run: bunx turbo typecheck
       - run: bunx turbo test
       - run: bunx turbo build
+
+  e2e:
+    needs: check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.4.2"
+      - run: bun install --frozen-lockfile
+      - run: bunx turbo build
+      - run: bunx playwright install --with-deps chromium
+      - run: bunx playwright test
+
+  consumer:
+    needs: check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.4.2"
+      - run: bun install --frozen-lockfile
+      - run: bunx turbo build
+      - run: bun run release:dry
+      - run: bun run verify:consumer
+
+  migrate-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.4.2"
+      - run: bun install --frozen-lockfile
+      - run: bun --filter @indodax-mcp/db db:generate
+      - name: Fail when generated migration drifts from schema
+        run: git diff --exit-code -- packages/db/drizzle
