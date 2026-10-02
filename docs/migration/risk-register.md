@@ -1,4 +1,4 @@
-# Risk register
+<h1 align="center">Risk register</h1>
 
 ## R1. Runtime persistence is not durable
 

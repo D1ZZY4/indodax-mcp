@@ -1,4 +1,4 @@
-# Changesets
+<h1 align="center">Changesets</h1>
 
 Versioning uses [Changesets](https://github.com/changesets/changesets).
 

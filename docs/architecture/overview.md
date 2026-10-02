@@ -1,4 +1,4 @@
-# Architecture overview
+<h1 align="center">Architecture overview</h1>
 
 The repository separates exchange protocol handling, financial domain logic, application orchestration, and MCP/CLI interfaces.
 

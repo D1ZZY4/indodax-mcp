@@ -1,4 +1,4 @@
-# Code of Conduct
+<h1 align="center">Code of Conduct</h1>
 
 Indodax MCP is financial infrastructure. Contributors are expected to communicate professionally and review changes with care.
 

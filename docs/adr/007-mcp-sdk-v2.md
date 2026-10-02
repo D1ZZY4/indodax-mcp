@@ -1,4 +1,4 @@
-# ADR-007: MCP SDK v2 with Hono transport
+<h1 align="center">ADR-007: MCP SDK v2 with Hono transport</h1>
 
 - Status: accepted.
 

@@ -1,4 +1,4 @@
-# Documentation
+<h1 align="center">Documentation</h1>
 
 This documentation describes the current implementation of Indodax MCP. Status claims should be read together with the completeness matrix; package-level code does not automatically mean that a capability is wired into the main runtime.
 

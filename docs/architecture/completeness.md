@@ -1,4 +1,4 @@
-# Completeness matrix
+<h1 align="center">Completeness matrix</h1>
 
 This matrix describes the current repository state, not the intended architecture.
 

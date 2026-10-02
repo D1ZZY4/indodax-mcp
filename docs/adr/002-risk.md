@@ -1,4 +1,4 @@
-# ADR-002: Risk boundary
+<h1 align="center">ADR-002: Risk boundary</h1>
 
 - Status: accepted.
 - Current location: packages/indodax-risk and packages/indodax-execution.

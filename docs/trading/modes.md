@@ -1,4 +1,4 @@
-# Trading modes
+<h1 align="center">Trading modes</h1>
 
 The repository models paper, live, and shadow execution modes. The current application policy supports paper mode only.
 

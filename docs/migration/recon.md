@@ -1,4 +1,4 @@
-# Reconstruction of the original repository
+<h1 align="center">Reconstruction of the original repository</h1>
 
 This document records the source repository used as the behavioral reference for the TypeScript rebuild.
 

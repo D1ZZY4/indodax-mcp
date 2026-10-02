@@ -1,4 +1,4 @@
-# MCP surface
+<h1 align="center">MCP surface</h1>
 
 The current server exposes a shared registry through stdio and Streamable HTTP.
 

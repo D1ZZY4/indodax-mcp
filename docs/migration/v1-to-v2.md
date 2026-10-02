@@ -1,4 +1,4 @@
-# Migration from indodax-cli
+<h1 align="center">Migration from indodax-cli</h1>
 
 This page is a historical migration record for the rebuild from [indodax-cli](https://github.com/ibidathoillah/indodax-cli). Current implementation status is documented separately in the architecture and completeness pages.
 

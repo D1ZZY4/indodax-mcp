@@ -1,4 +1,4 @@
-# Agent harness guide
+<h1 align="center">Agent harness guide</h1>
 
 ```mermaid
 sequenceDiagram

@@ -1,4 +1,4 @@
-# Operations runbook
+<h1 align="center">Operations runbook</h1>
 
 This runbook covers the current application and its operational limits. The main composition is paper-only and keeps operational state in memory.
 

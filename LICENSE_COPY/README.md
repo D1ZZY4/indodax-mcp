@@ -1,4 +1,4 @@
-# Previous repository license
+<h1 align="center">Previous repository license</h1>
 
 This folder preserves the license of the previous repository that this
 project was rebuilt from:

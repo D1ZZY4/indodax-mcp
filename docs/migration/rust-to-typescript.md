@@ -1,4 +1,4 @@
-# Rust to TypeScript responsibility mapping
+<h1 align="center">Rust to TypeScript responsibility mapping</h1>
 
 This page maps the original Rust responsibilities to the current Bun/TypeScript repository. It is a migration reference, not a statement that every mapped capability is fully integrated at runtime.
 

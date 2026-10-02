@@ -1,4 +1,4 @@
-# Deviations
+<h1 align="center">Deviations</h1>
 
 This page records material differences between earlier build requirements and the current repository.
 

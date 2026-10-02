@@ -1,4 +1,4 @@
-# Dependency compatibility
+<h1 align="center">Dependency compatibility</h1>
 
 Verified snapshot: 2026-10-02, Bun 1.4.2.
 

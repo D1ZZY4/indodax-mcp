@@ -1,4 +1,4 @@
-# ADR-003: Paper and live backends
+<h1 align="center">ADR-003: Paper and live backends</h1>
 
 - Status: accepted.
 - Current location: packages/indodax-execution and packages/indodax-paper.

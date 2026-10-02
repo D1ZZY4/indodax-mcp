@@ -1,4 +1,4 @@
-# Security
+<h1 align="center">Security</h1>
 
 This project contains authentication, exchange credentials, and execution code. Treat security defects as potentially financial defects.
 

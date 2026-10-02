@@ -1,4 +1,4 @@
-# ADR-009: Unknown outcomes and execution safety
+<h1 align="center">ADR-009: Unknown outcomes and execution safety</h1>
 
 - Status: accepted.
 - Current location: packages/indodax-execution and packages/indodax-orders.

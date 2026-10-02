@@ -1,4 +1,4 @@
-# ADR-008: Decimal money with PostgreSQL storage
+<h1 align="center">ADR-008: Decimal money with PostgreSQL storage</h1>
 
 - Status: accepted.
 

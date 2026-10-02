@@ -1,4 +1,4 @@
-# Beginner guide
+<h1 align="center">Beginner guide</h1>
 
 This guide keeps execution in paper mode while you learn the MCP, CLI, and risk model.
 

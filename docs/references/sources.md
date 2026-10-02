@@ -1,4 +1,4 @@
-# Source references
+<h1 align="center">Source references</h1>
 
 Use upstream documentation as the source of truth for exchange protocol behavior. Repository implementation claims must be checked against the code in this repository as well.
 

@@ -1,4 +1,4 @@
-# Contributing
+<h1 align="center">Contributing</h1>
 
 Thank you for contributing to infrastructure that can eventually interact with financial accounts. Review changes as if failure has a cost.
 

@@ -1,4 +1,4 @@
-# Advanced guide
+<h1 align="center">Advanced guide</h1>
 
 For operators who need authenticated reads, paper automation, and a clear path toward future live readiness.
 

@@ -1,4 +1,4 @@
-# Developer guide
+<h1 align="center">Developer guide</h1>
 
 Reference for contributors extending the current Bun monorepo.
 

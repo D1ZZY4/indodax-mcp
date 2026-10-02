@@ -1,4 +1,4 @@
-# Risk policy
+<h1 align="center">Risk policy</h1>
 
 The risk engine is deterministic and side-effect free. It evaluates an order against a policy and a supplied runtime context.
 

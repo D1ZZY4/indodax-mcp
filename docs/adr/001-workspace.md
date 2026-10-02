@@ -1,4 +1,4 @@
-# ADR-001: Workspace boundaries
+<h1 align="center">ADR-001: Workspace boundaries</h1>
 
 - Status: historical.
 - Origin: original Rust workspace.

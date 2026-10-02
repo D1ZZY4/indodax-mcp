@@ -1,4 +1,4 @@
-# Execution flow
+<h1 align="center">Execution flow</h1>
 
 The repository uses one execution contract for paper and live backends. The supported application mode today is paper.
 

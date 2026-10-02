@@ -1,4 +1,4 @@
-# ADR-006: Bun monorepo with Turborepo
+<h1 align="center">ADR-006: Bun monorepo with Turborepo</h1>
 
 - Status: accepted.
 

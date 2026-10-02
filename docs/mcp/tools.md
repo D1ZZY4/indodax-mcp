@@ -1,4 +1,4 @@
-# MCP tool implementation
+<h1 align="center">MCP tool implementation</h1>
 
 MCP tools are protocol adapters around the application services and exchange-facing packages. Tool handlers should remain small so the same behavior can be tested without an MCP transport.
 

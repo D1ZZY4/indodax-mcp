@@ -1,4 +1,4 @@
-# INDODAX API mapping
+<h1 align="center">INDODAX API mapping</h1>
 
 This page maps documented exchange endpoints to the current TypeScript implementation. It distinguishes implemented adapters from MCP paths that remain paper-only or locked.
 

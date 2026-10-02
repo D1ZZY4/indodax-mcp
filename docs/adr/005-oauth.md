@@ -1,4 +1,4 @@
-# ADR-005: HTTP authentication boundary
+<h1 align="center">ADR-005: HTTP authentication boundary</h1>
 
 - Status: accepted.
 - Current location: apps/mcp-http and mcp-runtime.

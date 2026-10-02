@@ -1,4 +1,4 @@
-# ADR-010: Deadman-gated live safety
+<h1 align="center">ADR-010: Deadman-gated live safety</h1>
 
 - Status: accepted.
 
