@@ -2,11 +2,13 @@
 
 Versioning uses [Changesets](https://github.com/changesets/changesets).
 
-```bash
-bunx changeset          # record a change (patch, minor, major)
-bun run version-packages # apply versions plus changelogs (dry review first)
-bunx changeset publish   # publish to npm (maintainer only, never automatic)
-```
+~~~bash
+bunx changeset
+bun run version-packages
+bun run release:dry
+bunx changeset publish
+~~~
 
-Only `indodax-mcp` and `@indodax-mcp/cli` are publishable. Everything
-else stays `private: true` and is ignored by the release plan.
+Only packages explicitly configured for publication should be released. Review the generated release plan and packed artifacts before publishing.
+
+Changesets describe release intent. They do not replace the repository verification gates.
