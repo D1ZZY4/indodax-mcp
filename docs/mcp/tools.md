@@ -1,14 +1,18 @@
-# MCP tools
+# MCP tool implementation
 
-MCP handlers are thin: deserialize, validate, call a service, serialize
-a stable `McpResponse`.
+Each area under `tools/` owns three things: the tool schemas agents see,
+the dispatch from `execute_tool`, and the calls into shared services.
+Nothing in this folder signs requests, manages sockets, or decides risk.
+Those live in `indodax-api`, `indodax-websocket`, and `indodax-risk`.
 
-* `market_*`: read-only, no auth. Stale snapshots carry timestamps.
-* `account_*`: read-only, require credentials upstream.
-* `trading propose`: validates intent, runs risk, never executes directly.
-* `paper_*`: isolated paper backend only.
-* `risk_*`: read-only limits and policy inspection.
-* `system_*`: health, metrics, and capability matrix.
+* `market.rs`: live public reads through `MarketService`.
+* `account.rs`: credential-gated reads through `AccountService`.
+* `trading.rs`: validate and propose through `TradingService`; paper
+  placement goes through `ExecutionService` with an approved decision.
+* `paper.rs`: simulation state through `PaperBackend`.
+* `risk.rs`: pure evaluation through `RiskEngine`.
+* `system.rs`: health, mode, capabilities, credential presence, funding
+  reads, withdrawal denial, WebSocket snapshots.
 
 Mutations need stronger guards than reads. Withdrawal stays on the
-separate `funding.withdraw` capability and is disabled by default.
+separate `funding.withdraw` capability and is denied by default.

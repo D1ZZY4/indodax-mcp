@@ -5,14 +5,14 @@ Indodax MCP is a rebuild of `indodax-cli` from
 rebuilt for high flexibility and extended features under the name
 Indodax MCP. Usage is expanded for AI agents, humans, and developers.
 
-Modular, production-oriented scaffold. Licensed under SSPL v1,
-copyright D1ZZY4. The original repository license is preserved in
-`LICENSE_COPY/`.
+Modular trading infrastructure with MCP integration. Licensed under
+SSPL v1, copyright D1ZZY4. The original repository license is preserved
+in `LICENSE_COPY/`.
 
 ## Layout
 
-* `crates/` — domain and infrastructure crates with explicit boundaries.
-* `apps/` — thin binaries (`cli`, `mcp-server`, `mcp-http`, `daemon`).
+* `crates/`: domain and infrastructure crates with explicit boundaries.
+* `apps/`: thin binaries (`cli`, `mcp-server`, `mcp-http`, `daemon`).
 * `tests/`, `docs/`, `config/`, `deploy/`, `examples/`, `scripts/`.
 
 ## Execution boundary
@@ -47,7 +47,7 @@ Live mode never activates implicitly from credentials alone.
 
 ## Docs
 
-* `docs/architecture/` — system overview.
-* `docs/adr/` — architecture decision records.
-* `docs/migration/` — v1 → v2 mapping.
+* `docs/architecture/`: system overview.
+* `docs/adr/`: architecture decision records.
+* `docs/migration/`: origin mapping.
 * `SECURITY.md`, `CONTRIBUTING.md`, `CHANGELOG.md`.

@@ -15,7 +15,7 @@
 * TAPI v2 base moved to api.indodax.com after live verification.
 * Live order path uses signed TAPI v2 POST and DELETE with symbol.
 
-## 1.0.1 — v2 foundation
+## 1.0.1: foundation
 
 * Modular workspace scaffold with strongly typed domain model.
 * Isolated auth, transport, rate limiting, and exchange API layers.
