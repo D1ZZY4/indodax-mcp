@@ -1,62 +1,51 @@
 # MCP surface
 
-Transport: stdio JSON-RPC via `apps/mcp-stdio`, Streamable HTTP via
-`apps/mcp-http` on the official Hono adapter. Both share one registry
-and dispatch, so behavior is identical. Protocol 2025-11-25.
+The current server exposes a shared registry through stdio and Streamable HTTP.
 
-```mermaid
-flowchart TD
-    Agent["Agent"] --> Registry["Tool registry"]
-    Registry --> Guard["Capability plus risk guard"]
-    Guard --> Service["Application service"]
-    Service --> Risk["RiskEngine"]
-    Risk --> Exec["ExecutionService"]
-    Exec --> Paper["Paper"]
-    Exec --> Live["Live, locked"]
-```
+## Transports
 
-## Tool groups (73 tools)
+- apps/mcp-stdio: stdio transport for MCP hosts such as OpenCode.
+- apps/mcp-http: Streamable HTTP gateway bound to localhost, default port 8000.
+- Both use buildIndodaxServer(), so tool, resource, and prompt registrations come from the same application composition.
 
-Market (10): server time, pairs, ticker, tickers all, orderbook,
-trades, candles, price increments, summaries, market status via WS.
+The current SDK environment negotiates MCP protocol 2025-11-25.
 
-Account (3 plus history): account, balances, capabilities, open
-orders, order details, order history (v2), trade history (v2).
+## Surface
 
-Orders (4): validate, propose, create (paper default, live locked),
-cancel (paper default, live locked).
+The registry currently contains 73 tools, 11 resources, and 5 prompts.
 
-Portfolio (3): portfolio, positions, PnL with live-price exposure.
+| Area | Current role |
+| --- | --- |
+| Market | Public market data and WebSocket snapshots |
+| Account | Authenticated account and order reads |
+| Orders | Validation, proposal, paper placement, and cancellation |
+| Portfolio | Paper exposure, positions, and PnL views |
+| Risk | Limits, state, and hypothetical evaluation |
+| Paper | Virtual ledger, fills, cancellation, and reset |
+| Strategy | Built-in strategy discovery and evaluation |
+| Backtest | Deterministic replay and in-process stored results |
+| Alerts | Alert definitions and condition checks |
+| Reconciliation | Balance comparison and paper/local checks |
+| Audit | Recent audit records and risk decisions |
+| System | Health, readiness, configuration, runtime, auth, and withdrawal denial |
+| Funding | Authenticated read-only funding information |
+| History | Exchange history and paper-fill helpers |
+| Operations | Exposure, WebSocket state/reconnect helpers, and Deadman state |
 
-Risk (3): limits, state (includes Deadman), evaluate.
+## Resources
 
-Paper (9): account, status, orders, snapshots, place, fill, cancel,
-reset, fills list. Simulated money only.
+The 11 resources cover market, pair metadata, account, open orders, portfolio, risk, reconciliation, audit, system health, WebSocket state, and capabilities.
 
-Strategy (4) and backtest (3 with stored runs): list, detail,
-evaluate, validate, run (stored with id), get, compare.
+Resource handlers mostly expose application-local state. They are not durable database views because the current main composition does not use PostgreSQL as its runtime source of truth.
 
-Alerts (4): list, create, cancel, check against live price.
+## Prompts
 
-Reconciliation (4): balances, orders, trades, ledger state.
+Five prompts guide market, portfolio, order, strategy, and incident review. Prompt handlers return instructions for the calling agent; they do not directly place orders.
 
-Audit (3): events, execution trace, risk decisions.
+## Safety boundary
 
-System (8) plus auth and funding guard: health, readiness, version,
-capabilities, config, runtime, auth status, withdraw denial.
+Tool metadata declares capability, risk class, environment, authentication, destructiveness, idempotency class, and audit class.
 
-Funding reads (5): withdraw history, deposit history, fiat history,
-deposit address, withdraw fee. Mutations locked.
+The generic mcp-core dispatcher validates and dispatches registrations but does not centrally enforce every metadata field. Operational enforcement is currently distributed across tool handlers and services.
 
-History extras: paper fills.
-
-Operations: exposure, WebSocket reconnect, Deadman arm/status/disarm.
-
-WebSocket (2): status, one-shot ticker snapshot.
-
-## Resources (11) and prompts (5)
-
-Resources expose state: market snapshot, pair metadata, account,
-open orders, portfolio, risk, reconciliation, audit, health,
-websocket, capabilities. Prompts guide market, portfolio, order,
-strategy, and incident review. Prompts never place orders.
+For new mutation tools, metadata and executable guards are both required. Never treat metadata alone as a security control.
