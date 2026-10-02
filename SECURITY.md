@@ -1,36 +1,78 @@
 # Security
 
-This codebase moves real money when live mode is enabled. Review accordingly.
+This project contains authentication, exchange credentials, and execution code. Treat security defects as potentially financial defects.
+
+## Scope
+
+The security boundary includes:
+
+- INDODAX API keys and secrets
+- authenticated REST requests
+- WebSocket tokens
+- order placement and cancellation
+- risk and capability checks
+- reconciliation state
+- logs, audit records, and diagnostics
+- packaged release artifacts
+
+The current application policy does not permit live order placement. That reduces exposure, but it does not remove the live adapter from security review.
 
 ## Secrets
 
-Never commit real credentials. The required env contract is defined in [.env.example](.env.example): `INDODAX_API_KEY` and `INDODAX_API_SECRET` for private access, plus optional `INDODAX_RATE_LIMIT`, `INDODAX_WS_TOKEN`, `APP_ENV`, `TRADE_ENABLED`, and `WITHDRAW_ENABLED`. Nothing else belongs in `.env`. Server secrets never reach Workbench browser code; environment parsing is centralized in [config](packages/config/src/index.ts).
+Primary credential variables are defined in [.env.example](.env.example):
 
-> [!IMPORTANT]
-> `.env` is git-ignored. Only `.env.example` is tracked. If a real secret ever lands in a commit, rotate the key on the exchange dashboard immediately; removing it in a later commit does not remove it from history.
+- INDODAX_API_KEY
+- INDODAX_API_SECRET
+
+Optional server settings include rate limiting, WebSocket token, database URL, HTTP port, and runtime mode.
+
+Never commit real credentials. If a real secret appears in the repository or a build artifact, revoke or rotate it immediately at the exchange and remove the exposed material from every affected location.
 
 ## Redaction
 
-`SecretValue` masks values, pino loggers redact secret paths, and audit entries carry ids and reasons, never key material. MCP responses, CLI output, fixtures, and build artifacts never contain secrets.
+Secret-bearing values must not appear in:
 
-## Permissions
+- application logs,
+- MCP responses,
+- CLI output,
+- test fixtures,
+- snapshots,
+- issue reports,
+- release tarballs.
 
-* `READ`, `PAPER`: safe reads and simulation.
-* `TRADE`: mutations gated by risk and capability, disabled by default. Live additionally needs `APP_ENV=live`, `TRADE_ENABLED=true`, key trading permission, whitelisted client IP, and per-call acknowledgement.
-* `WITHDRAW`: disabled by default and by design. This server holds no grant path for it.
+Keep new fields out of logs unless their exposure is explicitly reviewed.
 
-Live trading needs explicit live mode plus the matching capability plus passing startup checks. Paper mode is the default and cannot spend real funds.
+## Exchange permissions
 
-## Transports
+Use the smallest exchange permission set needed for the task.
 
-HTTP binds 127.0.0.1 with the official Hono adapter, which enforces localhost host and origin validation. Do not disable these checks for convenience. Stdio mode inherits the spawning host's process boundary; run it under the operator's own user.
+- Public market reads need no API credentials.
+- Authenticated account and history reads require TAPI v2 credentials.
+- Spot trading permission does not make this server place live orders because the current application policy is paper-only.
+- Withdrawals are disabled by this server and have no supported grant path.
 
-## Dependency and supply chain
+TAPI v2 transaction permissions require exchange-side IP restrictions. Keep the server network identity aligned with the key configuration.
 
-* `bun.lock` is the only lockfile. Install with `bun install --frozen-lockfile` in CI and release jobs.
-* Only `indodax-mcp` and `@indodax-mcp/cli` publish to npm, as bundled `dist/` output. Workspace sources and secrets never ship in tarballs (see `files: ["dist/"]` plus `verify:consumer`).
-* Audit with `bun audit` before releases. The known dev-only esbuild advisory is accepted and documented; re-evaluate when the advisory or version changes.
+## Transport
+
+The HTTP gateway binds to 127.0.0.1 by default and uses the MCP Hono adapter. Do not expose it publicly without a deliberate authentication and network-security design.
+
+Stdio inherits the security boundary of the parent process. Run it under the intended operator account and avoid exposing the process stream to untrusted callers.
+
+## Supply chain
+
+- bun.lock is the only repository lockfile.
+- CI installs with bun install --frozen-lockfile.
+- Only intended packages should be published.
+- Review build outputs and package contents before releases.
+- Re-run dependency and advisory checks before enabling any live-capable deployment.
+
+A clean dependency audit does not prove that exchange execution is safe. Application-level failure handling still matters.
 
 ## Reporting
 
-Report suspected vulnerabilities privately to the maintainer before opening a public issue. Include affected version or commit, reproduction steps that avoid real funds (paper mode, mocks, or read-only live calls), and the observed versus expected behavior.
+Report vulnerabilities privately to the maintainer before public disclosure.
+
+Include the affected commit or package version, reproduction steps that avoid real funds, expected behavior, observed behavior, and relevant logs with secrets removed.
+
+Use paper mode, mocks, or read-only authenticated calls for reproduction whenever possible.
