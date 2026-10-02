@@ -1,0 +1,25 @@
+[package]
+name = "indodax-daemon"
+version = "1.0.1"
+edition = "2021"
+
+[[bin]]
+name = "indodax-daemon"
+path = "src/main.rs"
+
+[dependencies]
+anyhow = { workspace = true }
+chrono = { workspace = true }
+indodax-account = { workspace = true }
+indodax-api = { workspace = true }
+indodax-audit = { workspace = true }
+indodax-auth = { workspace = true }
+indodax-core = { workspace = true }
+indodax-event-bus = { workspace = true }
+indodax-market = { workspace = true }
+indodax-observability = { workspace = true }
+indodax-paper = { workspace = true }
+indodax-scheduler = { workspace = true }
+tokio = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }

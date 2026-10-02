@@ -1,0 +1,16 @@
+[package]
+name = "indodax-mcp-server"
+version = "1.0.1"
+edition = "2021"
+
+[[bin]]
+name = "indodax-mcp-server"
+path = "src/main.rs"
+
+[dependencies]
+anyhow = { workspace = true }
+indodax-core = { workspace = true }
+indodax-mcp = { workspace = true }
+rmcp = { workspace = true }
+tokio = { workspace = true }
+tracing-subscriber = { workspace = true }

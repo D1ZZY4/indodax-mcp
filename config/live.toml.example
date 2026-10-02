@@ -1,0 +1,4 @@
+# Copy to live.toml only for explicit live operation.
+mode = "live"
+rate_limit_rps = 7
+default_pairs = ["btc_idr"]

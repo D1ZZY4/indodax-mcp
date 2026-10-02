@@ -1,0 +1,16 @@
+[package]
+name = "indodax-trading"
+version = "1.0.1"
+edition = "2021"
+
+[dependencies]
+chrono = { workspace = true }
+indodax-account = { workspace = true }
+indodax-agent = { path = "../indodax-agent" }
+indodax-audit = { path = "../indodax-audit" }
+indodax-core = { workspace = true }
+indodax-execution = { workspace = true }
+indodax-market = { workspace = true }
+indodax-order = { workspace = true }
+indodax-risk = { path = "../indodax-risk" }
+serde = { workspace = true }

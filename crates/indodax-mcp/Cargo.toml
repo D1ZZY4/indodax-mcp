@@ -1,0 +1,32 @@
+[package]
+name = "indodax-mcp"
+version = "1.0.1"
+edition = "2021"
+
+[dependencies]
+async-trait = { workspace = true }
+chrono = { workspace = true }
+indodax-account = { workspace = true }
+indodax-agent = { workspace = true }
+indodax-api = { workspace = true }
+indodax-audit = { workspace = true }
+indodax-auth = { workspace = true }
+indodax-backtest = { workspace = true }
+indodax-core = { workspace = true }
+indodax-event-bus = { workspace = true }
+indodax-execution = { workspace = true }
+indodax-market = { workspace = true }
+indodax-observability = { workspace = true }
+indodax-order = { workspace = true }
+indodax-paper = { workspace = true }
+indodax-portfolio = { workspace = true }
+indodax-risk = { workspace = true }
+indodax-strategy = { workspace = true }
+indodax-trading = { workspace = true }
+indodax-websocket = { workspace = true }
+indodax-alerts = { workspace = true }
+rmcp = { workspace = true }
+rust_decimal = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+tokio = { workspace = true }

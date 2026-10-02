@@ -1,0 +1,16 @@
+[package]
+name = "indodax-api"
+version = "1.0.1"
+edition = "2021"
+
+[dependencies]
+hex = { workspace = true }
+indodax-auth = { workspace = true }
+indodax-core = { workspace = true }
+indodax-rate-limit = { workspace = true }
+indodax-transport = { workspace = true }
+reqwest = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+tokio = { workspace = true }
+url = { workspace = true }

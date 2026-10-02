@@ -1,0 +1,13 @@
+[package]
+name = "indodax-portfolio"
+version = "1.0.1"
+edition = "2021"
+
+[dependencies]
+chrono = { workspace = true }
+indodax-account = { workspace = true }
+indodax-core = { workspace = true }
+indodax-market = { workspace = true }
+rust_decimal = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }

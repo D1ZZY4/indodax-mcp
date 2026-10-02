@@ -1,0 +1,98 @@
+[workspace]
+members = [
+  "apps/indodax-cli",
+  "apps/indodax-daemon",
+  "apps/indodax-mcp-http",
+  "apps/indodax-mcp-server",
+  "crates/indodax-account",
+  "crates/indodax-agent",
+  "crates/indodax-alerts",
+  "crates/indodax-api",
+  "crates/indodax-audit",
+  "crates/indodax-auth",
+  "crates/indodax-backtest",
+  "crates/indodax-config",
+  "crates/indodax-core",
+  "crates/indodax-event-bus",
+  "crates/indodax-execution",
+  "crates/indodax-gateway",
+  "crates/indodax-market",
+  "crates/indodax-mcp",
+  "crates/indodax-oauth",
+  "crates/indodax-observability",
+  "crates/indodax-order",
+  "crates/indodax-paper",
+  "crates/indodax-portfolio",
+  "crates/indodax-rate-limit",
+  "crates/indodax-risk",
+  "crates/indodax-scheduler",
+  "crates/indodax-secrets",
+  "crates/indodax-storage",
+  "crates/indodax-strategy",
+  "crates/indodax-testkit",
+  "crates/indodax-trading",
+  "crates/indodax-transport",
+  "crates/indodax-websocket",
+]
+resolver = "2"
+
+[workspace.dependencies]
+anyhow = "1"
+async-trait = "0.1"
+axum = { version = "0.7", features = ["json"] }
+base64 = "0.22"
+chrono = { version = "0.4", features = ["serde"] }
+clap = { version = "4.4", features = ["derive"] }
+comfy-table = "7"
+futures-util = "0.3"
+hex = "0.4"
+hmac = "0.12"
+indodax-account = { path = "crates/indodax-account" }
+indodax-agent = { path = "crates/indodax-agent" }
+indodax-alerts = { path = "crates/indodax-alerts" }
+indodax-api = { path = "crates/indodax-api" }
+indodax-audit = { path = "crates/indodax-audit" }
+indodax-auth = { path = "crates/indodax-auth" }
+indodax-backtest = { path = "crates/indodax-backtest" }
+indodax-config = { path = "crates/indodax-config" }
+indodax-core = { path = "crates/indodax-core" }
+indodax-event-bus = { path = "crates/indodax-event-bus" }
+indodax-execution = { path = "crates/indodax-execution" }
+indodax-gateway = { path = "crates/indodax-gateway" }
+indodax-market = { path = "crates/indodax-market" }
+indodax-mcp = { path = "crates/indodax-mcp" }
+indodax-oauth = { path = "crates/indodax-oauth" }
+indodax-observability = { path = "crates/indodax-observability" }
+indodax-order = { path = "crates/indodax-order" }
+indodax-paper = { path = "crates/indodax-paper" }
+indodax-portfolio = { path = "crates/indodax-portfolio" }
+indodax-rate-limit = { path = "crates/indodax-rate-limit" }
+indodax-risk = { path = "crates/indodax-risk" }
+indodax-scheduler = { path = "crates/indodax-scheduler" }
+indodax-secrets = { path = "crates/indodax-secrets" }
+indodax-storage = { path = "crates/indodax-storage" }
+indodax-strategy = { path = "crates/indodax-strategy" }
+indodax-testkit = { path = "crates/indodax-testkit" }
+indodax-trading = { path = "crates/indodax-trading" }
+indodax-transport = { path = "crates/indodax-transport" }
+indodax-websocket = { path = "crates/indodax-websocket" }
+rand = "0.8"
+reqwest = { version = "0.11", default-features = false, features = ["json", "rustls-tls-webpki-roots"] }
+rmcp = { version = "1.7", features = ["server", "transport-io", "macros", "schemars"] }
+rust_decimal = { version = "1", features = ["serde"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sha2 = "0.10"
+thiserror = "2"
+tokio = { version = "1", features = ["full"] }
+tokio-tungstenite = "0.24"
+toml = "0.7"
+tower-http = { version = "0.6", features = ["cors"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+url = "2"
+zeroize = "1"
+
+[profile.release]
+lto = "thin"
+codegen-units = 1

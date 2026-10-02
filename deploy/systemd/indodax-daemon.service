@@ -1,0 +1,10 @@
+[Unit]
+Description=indodax daemon
+After=network-online.target
+
+[Service]
+ExecStart=/usr/local/bin/indodax-daemon
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target

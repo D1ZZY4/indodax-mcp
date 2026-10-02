@@ -1,0 +1,13 @@
+[package]
+name = "indodax-risk"
+version = "1.0.1"
+edition = "2021"
+
+[dependencies]
+chrono = { workspace = true }
+indodax-core = { workspace = true }
+rust_decimal = { workspace = true }
+serde = { workspace = true }
+
+[dev-dependencies]
+indodax-testkit = { workspace = true }

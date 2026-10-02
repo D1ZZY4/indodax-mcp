@@ -1,0 +1,12 @@
+[package]
+name = "indodax-auth"
+version = "1.0.1"
+edition = "2021"
+
+[dependencies]
+hex = { workspace = true }
+hmac = { workspace = true }
+indodax-core = { workspace = true }
+indodax-secrets = { path = "../indodax-secrets" }
+sha2 = { workspace = true }
+thiserror = { workspace = true }
