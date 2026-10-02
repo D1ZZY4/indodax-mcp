@@ -1,53 +1,50 @@
 # Rust to TypeScript responsibility mapping
 
-Reference: [Recon](recon.md) (observed Rust behavior).
+This page maps the original Rust responsibilities to the current Bun/TypeScript repository. It is a migration reference, not a statement that every mapped capability is fully integrated at runtime.
 
-| Rust source | TypeScript destination | Notes |
-|---|---|---|
-| `indodax-core` money/asset/ids/time/events | `packages/core` | Decimal.js replaces rust_decimal at boundary |
-| `indodax-core` errors | `packages/errors` | 10 categories preserved, retryability preserved |
-| `indodax-core` risk_types/execution/orders/portfolio | `packages/core` domain | 14 order states become 11 execution states per spec |
-| `indodax-config` | `packages/config` | TOML files kept, parsed with typed loader |
-| `indodax-secrets` | `packages/secrets` | Redacted debug plus zeroize-equivalent handling |
-| `indodax-auth` | `packages/indodax-auth` | TapiV2Signer, LegacyTapiSigner, WsTokenSigner split |
-| `indodax-transport` + `indodax-rate-limit` | `packages/transport` | fetch-based retry plus multi-bucket limiter |
-| `indodax-api` | `packages/indodax-client` | Same paths/envelopes, zod-validated DTOs |
-| `indodax-market` | `packages/indodax-market` | Same normalization plus cache plus staleness |
-| `indodax-account` | `packages/indodax-account` | Same reads, v1 histories marked legacy |
-| `indodax-websocket` | `packages/indodax-websocket` | Native WS, offset recovery, private token flow |
-| `indodax-order` machine | `packages/indodax-orders` state | Legal-edge table preserved |
-| `indodax-order` reconcile | `packages/indodax-reconciliation` | Local vs exchange vs fills vs balances |
-| `indodax-risk` | `packages/indodax-risk` | Pure evaluate plus extended checks (balance, increments, kill switch, deadman) |
-| `indodax-execution` | `packages/indodax-execution` | Backend interface plus risk-guarded service |
-| `indodax-paper` | `packages/indodax-paper` | Same ledger semantics on Drizzle storage |
-| `indodax-trading` | `packages/indodax-trading` | Same propose/review pipeline |
-| `indodax-agent` | `packages/indodax-agent` | Orchestration only, no LLM SDK |
-| `indodax-strategy` | `packages/indodax-strategy` | Signal-only contract |
-| `indodax-backtest` | `packages/indodax-backtest` | Deterministic replay plus metrics |
-| `indodax-portfolio` | `packages/indodax-portfolio` | Equity/PnL/exposure on Decimal |
-| `indodax-alerts` | `packages/indodax-alerts` | Condition evaluation plus persistence |
-| `indodax-audit` | `packages/indodax-audit` | Append trail on Drizzle |
-| `indodax-storage` | `packages/storage` | Drizzle repositories replace FileStore |
-| `indodax-event-bus` | `packages/events` | Typed event map replaces stringly bus |
-| `indodax-scheduler` | `packages/scheduler` | Owned jobs with shutdown |
-| `indodax-observability` | `packages/observability` | Health plus counters plus OTEL boundaries |
-| `indodax-mcp` tools/resources/prompts | `packages/indodax-mcp` plus `mcp-*` | Registry metadata, SDK v2 registration |
-| `indodax-gateway` + `indodax-oauth` | `apps/mcp-http` (Hono plus adapter) | Bridge-secret model kept, full OAuth out |
-| `indodax-daemon` | `apps/daemon` | Same lifecycle phases |
-| `indodax-cli` | `apps/cli` | citty commands over services |
-| new | `apps/mcp-stdio`, `apps/mcp-workbench` | stdio runtime, React workbench |
-| new | `packages/indodax-deadman` | No Rust equivalent (was missing) |
-| new | `packages/mcp-core/runtime/contracts/registry/security/tools/resources/prompts/transport/testing` | Generic MCP infrastructure split |
+| Rust responsibility | TypeScript location | Current note |
+| --- | --- | --- |
+| Core money, assets, ids, time, events | packages/core | Decimal-based domain helpers and canonical types |
+| Core errors | packages/errors | Typed application and exchange errors |
+| Risk and execution types | packages/core, packages/indodax-risk, packages/indodax-execution | Split across generic domain and execution packages |
+| Configuration | packages/config | Typed environment parsing |
+| Secrets | packages/secrets | Secret wrappers |
+| Authentication | packages/indodax-auth | TAPI v2 HMAC-SHA256 and legacy HMAC-SHA512 paths |
+| Transport and rate limits | packages/transport | Fetch/retry and bucket primitives |
+| REST API | packages/indodax-client, packages/indodax-account | Public and authenticated adapter layers |
+| Market | packages/indodax-market | Normalization and cache |
+| WebSocket | packages/indodax-websocket | Market-style protocol and managed socket primitives |
+| Order lifecycle | packages/indodax-orders | Canonical order record and transition machine |
+| Reconciliation | packages/indodax-reconciliation | Local/exchange comparison primitives |
+| Risk | packages/indodax-risk | Deterministic policy engine |
+| Execution | packages/indodax-execution | Shared backend contract plus live adapter |
+| Paper trading | packages/indodax-paper | In-memory paper ledger |
+| Trading orchestration | packages/indodax-trading | Intent, proposal, validation, and risk review |
+| Strategy | packages/indodax-strategy | Signal generation |
+| Backtest | packages/indodax-backtest | Deterministic replay and reports |
+| Portfolio | packages/indodax-portfolio | Equity, PnL, and exposure calculations |
+| Alerts | packages/indodax-alerts | In-memory alert state |
+| Audit | packages/indodax-audit | In-memory audit trail |
+| Deadman | packages/indodax-deadman | Current TypeScript state machine |
+| Events | packages/events | Typed event bus |
+| Scheduler | packages/scheduler | Interval jobs and shutdown |
+| Observability | packages/observability | Health and counters |
+| Generic MCP infrastructure | packages/mcp-* | Contracts, registry, runtime, testing |
+| MCP application | packages/indodax-mcp | Tool/resource/prompt composition |
+| Gateway | apps/mcp-http | Hono-based HTTP adapter |
+| Stdio server | apps/mcp-stdio | MCP stdio application |
+| CLI | apps/cli | CLI application |
+| Daemon | apps/daemon | Operational process |
+| Workbench | apps/mcp-workbench | React/Vite workbench |
 
-## Behavior deltas (intentional)
+## Intentional deltas
 
-- Order lifecycle narrows to the 11-state execution model from the
-  spec; the 14-state Rust machine maps onto it (Proposed to NEW,
-  Validating/RiskCheck internal, Rejected to REJECTED, Approved to
-  ACCEPTED path, SubmitFailed to REJECTED, Open to ACCEPTED,
-  PartiallyFilled kept, CancelRequested to CANCELLING).
-- v1 `tradeHistory`/`orderHistory` kept only as isolated legacy
-  helpers for migration tests, never the preferred path.
-- TAPI v2 STP uses EXPIRE_* values; legacy uses MAKER/TAKER/BOTH.
-- Public default throttle stays 7 rps as application safety default;
-  official 180/min and endpoint tables remain authoritative.
+- The current repository is a Bun monorepo; the Rust crate layout is historical.
+- There is no standalone indodax-agent package. Agent intent and proposal types live in the trading/MCP contract boundary.
+- PostgreSQL replaces the Rust file-store direction at the package level, but database state is not yet the source of truth for the main application composition.
+- The current server policy supports paper execution only.
+- The old browser OAuth flow is not ported to the current HTTP gateway.
+- TAPI v2 uses HMAC-SHA256; legacy v1 compatibility uses HMAC-SHA512.
+- The current order lifecycle is implemented in the TypeScript order package and should be treated as the canonical current state model.
+
+For current implementation status, see [Completeness](../architecture/completeness.md).
