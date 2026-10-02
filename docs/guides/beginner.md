@@ -1,77 +1,69 @@
 # Beginner guide
 
-New to this project. This path keeps real money out of reach while
-you learn the tools.
-
-```mermaid
-flowchart TD
-    Install["Install plus paper env"] --> Health["Check health"]
-    Health --> Market["Read live market"]
-    Market --> Paper["Paper trade"]
-    Paper --> Risk["Understand risk verdicts"]
-    Risk --> Done["Ready for advanced guide"]
-```
+This guide keeps execution in paper mode while you learn the MCP, CLI, and risk model.
 
 ## 1. Install
 
-```bash
+~~~bash
 cp .env.example .env
 bun install
 bun run check
-```
+~~~
 
-Leave `.env` credentials empty for now. Everything below works
-without them.
+Leave exchange credentials empty. Public market reads and paper execution do not require them.
 
-## 2. Check health
+## 2. Check the server
 
-```bash
+~~~bash
 bun apps/cli/src/main.ts risk limits
 bun apps/cli/src/main.ts paper status
-```
+~~~
 
-Or via MCP: call `indodax_health` and `indodax_paper_status`.
+Via MCP, call indodax_health and indodax_paper_status.
 
-## 3. Read the live market
+## 3. Read the market
 
-```bash
+~~~bash
 bun apps/cli/src/main.ts market ticker btc_idr
-```
+~~~
 
-No credentials needed. Output shows last price plus 24h stats.
+This uses the public market API and does not require credentials.
 
-## 4. Make your first paper trade
+## 4. Place a paper order
 
-Paper starts with 100,000,000 IDR plus 1 BTC of virtual funds.
+The default paper ledger starts with 100,000,000 IDR and 1 BTC.
 
-```bash
+~~~bash
 bun apps/cli/src/main.ts paper balances
-```
+~~~
 
-Via MCP, in order:
+Example MCP order:
 
-1. `indodax_paper_order` with pair `btc_idr`, side `BUY`,
-   price `1000`, quantity `100`.
-2. Note the returned paper id, for example `paper-1`.
-3. `indodax_paper_fill` with that id and a fill price.
-4. `indodax_paper_status` to see trade count and fees.
+~~~text
+indodax_paper_order
+pair: btc_idr
+side: BUY
+price: 1000
+quantity: 100
+~~~
 
-Nothing here touches the exchange. Amounts below 10,000 IDR
-notional are rejected by risk; that is the minimum order rule
-working, not an error in your call.
+The example notional is 100,000 IDR and exceeds the current application minimum risk limit of 10,000.
 
-## 5. Understand a risk verdict
+After acceptance, call indodax_paper_fill with the returned order id and a fill price, then read indodax_paper_status.
 
-Call `indodax_risk_evaluate` with any pair, side, quantity, and
-price. The answer is one of `ALLOW`, `DENY`, `REVIEW`, or `HALT`
-with machine-readable reasons. Denials name the exact rule, for
-example `MIN_ORDER_SIZE` or `LIVE_MODE_DENIED`.
+Paper execution never sends the order to INDODAX.
 
-## Rules that protect you
+## 5. Understand a risk decision
 
-* Paper is the default. Live needs explicit mode plus capability.
-* Withdrawal is always denied by this server.
-* Prompts never place orders; only explicit order tools do, and
-  only into paper unless live is deliberately enabled.
+Call indodax_risk_evaluate with pair, side, quantity, price, and optional mode.
+
+The current risk engine returns ALLOW, DENY, or HALT. Common machine-readable reasons include MIN_ORDER_SIZE, MAX_ORDER_SIZE, LIVE_MODE_DENIED, and CAPABILITY_DENIED.
+
+## Safety rules
+
+- Paper is the supported trading mode.
+- Withdrawal is always denied.
+- A proposal or validation result does not mean an order was executed.
+- Do not use authenticated exchange credentials until you need authenticated reads.
 
 Next: [Advanced guide](advanced.md).
