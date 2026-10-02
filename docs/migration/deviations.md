@@ -1,10 +1,19 @@
-# Deviations from the build prompt
+# Deviations
 
-| Requested | Actual | Reason | Evidence | Impact | Decision |
-|---|---|---|---|---|---|
-| MCP protocol 2026-07-28 | 2025-11-25 negotiated | Installed SDK 2.2.0 supports max 2025-11-25 | `SUPPORTED_PROTOCOL_VERSIONS` at runtime | None for current clients | Use latest supported, document here |
-| TypeScript latest (7.x) | TypeScript 5.9.3 | 7.x is a native preview, ecosystem tooling targets 5.x | npm dist-tags, Vitest/Playwright compat | None | Pin 5.9 line |
-| `@vitejs/plugin-react` ^5 | ^6.1.1 | v6 pairs with Vite 8, v5 does not | npm peer metadata | None | Follow peer requirements |
-| System PostgreSQL | `embedded-postgres` 17 for dev/test | No server, Docker, or sudo in this environment | missing `psql`, `initdb` | Dev-only; prod uses external PG | Same driver plus schema in both |
-| SQLite convenience path | Not used | Real PG binaries available via embedded package | test boots PG 17 | None | No SQLite driver added |
-| BullMQ, Redis, OTEL exporters, jose, OpenAPI extras | Not installed | No demonstrated architectural need yet | scheduler covers jobs, pino plus API boundaries cover telemetry | Smaller surface | Install on proven need |
+This page records material differences between earlier build requirements and the current repository.
+
+| Area | Requested or expected | Current state | Reason | Impact |
+| --- | --- | --- | --- | --- |
+| MCP protocol | 2026-07-28 | 2025-11-25 negotiated | Current installed SDK 2.2.0 supports 2025-11-25 as the available protocol maximum in this build | Current clients use the negotiated version |
+| TypeScript | latest stable | 5.9 line | TypeScript 7.x was treated as a preview/native-preview line during the compatibility snapshot | Toolchain stability |
+| Vite React plugin | earlier v5 expectation | v6 line | Vite 8 compatibility requires the newer plugin line | No functional regression |
+| PostgreSQL service | system PostgreSQL | embedded PostgreSQL for dev/test where needed | Build environment may not provide a local PostgreSQL service | Development setup only |
+| SQLite convenience path | allowed alternative | not used | Repository targets PostgreSQL semantics and schema | No SQLite compatibility layer |
+| Redis/job extras | optional architecture | not installed by default | Current scheduler does not require an external queue | Smaller operational surface |
+| OAuth browser server | earlier Rust feature | not ported | Current HTTP application is a local bridge without the old browser OAuth flow | No browser-based OAuth surface |
+
+## Decision rule
+
+A deviation is acceptable only when it is explicit, evidenced, and reflected in tests or documentation.
+
+Do not silently convert a requested feature into a different behavior without recording the difference here.
