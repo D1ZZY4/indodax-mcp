@@ -76,7 +76,9 @@
       },
       "devDependencies": {
         "@biomejs/biome": "catalog:",
+        "@indodax-mcp/config": "workspace:*",
         "@indodax-mcp/errors": "workspace:*",
+        "@indodax-mcp/indodax-mcp": "workspace:*",
         "@indodax-mcp/logging": "workspace:*",
         "@indodax-mcp/mcp-contracts": "workspace:*",
         "@indodax-mcp/mcp-core": "workspace:*",
