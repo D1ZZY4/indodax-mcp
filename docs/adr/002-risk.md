@@ -1,10 +1,18 @@
 # ADR-002: Risk boundary
 
-> Historical record from the Rust workspace. See [Rust to TypeScript](../migration/rust-to-typescript.md) for current locations.
+- Status: accepted.
+- Current location: packages/indodax-risk and packages/indodax-execution.
 
-* Status: accepted.
-* Decision: `RiskEngine.evaluate` is pure and has no dependency on MCP,
-  strategy, transport, or storage.
-* Consequence: every live order path must present an approving
-  `RiskDecision` (`ALLOW`).
-  `ExecutionService` re-checks even if callers already checked.
+## Decision
+
+Risk evaluation remains deterministic and side-effect free. It should not depend on MCP, strategy, transport, or database access.
+
+Execution must require an approving ALLOW risk decision at the ExecutionService boundary.
+
+## Current implementation
+
+The risk engine evaluates policy, mode, capability, Deadman state for live contexts, duplicate state, freshness, notional limits, daily loss, trade count, balance, position exposure, and cooldown.
+
+The current application policy is paper-only. The live adapter exists, but the composed application does not currently authorize live execution.
+
+This ADR defines the boundary; it does not claim that every caller currently supplies complete authoritative runtime context.
