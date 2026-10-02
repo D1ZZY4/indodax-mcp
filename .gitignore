@@ -1,5 +1,29 @@
+# Rust build output
+/target/
 /target
-**/target
+**/target/
+
+# Env and secrets (examples stay tracked)
 .env
+.env.*
+!.env.example
+config/live.toml
+live.toml
+
+# Logs
 *.log
+logs/
+
+# Local runtime state
+data/
+
+# OS artifacts
 .DS_Store
+Thumbs.db
+
+# Editor and swap files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
