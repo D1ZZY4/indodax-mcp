@@ -5,7 +5,7 @@
 
 ## Decision
 
-Do not port the original Rust browser OAuth Authorization Code + PKCE flow into the current local HTTP gateway.
+**Do not port** the original Rust browser OAuth Authorization Code + PKCE flow into the current local HTTP gateway.
 
 The current gateway is a localhost-oriented MCP transport. It is intentionally kept small rather than acting as a general-purpose authorization server.
 

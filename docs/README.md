@@ -1,6 +1,6 @@
 <h1 align="center">Documentation</h1>
 
-This documentation describes the current implementation of Indodax MCP. Status claims should be read together with the completeness matrix; package-level code does not automatically mean that a capability is wired into the main runtime.
+This documentation describes the **current implementation** of Indodax MCP. Status claims should be read together with the completeness matrix; **package-level code does not automatically mean** that a capability is wired into the main runtime.
 
 ## Start here
 
@@ -44,4 +44,4 @@ This documentation describes the current implementation of Indodax MCP. Status c
 
 ## Documentation rules
 
-Documentation must distinguish implementation, wiring, automated coverage, end-to-end verification, and blocked or planned behavior. When code and documentation disagree, verify the code and update the documentation instead of masking the discrepancy.
+Documentation must distinguish implementation, wiring, automated coverage, end-to-end verification, and blocked or planned behavior. When code and documentation disagree, **verify the code** and update the documentation instead of masking the discrepancy.

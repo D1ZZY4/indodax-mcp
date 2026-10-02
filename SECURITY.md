@@ -1,6 +1,6 @@
 <h1 align="center">Security</h1>
 
-This project contains authentication, exchange credentials, and execution code. Treat security defects as potentially financial defects.
+This project contains authentication, exchange credentials, and execution code. **Treat security defects as potentially financial defects.**
 
 ## Scope
 
@@ -26,7 +26,7 @@ Primary credential variables are defined in [.env.example](.env.example):
 
 Optional server settings include rate limiting, WebSocket token, database URL, HTTP port, and runtime mode.
 
-Never commit real credentials. If a real secret appears in the repository or a build artifact, revoke or rotate it immediately at the exchange and remove the exposed material from every affected location.
+**Never commit real credentials.** If a real secret appears in the repository or a build artifact, **revoke or rotate it immediately** at the exchange and remove the exposed material from every affected location.
 
 ## Redaction
 
@@ -71,7 +71,7 @@ A clean dependency audit does not prove that exchange execution is safe. Applica
 
 ## Reporting
 
-Report vulnerabilities privately to the maintainer before public disclosure.
+**Report vulnerabilities privately** to the maintainer before public disclosure.
 
 Include the affected commit or package version, reproduction steps that avoid real funds, expected behavior, observed behavior, and relevant logs with secrets removed.
 

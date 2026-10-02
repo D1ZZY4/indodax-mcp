@@ -4,7 +4,7 @@
 
 ## Decision
 
-Model Deadman state explicitly as DISARMED, ARMED, STALE, or EXPIRED. For any future live trading path, an unknown, stale, or expired safety heartbeat must fail closed.
+Model Deadman state explicitly as `DISARMED`, `ARMED`, `STALE`, or `EXPIRED`. For any future live trading path, an unknown, stale, or expired safety heartbeat **must fail closed**.
 
 The current application policy is paper-only, so Deadman state does not currently unlock live trading.
 

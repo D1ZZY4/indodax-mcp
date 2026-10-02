@@ -21,7 +21,7 @@ flowchart TD
     Open --> Done["FILLED / CANCELLED"]
 ```
 
-Paper order placement follows the full intent, proposal, risk review, and execution path.
+Paper order placement follows the **full** intent, proposal, risk review, and execution path.
 
 ## Order lifecycle
 
@@ -66,7 +66,7 @@ The generic transport retry helper is method-agnostic. It retries HTTP 429, 5xx,
 
 ## Unknown outcomes
 
-A timeout or dropped connection is not evidence that the exchange rejected an order.
+A timeout or dropped connection is **not evidence** that the exchange rejected an order.
 
 The required production sequence is:
 

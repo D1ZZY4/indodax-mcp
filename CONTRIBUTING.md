@@ -1,12 +1,12 @@
 <h1 align="center">Contributing</h1>
 
-Thank you for contributing to infrastructure that can eventually interact with financial accounts. Review changes as if failure has a cost.
+Thank you for contributing to infrastructure that can eventually interact with financial accounts. **Review changes as if failure has a cost.**
 
 ## Development workflow
 
 1. Read the relevant architecture page before changing a package boundary.
 2. Check migration notes and ADRs before changing an established decision.
-3. Keep authored files at or under 350 lines. 375 lines is the hard ceiling.
+3. Keep authored files at or under **350 lines**. **375 lines is the hard ceiling**.
 4. Use Bun and the repository lockfile. Do not introduce npm, pnpm, or yarn lockfiles.
 5. Keep financial calculations in Decimal form.
 6. Add regression coverage for success and denial paths when changing trading, risk, execution, or reconciliation.
@@ -29,7 +29,7 @@ Then run:
 bun run verify
 ~~~
 
-Do not weaken a gate to turn red green. Fix the underlying problem or document an explicit deviation.
+**Do not weaken a gate to turn red green.** Fix the underlying problem or document an explicit deviation.
 
 ## Pull requests
 
@@ -61,7 +61,7 @@ wc -l path/to/file.ts path/to/other-file.md
 
 Paper is the default supported execution mode.
 
-Never use real credentials in tests that can place or cancel orders. Prefer paper mode, deterministic mocks, and read-only authenticated calls.
+**Never use real credentials in tests** that can place or cancel orders. Prefer paper mode, deterministic mocks, and read-only authenticated calls.
 
 Changes affecting live order placement, cancellation, idempotency, retry behavior, risk context, reconciliation, WebSocket state, or Deadman behavior require coverage for ambiguous and failure states.
 

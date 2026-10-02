@@ -60,7 +60,7 @@ After rotating an INDODAX key:
 4. call indodax_account using read-only access;
 5. review configuration and policy before any future live enablement.
 
-Never place an order as a credential test.
+**Never place an order as a credential test.**
 
 ## Database
 
@@ -82,4 +82,4 @@ The current reconciliation MCP tools are not yet a complete exchange reconciliat
 
 ## Recovery principle
 
-Do not infer recovery from process health alone. A restarted process can be healthy while its in-memory paper state has reset. Durable recovery requires persistent state and replay/reconciliation integration that is not yet present in the main composition.
+**Do not infer recovery from process health alone.** A restarted process can be healthy while its in-memory paper state has reset. Durable recovery requires persistent state and replay/reconciliation integration that is not yet present in the main composition.

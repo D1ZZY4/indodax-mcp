@@ -45,7 +45,7 @@ TypeScript 7.x was treated as a preview/native-preview line during this snapshot
 - Tailwind CSS 4.x
 - TanStack Query 5.x
 
-Exact lockfile resolution remains authoritative for installed transitive versions.
+Exact lockfile resolution remains **authoritative** for installed transitive versions.
 
 ## Conditional dependencies
 

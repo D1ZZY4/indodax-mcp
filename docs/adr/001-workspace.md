@@ -5,7 +5,7 @@
 
 ## Decision
 
-Separate exchange I/O, domain logic, and interfaces so business rules do not depend directly on MCP, CLI, or network transport.
+Separate exchange I/O, domain logic, and interfaces so **business rules do not depend directly** on MCP, CLI, or network transport.
 
 ## Current location
 

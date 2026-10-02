@@ -12,7 +12,7 @@ The current SDK environment negotiates MCP protocol 2025-11-25.
 
 ## Surface
 
-The registry currently contains 73 tools, 11 resources, and 5 prompts.
+The registry currently contains **73 tools**, **11 resources**, and **5 prompts**.
 
 | Area | Current role |
 | --- | --- |
@@ -48,4 +48,4 @@ Tool metadata declares capability, risk class, environment, authentication, dest
 
 A central guard enforces authentication and environment for every tool. Capability, risk, and audit enforcement stays in handlers and services.
 
-For new mutation tools, metadata and executable guards are both required. Never treat metadata alone as a security control.
+For new mutation tools, metadata and executable guards are **both required**. **Never treat metadata alone as a security control.**

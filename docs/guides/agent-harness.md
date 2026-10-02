@@ -18,7 +18,7 @@ How an AI agent should operate the current Indodax MCP surface without treating 
 
 Start with indodax_health, indodax_system_capabilities, and indodax_config_status.
 
-The current capability response should be treated as the active server policy. Live order placement remains disabled.
+The current capability response should be treated as the **active server policy**. Live order placement remains disabled.
 
 ## 2. Read before mutation
 
@@ -37,13 +37,13 @@ For paper execution:
 3. indodax_create_order or indodax_paper_order for paper execution.
 4. indodax_paper_fill or indodax_paper_cancel for the next paper action.
 
-A proposal is not an execution receipt.
+**A proposal is not an execution receipt.**
 
 ## 4. Live calls
 
 The current application policy is paper-only. APP_ENV=live does not enable live placement by itself.
 
-Never use a live mutation as a verification probe.
+**Never use a live mutation as a verification probe.**
 
 For any future live deployment, require acknowledgement, risk approval, exchange permissions, durable state, client-order idempotency, and reconciliation.
 
@@ -70,15 +70,15 @@ Failure:
 }
 ~~~
 
-Branch on code and retryable, not message text.
+**Branch on code and `retryable`, not message text.**
 
-An ambiguous state-changing result must be treated as unknown. Do not blindly resubmit. The current reconcile tools are not a complete exchange truth source, so inspect authoritative exchange/account data before making a new decision.
+An ambiguous state-changing result must be treated as **unknown**. **Do not blindly resubmit.** The current reconcile tools are not a complete exchange truth source, so inspect authoritative exchange/account data before making a new decision.
 
 ## 6. Correlation and memory
 
 Track proposal correlation ids through the operation.
 
-Historical preferences, prior analysis, and incidents may come from an external memory system. Current price, balance, permission, position, and exchange state must come from authoritative tools or a validated local replica.
+Historical preferences, prior analysis, and incidents may come from an external memory system. Current price, balance, permission, position, and exchange state must come from **authoritative tools or a validated local replica**.
 
 The MCP itself does not convert historical memory into current exchange truth.
 

@@ -5,7 +5,7 @@
 
 ## Decision
 
-Paper and live requests share the execution contract. An ambiguous exchange result must be treated as UNKNOWN rather than assumed failed.
+Paper and live requests share the execution contract. An **ambiguous exchange result must be treated as `UNKNOWN`** rather than assumed failed.
 
 A state-changing retry must be preceded by reconciliation when the prior request could have been accepted by the exchange.
 

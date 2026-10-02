@@ -1,6 +1,6 @@
 <h1 align="center">Code of Conduct</h1>
 
-Indodax MCP is financial infrastructure. Contributors are expected to communicate professionally and review changes with care.
+Indodax MCP is financial infrastructure. **Contributors are expected to communicate professionally and review changes with care.**
 
 ## Standards
 
@@ -14,7 +14,7 @@ This code applies to the repository, issue tracker, pull requests, discussions, 
 
 ## Reporting
 
-Report violations privately to the maintainer with the relevant links, dates, accounts, and supporting context. Do not publish sensitive report details in a public issue.
+**Report violations privately** to the maintainer with the relevant links, dates, accounts, and supporting context. **Do not publish sensitive report details** in a public issue.
 
 ## Enforcement
 

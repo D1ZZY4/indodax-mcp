@@ -24,12 +24,12 @@ This repository is a Bun monorepo. Resolve the installed toolchain from the repo
 
 ### Safety boundaries
 
-- Paper execution is the current supported trading mode.
-- Live execution is implemented but disabled by the current server policy.
-- Withdrawal is denied by design.
-- Never place real orders for validation, tests, examples, or verification.
+- **Paper execution** is the current supported trading mode.
+- Live execution is implemented but **disabled by the current server policy**.
+- Withdrawal is **denied by design**.
+- **Never place real orders** for validation, tests, examples, or verification.
 - Use mocks, paper state, and read-only exchange calls for verification.
-- Treat an ambiguous live exchange response as unknown. Do not retry blindly.
+- Treat an ambiguous live exchange response as **unknown**. **Do not retry blindly**.
 
 ### Documentation truthfulness
 
@@ -41,7 +41,7 @@ Architecture documentation must distinguish:
 4. end-to-end verification,
 5. planned or blocked behavior.
 
-Do not describe a package-level capability as production-ready merely because its types, schema, or interface exists.
+**Do not describe a package-level capability as production-ready** merely because its types, schema, or interface exists.
 
 ### Quality gates
 
@@ -64,6 +64,6 @@ bun run verify
 
 ### File size
 
-Keep authored files at or under 350 lines. 375 lines is the hard ceiling. Do not split files mechanically just to satisfy the limit. Measure authored files with a consistent method such as wc -l and report path, line count, target, and status for broad changes.
+Keep authored files at or under **350 lines**. **375 lines is the hard ceiling**. Do not split files mechanically just to satisfy the limit. Measure authored files with a consistent method such as `wc -l` and report path, line count, target, and status for broad changes.
 
-No em dash characters in repository output.
+**No em dash characters** in repository output.

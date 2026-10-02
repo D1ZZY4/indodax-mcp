@@ -12,6 +12,6 @@ Domain packages depend on repository interfaces rather than direct database conn
 
 ## Consequence
 
-Floating-point arithmetic must not be introduced for financial calculations.
+**Floating-point arithmetic must not be introduced** for financial calculations.
 
 The current application composition does not yet make PostgreSQL its runtime source of truth. This ADR defines the persistence boundary, not a claim of completed runtime persistence.

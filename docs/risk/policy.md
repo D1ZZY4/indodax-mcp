@@ -1,6 +1,6 @@
 <h1 align="center">Risk policy</h1>
 
-The risk engine is deterministic and side-effect free. It evaluates an order against a policy and a supplied runtime context.
+The risk engine is **deterministic and side-effect free**. It evaluates an order against a policy and a supplied runtime context.
 
 ## Current policy
 
@@ -13,7 +13,7 @@ killSwitch = false
 circuitBreaker = false
 ~~~
 
-This means the live execution branch is not enabled by configuration alone. The live adapter exists, but the composed policy denies live mode.
+This means the live execution branch is **not enabled by configuration alone**. The live adapter exists, but the composed policy **denies live mode**.
 
 ## Evaluation order
 
@@ -28,7 +28,7 @@ flowchart TD
     Checks -->|"Pass"| Allow["ALLOW"]
 ```
 
-A failed rule produces a machine-readable RiskReason. Kill switch, circuit breaker, and reconciliation halt produce HALT; other rule failures produce DENY.
+A failed rule produces a machine-readable `RiskReason`. Kill switch, circuit breaker, and reconciliation halt produce `HALT`; other rule failures produce `DENY`.
 
 ## Default limits
 
@@ -43,19 +43,19 @@ A failed rule produces a machine-readable RiskReason. Kill switch, circuit break
 | Maximum market age | 60,000 ms |
 | Maximum account age | 120,000 ms |
 
-Financial limits use Decimal.
+Financial limits use `Decimal`.
 
 ## Runtime limitation
 
-The engine can evaluate all fields above, but not every MCP entrypoint supplies authoritative runtime context.
+The engine can evaluate all fields above, but **not every MCP entrypoint supplies authoritative runtime context**.
 
-Some MCP paths use fixed freshness values and null daily PnL. Position exposure is optional and is not populated by the current order tool context.
+Some MCP paths use fixed freshness values and null daily PnL. Position exposure is optional and is **not populated by the current order tool context**.
 
-Treat the risk engine as a correct policy primitive, not as proof that every caller supplies complete market, account, PnL, and position state.
+Treat the risk engine as a **correct policy primitive**, not as proof that every caller supplies complete market, account, PnL, and position state.
 
 ## Denial semantics
 
-Agents should branch on reason codes rather than message strings.
+Agents should branch on **reason codes** rather than message strings.
 
 Examples include:
 
@@ -70,4 +70,4 @@ Examples include:
 - STALE_ACCOUNT_STATE
 - INSUFFICIENT_BALANCE
 
-Risk evaluation is not a network operation and must remain deterministic.
+Risk evaluation is **not a network operation** and must remain **deterministic**.

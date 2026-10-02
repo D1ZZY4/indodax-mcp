@@ -41,7 +41,7 @@ There is no standalone indodax-agent package in the current tree. Agent-facing i
 
 The Rust project included file-backed persistence and a browser-oriented OAuth flow. The TypeScript rebuild uses a PostgreSQL package as a persistence layer, but the current main application composition remains in-memory. The old OAuth browser flow is not part of the current HTTP gateway.
 
-Likewise, package presence should not be read as proof of full runtime integration. Consult the completeness matrix for the current status.
+Likewise, **package presence should not be read as proof** of full runtime integration. Consult the completeness matrix for the current status.
 
 ## Historical test coverage
 

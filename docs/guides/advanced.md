@@ -22,7 +22,7 @@ bun apps/cli/src/main.ts account balances
 
 Use a dedicated TAPI v2 key with the appropriate exchange-side IP restrictions.
 
-Treat authentication or IP errors as exchange configuration signals until the signing and endpoint path has been independently verified.
+Treat authentication or IP errors as **exchange configuration signals** until the signing and endpoint path has been independently verified.
 
 ## 2. Application risk
 
@@ -73,7 +73,7 @@ The current main composition does not use PostgreSQL as its runtime source of tr
 
 Run deterministic strategy replays with indodax_backtest_run, compare runs with indodax_backtest_compare, and inspect results with indodax_backtest_get.
 
-Current backtest results are stored in process memory. They are not durable historical records and do not demonstrate profitability.
+Current backtest results are stored in process memory. They are **not durable historical records and do not demonstrate profitability**.
 
 ## 7. Future live-readiness
 

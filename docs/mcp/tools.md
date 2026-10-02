@@ -35,7 +35,7 @@ application/service call
 shared response envelope
 ~~~
 
-Handlers must not own exchange signing, WebSocket protocol details, database access, or financial policy.
+Handlers **must not** own exchange signing, WebSocket protocol details, database access, or financial policy.
 
 ## Registration
 
@@ -93,7 +93,7 @@ Paper mutations must remain simulation-only.
 
 Live-capable paths must enforce mode, capability, acknowledgement where applicable, server policy, risk approval, idempotency, and audit requirements in executable code. The current application policy denies live execution.
 
-Withdrawal remains denied by design.
+**Withdrawal remains denied by design.**
 
 ## Known limits
 

@@ -37,4 +37,4 @@ When an exchange endpoint or protocol changes:
 4. add or update regression tests;
 5. record material deviations in migration/deviations.md or the risk register.
 
-Never invent an endpoint, signature algorithm, parameter, or rate limit.
+**Never invent** an endpoint, signature algorithm, parameter, or rate limit.

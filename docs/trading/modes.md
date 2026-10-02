@@ -15,7 +15,7 @@ flowchart LR
     Policy -->|"Yes"| Live["Live backend"]
 ```
 
-Paper is the safe default.
+**Paper is the safe default.**
 
 The indodax_paper_order flow builds a trade intent, creates an order proposal, runs risk review, and executes through ExecutionService into PaperExecutor.
 
@@ -27,7 +27,7 @@ The live adapter exists and uses TAPI v2 signing, but enabling live is not curre
 
 Before live execution can be enabled, the repository needs integrated proof for complete runtime risk context, durable state, exchange reconciliation, client-order idempotency, retry behavior for state-changing requests, private-order WebSocket handling, Deadman lifecycle integration, and end-to-end live-safe tests.
 
-No documentation should imply that setting APP_ENV=live currently enables trading.
+**No documentation should imply** that setting `APP_ENV=live` currently enables trading.
 
 ## Ambiguous outcomes
 

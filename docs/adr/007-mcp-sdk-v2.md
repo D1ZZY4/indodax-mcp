@@ -13,7 +13,7 @@ The current repository uses:
 - @modelcontextprotocol/client 2.2.0
 - @modelcontextprotocol/hono 2.0.1
 
-The current environment negotiates MCP protocol 2025-11-25.
+The current environment negotiates **MCP protocol `2025-11-25`**.
 
 HTTP uses the official Hono adapter and binds locally by default.
 

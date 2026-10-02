@@ -16,4 +16,4 @@ This page records material differences between earlier build requirements and th
 
 A deviation is acceptable only when it is explicit, evidenced, and reflected in tests or documentation.
 
-Do not silently convert a requested feature into a different behavior without recording the difference here.
+**Do not silently convert** a requested feature into a different behavior without recording the difference here.

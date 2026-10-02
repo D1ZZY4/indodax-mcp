@@ -5,7 +5,7 @@
 
 ## Decision
 
-Risk evaluation remains deterministic and side-effect free. It should not depend on MCP, strategy, transport, or database access.
+Risk evaluation remains **deterministic and side-effect free**. It should not depend on MCP, strategy, transport, or database access.
 
 Execution must require an approving ALLOW risk decision at the ExecutionService boundary.
 

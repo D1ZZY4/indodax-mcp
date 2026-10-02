@@ -9,6 +9,6 @@ bun run release:dry
 bunx changeset publish
 ~~~
 
-Only packages explicitly configured for publication should be released. Review the generated release plan and packed artifacts before publishing.
+Only packages explicitly configured for publication should be released. **Review the generated release plan and packed artifacts before publishing.**
 
 Changesets describe release intent. They do not replace the repository verification gates.

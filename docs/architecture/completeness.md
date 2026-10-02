@@ -1,6 +1,6 @@
 <h1 align="center">Completeness matrix</h1>
 
-This matrix describes the current repository state, not the intended architecture.
+This matrix describes the **current repository state**, not the intended architecture.
 
 Definitions:
 
@@ -45,10 +45,10 @@ Definitions:
 
 ## Current gaps
 
-1. PostgreSQL is implemented as a database package but is not the runtime source of truth.
-2. The MCP reconciliation tools are not a complete local-versus-exchange reconciliation workflow.
-3. Some MCP risk callers supply fixed freshness values and null daily PnL, so risk context is not fully authoritative at every entrypoint.
-4. The transport retry helper is not idempotency-aware for state-changing requests.
-5. Live order placement remains disabled by server policy.
+1. PostgreSQL is implemented as a database package but is **not the runtime source of truth**.
+2. The MCP reconciliation tools are **not a complete local-versus-exchange reconciliation workflow**.
+3. Some MCP risk callers supply fixed freshness values and null daily PnL, so risk context is **not fully authoritative** at every entrypoint.
+4. The transport retry helper is **not idempotency-aware** for state-changing requests.
+5. Live order placement remains **disabled by server policy**.
 
-Promote a capability to a stronger status only when its wiring and tests are updated with it.
+**Promote a capability to a stronger status only when** its wiring and tests are updated with it.

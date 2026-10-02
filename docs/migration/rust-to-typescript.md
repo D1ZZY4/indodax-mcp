@@ -1,6 +1,6 @@
 <h1 align="center">Rust to TypeScript responsibility mapping</h1>
 
-This page maps the original Rust responsibilities to the current Bun/TypeScript repository. It is a migration reference, not a statement that every mapped capability is fully integrated at runtime.
+This page maps the original Rust responsibilities to the current Bun/TypeScript repository. It is a **migration reference**, not a statement that every mapped capability is fully integrated at runtime.
 
 | Rust responsibility | TypeScript location | Current note |
 | --- | --- | --- |
@@ -39,12 +39,12 @@ This page maps the original Rust responsibilities to the current Bun/TypeScript 
 
 ## Intentional deltas
 
-- The current repository is a Bun monorepo; the Rust crate layout is historical.
-- There is no standalone indodax-agent package. Agent intent and proposal types live in the trading/MCP contract boundary.
-- PostgreSQL replaces the Rust file-store direction at the package level, but database state is not yet the source of truth for the main application composition.
-- The current server policy supports paper execution only.
-- The old browser OAuth flow is not ported to the current HTTP gateway.
-- TAPI v2 uses HMAC-SHA256; legacy v1 compatibility uses HMAC-SHA512.
-- The current order lifecycle is implemented in the TypeScript order package and should be treated as the canonical current state model.
+- The current repository is a **Bun monorepo**; the Rust crate layout is historical.
+- There is **no standalone `indodax-agent` package**. Agent intent and proposal types live in the trading/MCP contract boundary.
+- PostgreSQL replaces the Rust file-store direction at the package level, but database state is **not yet the source of truth** for the main application composition.
+- The current server policy supports **paper execution only**.
+- The old browser OAuth flow is **not ported** to the current HTTP gateway.
+- TAPI v2 uses `HMAC-SHA256`; legacy v1 compatibility uses `HMAC-SHA512`.
+- The current order lifecycle is implemented in the TypeScript order package and should be treated as the **canonical current state model**.
 
 For current implementation status, see [Completeness](../architecture/completeness.md).

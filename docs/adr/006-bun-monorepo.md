@@ -6,7 +6,7 @@
 
 Use Bun workspaces as the repository package manager and runtime, with Turborepo for task orchestration, Biome for formatting and linting, TypeScript in strict mode, and Vitest for unit and integration tests.
 
-The repository package manager is pinned to Bun 1.4.2.
+The repository package manager is **pinned to Bun 1.4.2**.
 
 ## Consequences
 

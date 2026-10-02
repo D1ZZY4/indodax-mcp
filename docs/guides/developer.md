@@ -12,7 +12,7 @@ flowchart TD
     MCP --> Apps["CLI, daemon, HTTP, stdio, workbench"]
 ```
 
-Generic packages should not depend on INDODAX domain packages. Exchange protocol details belong in adapters. Financial code uses Decimal and does not import LLM SDKs.
+Generic packages should not depend on INDODAX domain packages. Exchange protocol details belong in adapters. **Financial code uses `Decimal` and does not import LLM SDKs.**
 
 ## 2. Add a tool
 
@@ -58,7 +58,7 @@ bunx playwright test
 bun run verify
 ~~~
 
-Fix the underlying problem. Do not weaken a gate to make CI pass.
+**Fix the underlying problem. Do not weaken a gate to make CI pass.**
 
 ## 6. File size
 

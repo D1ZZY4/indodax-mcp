@@ -5,7 +5,7 @@
 
 ## Decision
 
-Paper and live execution share one ExecutionBackend contract and one ExecutionService boundary.
+Paper and live execution **share one `ExecutionBackend` contract** and one `ExecutionService` boundary.
 
 ExecutionService accepts an execution request only when risk returns ALLOW.
 

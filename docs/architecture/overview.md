@@ -28,46 +28,46 @@ The main composition currently uses paper execution and in-memory application st
 
 ### Generic foundation
 
-- @indodax-mcp/core: domain types, Decimal helpers, symbols, order validation, capabilities, execution modes, and risk types.
-- @indodax-mcp/errors: typed application and exchange errors.
-- @indodax-mcp/mcp-core: MCP SDK server construction and dispatch.
-- @indodax-mcp/mcp-contracts: metadata schemas for tools, resources, and prompts.
-- @indodax-mcp/mcp-registry: registry for MCP surface definitions.
-- @indodax-mcp/mcp-runtime: stdio and HTTP transport adapters.
-- @indodax-mcp/mcp-testing: in-memory, stdio, and HTTP test harnesses.
-- @indodax-mcp/transport: HTTP retry and rate-limiting primitives.
-- @indodax-mcp/storage: repository interfaces and in-memory implementation.
-- @indodax-mcp/db: PostgreSQL schema, migrations, and Drizzle repositories.
+- `@indodax-mcp/core`: domain types, Decimal helpers, symbols, order validation, capabilities, execution modes, and risk types.
+- `@indodax-mcp/errors`: typed application and exchange errors.
+- `@indodax-mcp/mcp-core`: MCP SDK server construction and dispatch.
+- `@indodax-mcp/mcp-contracts`: metadata schemas for tools, resources, and prompts.
+- `@indodax-mcp/mcp-registry`: registry for MCP surface definitions.
+- `@indodax-mcp/mcp-runtime`: stdio and HTTP transport adapters.
+- `@indodax-mcp/mcp-testing`: in-memory, stdio, and HTTP test harnesses.
+- `@indodax-mcp/transport`: HTTP retry and rate-limiting primitives.
+- `@indodax-mcp/storage`: repository interfaces and in-memory implementation.
+- `@indodax-mcp/db`: PostgreSQL schema, migrations, and Drizzle repositories.
 
 ### Exchange and domain
 
-- @indodax-mcp/indodax-auth: TAPI v2 and legacy signing plus private WebSocket token signing.
-- @indodax-mcp/indodax-client: public REST adapter.
-- @indodax-mcp/indodax-market: normalized market access and cache.
-- @indodax-mcp/indodax-account: authenticated account and history reads.
-- @indodax-mcp/indodax-orders: order record and lifecycle state machine.
-- @indodax-mcp/indodax-reconciliation: local versus exchange reconciliation primitives.
-- @indodax-mcp/indodax-risk: deterministic risk engine.
-- @indodax-mcp/indodax-execution: paper/live execution interface and live adapter.
-- @indodax-mcp/indodax-paper: paper ledger and simulator.
-- @indodax-mcp/indodax-trading: trade intent, proposal, validation, and risk review.
-- @indodax-mcp/indodax-portfolio: portfolio calculations.
-- @indodax-mcp/indodax-strategy: signal generation.
-- @indodax-mcp/indodax-backtest: deterministic replay and reports.
-- @indodax-mcp/indodax-alerts: in-memory alert store and condition evaluation.
-- @indodax-mcp/indodax-audit: in-memory audit trail.
-- @indodax-mcp/indodax-deadman: Deadman state machine.
-- @indodax-mcp/indodax-websocket: market/private socket protocol and managed connections.
+- `@indodax-mcp/indodax-auth`: TAPI v2 and legacy signing plus private WebSocket token signing.
+- `@indodax-mcp/indodax-client`: public REST adapter.
+- `@indodax-mcp/indodax-market`: normalized market access and cache.
+- `@indodax-mcp/indodax-account`: authenticated account and history reads.
+- `@indodax-mcp/indodax-orders`: order record and lifecycle state machine.
+- `@indodax-mcp/indodax-reconciliation`: local versus exchange reconciliation primitives.
+- `@indodax-mcp/indodax-risk`: deterministic risk engine.
+- `@indodax-mcp/indodax-execution`: paper/live execution interface and live adapter.
+- `@indodax-mcp/indodax-paper`: paper ledger and simulator.
+- `@indodax-mcp/indodax-trading`: trade intent, proposal, validation, and risk review.
+- `@indodax-mcp/indodax-portfolio`: portfolio calculations.
+- `@indodax-mcp/indodax-strategy`: signal generation.
+- `@indodax-mcp/indodax-backtest`: deterministic replay and reports.
+- `@indodax-mcp/indodax-alerts`: in-memory alert store and condition evaluation.
+- `@indodax-mcp/indodax-audit`: in-memory audit trail.
+- `@indodax-mcp/indodax-deadman`: Deadman state machine.
+- `@indodax-mcp/indodax-websocket`: market/private socket protocol and managed connections.
 
 ### Application and operations
 
-- @indodax-mcp/indodax-mcp: application composition, tools, resources, and prompts.
-- @indodax-mcp/observability: health and counters.
-- @indodax-mcp/events: typed event bus.
-- @indodax-mcp/scheduler: interval jobs and shutdown controls.
-- @indodax-mcp/logging: structured logging.
-- @indodax-mcp/config: typed environment parsing.
-- @indodax-mcp/secrets: secret wrappers.
+- `@indodax-mcp/indodax-mcp`: application composition, tools, resources, and prompts.
+- `@indodax-mcp/observability`: health and counters.
+- `@indodax-mcp/events`: typed event bus.
+- `@indodax-mcp/scheduler`: interval jobs and shutdown controls.
+- `@indodax-mcp/logging`: structured logging.
+- `@indodax-mcp/config`: typed environment parsing.
+- `@indodax-mcp/secrets`: secret wrappers.
 
 The application package is composed by the CLI, stdio server, HTTP gateway, daemon, and workbench.
 
@@ -80,7 +80,7 @@ The application package is composed by the CLI, stdio server, HTTP gateway, daem
 - Financial math uses Decimal.
 - Database access belongs behind repositories.
 
-When code violates these rules, update the boundary rather than adding another exception.
+When code violates these rules, **update the boundary** rather than adding another exception.
 
 ## Current integration limits
 

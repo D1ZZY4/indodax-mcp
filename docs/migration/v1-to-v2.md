@@ -1,6 +1,6 @@
 <h1 align="center">Migration from indodax-cli</h1>
 
-This page is a historical migration record for the rebuild from [indodax-cli](https://github.com/ibidathoillah/indodax-cli). Current implementation status is documented separately in the architecture and completeness pages.
+This page is a **historical migration record** for the rebuild from [indodax-cli](https://github.com/ibidathoillah/indodax-cli). Current implementation status is documented separately in the architecture and completeness pages.
 
 ```mermaid
 flowchart LR
@@ -28,25 +28,25 @@ The rebuild retains these broad responsibilities:
 
 The current official TAPI v2 documentation specifies:
 
-- HMAC-SHA256 for signed v2 requests.
-- api.indodax.com as the v2 base URL.
-- Form-encoded POST bodies and query-string GET/DELETE parameters.
+- `HMAC-SHA256` for signed v2 requests.
+- `api.indodax.com` as the v2 base URL.
+- Form-encoded `POST` bodies and query-string `GET`/`DELETE` parameters.
 - Dedicated v2 order, account, open-order, order-history, and trade-history endpoints.
-- Timestamp or nonce authentication with recvWindow support.
+- Timestamp or nonce authentication with `recvWindow` support.
 
-Legacy v1 signing remains HMAC-SHA512 and is isolated from the v2 signer.
+Legacy v1 signing remains `HMAC-SHA512` and is isolated from the v2 signer.
 
 ## Intentional architecture changes
 
 - TypeScript/Bun replaces the Rust workspace.
-- Decimal.js is used at the financial boundary.
-- The order state machine is implemented in packages/indodax-orders.
-- Risk is a deterministic service with typed reasons.
-- Paper and live share the execution interface, while the current application policy allows paper only.
-- MCP handlers do not own exchange signing or protocol details.
-- PostgreSQL schema and repositories replace the old file-store direction at the persistence layer, but the main application remains in-memory until repository wiring is completed.
-- The old browser OAuth Authorization Code + PKCE flow is not part of the current gateway.
-- The paper WASM/browser path is not part of the current backend.
+- `Decimal.js` is used at the financial boundary.
+- The order state machine is implemented in `packages/indodax-orders`.
+- Risk is a **deterministic service** with typed reasons.
+- Paper and live share the execution interface, while the current application policy allows **paper only**.
+- MCP handlers do **not own exchange signing or protocol details**.
+- PostgreSQL schema and repositories replace the old file-store direction at the persistence layer, but the main application remains **in-memory until repository wiring is completed**.
+- The old browser OAuth Authorization Code + PKCE flow is **not part of the current gateway**.
+- The paper WASM/browser path is **not part of the current backend**.
 
 ## Current source references
 

@@ -3,12 +3,12 @@
 <p align="center">Community MCP server and trading infrastructure for INDODAX, built for AI agents, CLI workflows, and operators.</p>
 
 > [!CAUTION]
-> Unofficial community software. It is not affiliated with, endorsed by, or supported by INDODAX. Cryptocurrency trading can result in loss of funds.
+> Unofficial community software. It is **not affiliated** with, endorsed by, or supported by INDODAX. Cryptocurrency trading **can result in loss of funds**.
 
 > [!IMPORTANT]
-> The current application policy is paper-only. A live execution adapter exists, but the composed server does not currently permit live order placement. Withdrawal is disabled by design.
+> The current application policy is **paper-only**. A live execution adapter exists, but the composed server does **not** currently permit live order placement. Withdrawal is **disabled by design**.
 
-Indodax MCP is a TypeScript/Bun rebuild of [indodax-cli](https://github.com/ibidathoillah/indodax-cli) by ibidathoillah. The original MIT license is preserved in [LICENSE_COPY](LICENSE_COPY/README.md). This repository is licensed under SSPL v1; see [LICENSE](LICENSE).
+Indodax MCP is a TypeScript/Bun rebuild of [indodax-cli](https://github.com/ibidathoillah/indodax-cli) by ibidathoillah. The original MIT license is preserved in [LICENSE_COPY](LICENSE_COPY/README.md). This repository is licensed under **SSPL v1**; see [LICENSE](LICENSE).
 
 ## Requirements
 
@@ -67,7 +67,7 @@ INDODAX_API_SECRET=your_api_secret_here
 
 Server configuration also supports DATABASE_URL, MCP_PORT, APP_ENV, TRADE_ENABLED, and WITHDRAW_ENABLED. See [.env.example](.env.example) and the [documentation index](docs/README.md).
 
-Never commit real credentials. Rotate an exchange key immediately if it is exposed.
+Never commit real credentials. **Rotate an exchange key immediately** if it is exposed.
 
 ## Trading model
 
@@ -91,9 +91,9 @@ flowchart TD
     Policy -->|"Locked"| Deny["DENY"]
 ```
 
-The live backend is maintained behind the execution interface so it can be hardened and verified independently before any production enablement.
+The live backend is maintained behind the execution interface so it can be hardened and verified independently **before any production enablement**.
 
-Withdrawal has no server-side grant path.
+Withdrawal has **no server-side grant path**.
 
 ## MCP surface
 
@@ -105,7 +105,7 @@ See [MCP surface](docs/mcp/surface.md), [MCP implementation notes](docs/mcp/tool
 
 ## Safety model
 
-Paper execution is the default. Mutation tools use explicit metadata, a central auth and environment guard, plus handler-level checks. Risk evaluation is deterministic and fail-closed for kill switch, circuit breaker, reconciliation halt, mode/capability mismatch, stale state, limits, and other configured constraints.
+Paper execution is the default. Mutation tools use explicit metadata, a central auth and environment guard, plus handler-level checks. Risk evaluation is **deterministic** and **fail-closed** for kill switch, circuit breaker, reconciliation halt, mode/capability mismatch, stale state, limits, and other configured constraints.
 
 For live trading, the application policy currently allows only paper mode, so APP_ENV=live does not enable order placement.
 
@@ -142,7 +142,7 @@ bun run verify
 
 Repository rules:
 
-- Keep authored files at or under 350 lines; 375 is the hard ceiling.
+- Keep authored files at or under **350 lines**; **375 is the hard ceiling**.
 - Use Decimal for financial quantities and avoid floating-point accounting.
 - Keep MCP handlers thin.
 - Keep generic MCP/core packages independent from INDODAX domain packages.

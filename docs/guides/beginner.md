@@ -60,7 +60,7 @@ The example notional is 100,000 IDR and exceeds the current application minimum 
 
 After acceptance, call indodax_paper_fill with the returned order id and a fill price, then read indodax_paper_status.
 
-Paper execution never sends the order to INDODAX.
+**Paper execution never sends the order to INDODAX.**
 
 ## 5. Understand a risk decision
 
