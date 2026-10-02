@@ -1,5 +1,20 @@
 # MCP tool implementation
 
+```mermaid
+sequenceDiagram
+    participant A as Agent
+    participant M as MCP tool
+    participant T as TradingService
+    participant R as RiskEngine
+    participant E as ExecutionService
+    A->>M: propose trade
+    M->>T: validate intent
+    T->>R: evaluate context
+    R-->>T: ALLOW or DENY with reason
+    T-->>M: proposal plus verdict
+    M-->>A: result, nothing executed yet
+```
+
 Each area under `tools/` owns three things: the tool schemas agents see,
 the dispatch from `execute_tool`, and the calls into shared services.
 Nothing in this folder signs requests, manages sockets, or decides risk.

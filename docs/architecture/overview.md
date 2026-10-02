@@ -2,6 +2,24 @@
 
 ## Direction
 
+```mermaid
+flowchart TD
+    subgraph Interface["Interface"]
+        direction LR
+        MCP["MCP"] & CLI["CLI"] & Daemon["Daemon"]
+    end
+    subgraph App["Application"]
+        direction LR
+        Intent["Agent intent / TradingService"] --> Risk["RiskEngine"]
+    end
+    subgraph Exec["Execution"]
+        direction LR
+        Svc["ExecutionService"] --> Paper["PaperBackend"]
+        Svc --> Live["LiveBackend"]
+    end
+    Interface --> App --> Exec --> API["Indodax API"]
+```
+
 ```text
 MCP / CLI / Daemon
 → Agent intent / TradingService

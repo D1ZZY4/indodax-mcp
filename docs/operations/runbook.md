@@ -1,5 +1,17 @@
 # Operations
 
+```mermaid
+stateDiagram-v2
+    [*] --> Healthy
+    Healthy --> Degraded : minor check fails
+    Degraded --> Healthy : recovers
+    Degraded --> Unhealthy : more checks fail
+    Unhealthy --> Degraded : partial recovery
+    Unhealthy --> Halted : risk or reconcile halts
+    Degraded --> Halted : risk or reconcile halts
+    Halted --> Healthy : operator clears condition
+```
+
 ## Checks
 
 `scripts/check.sh` runs fmt, check, test, and clippy for the workspace.

@@ -17,6 +17,16 @@ in `LICENSE_COPY/`.
 
 ## Execution boundary
 
+```mermaid
+flowchart TD
+    Agent["Agent / MCP / CLI"] --> Trading["TradingService"]
+    Trading --> Risk["RiskEngine"]
+    Risk --> Exec["ExecutionService"]
+    Exec --> Paper["Paper backend"]
+    Exec --> Live["Live backend"]
+    Live --> API["Indodax API"]
+```
+
 ```text
 Agent/MCP/CLI
 → TradingService

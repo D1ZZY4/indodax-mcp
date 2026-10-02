@@ -1,5 +1,16 @@
 # Risk policy
 
+```mermaid
+flowchart TD
+    Req["Order plus context"] --> Live{"Live mode and TradePlace?"}
+    Live -->|"Missing"| Deny1["DENY: capability denial"]
+    Live -->|"Present"| Checks{"Limits, loss, stale data, duplicate?"}
+    Checks -->|"Fail"| Deny2["DENY with RiskReason"]
+    Checks -->|"Pass"| Halt{"Kill switch, breaker, halted reconcile?"}
+    Halt -->|"Yes"| HaltOut["HALT: path closed"]
+    Halt -->|"No"| Allow["ALLOW"]
+```
+
 Risk evaluation is deterministic: same order plus same context always
 yields the same verdict. There is no network, no randomness, and no
 dependency on MCP, strategy, transport, or storage.
