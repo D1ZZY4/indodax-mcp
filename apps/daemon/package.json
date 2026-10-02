@@ -1,0 +1,25 @@
+{
+  "name": "@indodax-mcp/daemon",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "bun build ./src/main.ts --outdir ./dist --target bun",
+    "dev": "bun --watch ./src/main.ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "lint": "biome lint .",
+    "format:check": "biome format ."
+  },
+  "dependencies": {
+    "@indodax-mcp/config": "workspace:*",
+    "@indodax-mcp/indodax-market": "workspace:*",
+    "@indodax-mcp/indodax-mcp": "workspace:*",
+    "@indodax-mcp/logging": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "bun-types": "catalog:",
+    "vitest": "catalog:"
+  }
+}
