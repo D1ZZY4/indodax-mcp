@@ -1,9 +1,9 @@
-# Dependency compatibility (verified 2026-10-02, Bun 1.4.2)
+# Dependency compatibility (checked 2026-10-02, Bun 1.4.2)
 
 All versions below are npm `latest` dist-tags confirmed via registry
-metadata, plus Context7/official doc checks where noted.
+metadata, plus official doc checks where noted.
 
-## MCP SDK v2 (verified via Context7 typescript-sdk docs)
+## MCP SDK v2
 
 - `@modelcontextprotocol/server` 2.2.0, deps `zod ^4.2.0`,
   `@modelcontextprotocol/core 2.2.0`. Exports `McpServer`,

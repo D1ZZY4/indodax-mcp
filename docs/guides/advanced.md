@@ -50,9 +50,9 @@ Paper never calls the exchange Deadman endpoint.
 bun apps/daemon/src/main.ts
 ```
 
-Startup reconciles paper state, warms the account when credentials
-exist, then runs market refresh every 30 seconds and snapshots every
-60 seconds. `SIGINT` or `SIGTERM` flushes state and audit before exit.
+Startup logs open paper orders with live-price fillable flags,
+then runs market refresh every 30 seconds and snapshots every
+60 seconds. `SIGINT` or `SIGTERM` stops the scheduler for a clean exit.
 
 ## 5. PostgreSQL
 

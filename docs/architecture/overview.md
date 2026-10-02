@@ -39,7 +39,6 @@ order. Skipping a stage is a bug, not an optimization.
   bucket inside transport), `indodax-client`: typed V1/V2 REST calls
   only. No business logic in transport.
 * `indodax-market`, `indodax-account`: normalized reads plus caches.
-* `indodax-market`, `indodax-account`: normalized reads plus caches.
 * `indodax-order`: lifecycle state machine plus reconciliation.
 * `indodax-risk`: deterministic policy. Depends on nothing outside core.
 * `indodax-execution`: backend trait plus the risk-guarded service.

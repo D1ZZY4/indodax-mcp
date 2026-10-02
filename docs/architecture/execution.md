@@ -46,7 +46,6 @@ stateDiagram-v2
     FILLED --> [*]
     CANCELLED --> [*]
     RECONCILED --> [*]
-    Expired --> [*]
 ```
 
 1. Agent or CLI produces a `TradeIntent`.

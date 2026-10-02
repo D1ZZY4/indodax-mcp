@@ -1,5 +1,8 @@
 # ADR-005: HTTP auth without v1 OAuth flow
 
+> Historical record from the Rust workspace. The bridge-secret model
+> carries over to `apps/mcp-http`.
+
 * Status: accepted.
 * Decision: the gateway authenticates bridge calls with an optional
   `BRIDGE_SECRET` header plus process-env credentials, instead of

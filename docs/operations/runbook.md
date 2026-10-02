@@ -15,7 +15,7 @@ stateDiagram-v2
 ## Checks
 
 `scripts/check.sh` runs install, format check, lint, typecheck,
-tests, and build through Turborepo. CI runs the same script on every
+tests, and build through Turborepo. CI runs the same gates on every
 push.
 
 ## Health

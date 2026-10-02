@@ -50,8 +50,7 @@ deposit address, withdraw fee. Mutations locked.
 
 History extras: paper fills.
 
-Operations: backtest get/compare, strategy validate, exposure,
-WebSocket reconnect, Deadman arm/status/disarm.
+Operations: exposure, WebSocket reconnect, Deadman arm/status/disarm.
 
 WebSocket (2): status, one-shot ticker snapshot.
 

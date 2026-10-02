@@ -16,16 +16,19 @@ support 7.x. Residual: none while pinned.
 ## R3: MCP SDK v2 API drift
 
 Installed 2.2.0 may differ from prompt-time examples. Mitigation:
-Context7-verified `registerTool`, `serveStdio`,
-`createMcpHandler`/`createMcpHonoApp`, client auto negotiation.
+verified `registerTool`, `serveStdio`,
+`createMcpHandler`/`createMcpHonoApp`, client auto negotiation against
+the installed package.
 Residual: re-verify exports right after install; record deviations.
 
 ## R4: Trade API v2 key separation
 
-v2 needs a dedicated key plus IP whitelist; the operator key in this
-environment is v2-typed but its IP grant is unverified. Mitigation:
-live verification stays read-only; -2015 is an expected environment
-outcome, not a code defect. Residual: live trading unverifiable here.
+v2 needs a dedicated key plus IP whitelist; this environment uses a
+v2-typed key with IPv4 plus IPv6 grants verified working 2026-10-03.
+Mitigation: live verification stays read-only; the ISP allocation is
+dynamic, so a returning -2015 means the grant needs refreshing, not
+that the code is broken. Residual: live trading needs funding above
+exchange minimums plus explicit enablement.
 
 ## R5: Public throttle vs official limit
 

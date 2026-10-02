@@ -24,15 +24,15 @@ MCP tool, and test. Only documented endpoints are official.
 | `POST /api/v2/order` | HMAC-SHA256 sorted body | `LiveExecutor.submit` | `indodax_create_order` (live path locked) |
 | `DELETE /api/v2/order` | HMAC-SHA256 sorted query | `LiveExecutor.cancelByExchangeId` | `indodax_cancel_order` (live path locked) |
 | `GET /api/v2/openOrders` | HMAC-SHA256 | planned live reconcile | `indodax_reconcile_orders` (paper now) |
-| `GET /api/v2/order` | HMAC-SHA256 | planned live lookup | (via reconcile) |
+| `GET /api/v2/order` | HMAC-SHA256 | planned live lookup | `indodax_order` |
 | `GET /api/v2/account` | HMAC-SHA256 | `AccountClient` | `indodax_account`, `indodax_balances` |
 | capital histories | HMAC-SHA256 | funding tools | `indodax_withdraw_history`, `indodax_deposit_history` |
 | `GET /api/v2/fiat/orders` | HMAC-SHA256 | funding tools | `indodax_fiat_history` |
 | deposit address list | HMAC-SHA256 | funding tools | `indodax_deposit_address` |
 | `POST /api/v2/capital/withdraw/apply` | HMAC-SHA256 | NOT implemented (locked) | always denied |
 | `POST /api/v2/fiat/withdraw` | HMAC-SHA256 | NOT implemented (locked) | always denied |
-| `GET /api/v2/order/histories` | HMAC-SHA256 | account history helper | `indodax_order_history` planned |
-| `GET /api/v2/myTrades` | HMAC-SHA256 | account history helper | `indodax_trade_history` planned |
+| `GET /api/v2/order/histories` | HMAC-SHA256 | account history helper | `indodax_order_history` |
+| `GET /api/v2/myTrades` | HMAC-SHA256 | account history helper | `indodax_trade_history` |
 
 ## Legacy v1
 

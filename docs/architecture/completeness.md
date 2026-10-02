@@ -12,9 +12,9 @@ exercises it, end-to-end means it works through its intended path.
 | Orders | yes | yes | yes | paper yes, live locked by policy |
 | Trading | yes | yes | yes | paper yes, live denied by policy |
 | Risk | yes | yes | yes | yes, pure evaluation |
-| Portfolio | yes | yes | yes | paper yes, live pending creds |
+| Portfolio | yes | yes | yes | paper yes, valued at live prices |
 | Paper | yes | yes | yes | yes, CLI, MCP, and workbench flows |
-| Live Execution | yes, v2 order API | yes | signing-level | locked, IP pending |
+| Live Execution | yes, v2 order API | yes | signing-level | locked by policy |
 | Reconciliation | yes | yes | yes | paper vs market yes |
 | Audit | yes | yes | yes | yes, in-memory plus Drizzle repo |
 | Alerts | yes | yes | yes | yes, create check cancel |
@@ -37,5 +37,5 @@ exercises it, end-to-end means it works through its intended path.
 | Security | yes | yes | yes | no secrets in tree |
 | Deployment | compose, docker, systemd | n/a | n/a | documented |
 
-Live private paths stay pending until the operator whitelists the
-client IP on the exchange API key.
+Live private paths stay gated on the operator IP grant on the
+exchange API key, which can change with dynamic ISP allocation.
