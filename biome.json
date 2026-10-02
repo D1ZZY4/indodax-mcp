@@ -1,35 +1,57 @@
 {
-	"$schema": "https://biomejs.dev/schemas/2.5.15/schema.json",
-	"formatter": {
-		"enabled": true,
-		"indentStyle": "space",
-		"indentWidth": 2,
-		"lineWidth": 100,
-		"includes": ["**", "!**/node_modules/**", "!**/dist/**", "!**/coverage/**", "!**/packages/db/drizzle/**"]
-	},
-	"linter": {
-		"enabled": true,
-		"includes": ["**", "!**/node_modules/**", "!**/dist/**", "!**/coverage/**", "!**/packages/db/drizzle/**"],
-		"rules": {
-			"preset": "recommended",
-			"style": {
-				"noNonNullAssertion": "error"
-			},
-			"suspicious": {
-				"noExplicitAny": "error"
-			}
-		}
-	},
-	"javascript": {
-		"formatter": {
-			"quoteStyle": "double",
-			"semicolons": "always",
-			"trailingCommas": "all"
-		}
-	},
-	"json": {
-		"formatter": {
-			"enabled": true
-		}
-	}
+  "$schema": "https://biomejs.dev/schemas/2.5.15/schema.json",
+  "formatter": {
+    "enabled": true,
+    "indentStyle": "space",
+    "indentWidth": 2,
+    "lineWidth": 100,
+    "includes": [
+      "**",
+      "!**/node_modules/**",
+      "!**/dist/**",
+      "!**/coverage/**",
+      "!**/.turbo/**",
+      "!**/test-results/**",
+      "!**/playwright-report/**",
+      "!**/packages/db/drizzle/**",
+      "!build-inventory.json",
+      "!build-inventory.md"
+    ]
+  },
+  "linter": {
+    "enabled": true,
+    "includes": [
+      "**",
+      "!**/node_modules/**",
+      "!**/dist/**",
+      "!**/coverage/**",
+      "!**/.turbo/**",
+      "!**/test-results/**",
+      "!**/playwright-report/**",
+      "!**/packages/db/drizzle/**",
+      "!build-inventory.json",
+      "!build-inventory.md"
+    ],
+    "rules": {
+      "preset": "recommended",
+      "style": {
+        "noNonNullAssertion": "error"
+      },
+      "suspicious": {
+        "noExplicitAny": "error"
+      }
+    }
+  },
+  "javascript": {
+    "formatter": {
+      "quoteStyle": "double",
+      "semicolons": "always",
+      "trailingCommas": "all"
+    }
+  },
+  "json": {
+    "formatter": {
+      "enabled": true
+    }
+  }
 }

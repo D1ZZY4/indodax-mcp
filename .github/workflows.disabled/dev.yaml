@@ -1,0 +1,44 @@
+# Dev - continuous verification for the dev branch.
+#
+# Disabled template: move this file to ../workflows/ to enable.
+# No publishing. Verifies every push to `dev` and every pull request,
+# then uploads the build inventory as an artifact for review.
+
+name: Dev
+
+on:
+  push:
+    branches: ["dev"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dev-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.4.2"
+      - run: bun install --frozen-lockfile
+      - run: bun run format:check
+      - run: bun run lint
+      - run: bunx turbo typecheck
+      - run: bunx turbo test
+      - run: bunx turbo build
+      - run: bun scripts/build-inventory.ts
+      - name: Upload build inventory
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-inventory-${{ github.sha }}
+          path: |
+            build-inventory.md
+            build-inventory.json
+          retention-days: 14

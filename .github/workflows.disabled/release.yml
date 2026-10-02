@@ -1,0 +1,68 @@
+# Release - stable channel.
+#
+# Disabled template: move this file to ../workflows/ to enable.
+# Publishes only from version tags (v1.2.3). Tags are cut with:
+#   bunx changeset version && git tag v$(node -p "require('./apps/mcp-stdio/package.json').version")
+#
+# Required repository secrets: NPM_TOKEN (automation token with publish access).
+
+name: Release
+
+on:
+  push:
+    tags: ["v[0-9]*.[0-9]*.[0-9]*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  id-token: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.4.2"
+      - run: bun install --frozen-lockfile
+      - run: bun run format:check
+      - run: bun run lint
+      - run: bunx turbo typecheck
+      - run: bunx turbo test
+      - run: bunx turbo build
+
+  release:
+    needs: verify
+    runs-on: ubuntu-latest
+    environment: release
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.4.2"
+      - run: bun install --frozen-lockfile
+      - run: bunx turbo build
+      - run: bun scripts/build-inventory.ts
+      - run: bun pm pack --destination ./artifacts
+        working-directory: apps/mcp-stdio
+      - run: bun pm pack --destination ./artifacts
+        working-directory: apps/cli
+      - run: bun run verify:consumer
+      - name: Publish to npm
+        run: |
+          npm publish ./artifacts/indodax-mcp-*.tgz --provenance --access public
+          npm publish ./artifacts/indodax-mcp-cli-*.tgz --provenance --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - name: Create GitHub release
+        run: |
+          gh release create "${{ github.ref_name }}" ./artifacts/*.tgz \
+            --title "${{ github.ref_name }}" \
+            --generate-notes
+        env:
+          GH_TOKEN: ${{ github.token }}

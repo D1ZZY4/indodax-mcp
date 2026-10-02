@@ -1,0 +1,69 @@
+# Beta - pre-release channel.
+#
+# Disabled template: move this file to ../workflows/ to enable.
+# Publishes beta builds with the `beta` dist-tag. Triggered from the
+# `beta` branch, beta tags (1.2.3-beta.1), or manual dispatch.
+#
+# Required repository secrets: NPM_TOKEN (automation token with publish access).
+
+name: Beta
+
+on:
+  push:
+    branches: ["beta"]
+    tags: ["v[0-9]*.[0-9]*.[0-9]*-beta.*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  id-token: write
+
+concurrency:
+  group: beta-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.4.2"
+      - run: bun install --frozen-lockfile
+      - run: bun run format:check
+      - run: bun run lint
+      - run: bunx turbo typecheck
+      - run: bunx turbo test
+      - run: bunx turbo build
+
+  publish-beta:
+    needs: verify
+    runs-on: ubuntu-latest
+    environment: beta
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.4.2"
+      - run: bun install --frozen-lockfile
+      - run: bunx turbo build
+      - run: bun pm pack --destination ./artifacts
+        working-directory: apps/mcp-stdio
+      - run: bun pm pack --destination ./artifacts
+        working-directory: apps/cli
+      - run: bun run verify:consumer
+      - name: Publish beta to npm
+        run: |
+          npm publish ./artifacts/indodax-mcp-*.tgz --tag beta --provenance --access public
+          npm publish ./artifacts/indodax-mcp-cli-*.tgz --tag beta --provenance --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - name: Create beta GitHub release
+        run: |
+          gh release create "${{ github.ref_name }}-beta-${{ github.run_number }}" ./artifacts/*.tgz \
+            --title "Beta ${{ github.ref_name }} (${{ github.run_number }})" \
+            --prerelease \
+            --generate-notes
+        env:
+          GH_TOKEN: ${{ github.token }}
