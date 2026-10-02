@@ -1,9 +1,0 @@
-[package]
-name = "indodax-strategy"
-version = "1.0.1"
-edition = "2021"
-
-[dependencies]
-indodax-core = { workspace = true }
-indodax-market = { workspace = true }
-serde = { workspace = true }

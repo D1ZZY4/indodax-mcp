@@ -1,8 +1,0 @@
-[package]
-name = "indodax-rate-limit"
-version = "1.0.1"
-edition = "2021"
-
-[dependencies]
-indodax-core = { workspace = true }
-tokio = { workspace = true }

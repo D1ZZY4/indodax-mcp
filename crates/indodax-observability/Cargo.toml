@@ -1,9 +1,0 @@
-[package]
-name = "indodax-observability"
-version = "1.0.1"
-edition = "2021"
-
-[dependencies]
-indodax-core = { workspace = true }
-serde = { workspace = true }
-tracing = { workspace = true }

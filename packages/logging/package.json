@@ -1,0 +1,24 @@
+{
+  "name": "@indodax-mcp/logging",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.json --noEmit",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "lint": "biome lint .",
+    "format:check": "biome format ."
+  },
+  "dependencies": {
+    "pino": "catalog:"
+  },
+  "devDependencies": {
+    "typescript": "catalog:",
+    "vitest": "catalog:",
+    "@biomejs/biome": "catalog:",
+    "@types/node": "catalog:"
+  }
+}

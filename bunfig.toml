@@ -1,0 +1,4 @@
+[install]
+registry = "https://registry.npmjs.org"
+
+[install.scopes]

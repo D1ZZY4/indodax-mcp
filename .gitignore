@@ -1,7 +1,15 @@
-# Rust build output
-/target/
-/target
-**/target/
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+*.tsbuildinfo
+.turbo/
+
+# Test and coverage artifacts
+coverage/
+playwright-report/
+test-results/
 
 # Env and secrets (examples stay tracked)
 .env
@@ -16,6 +24,8 @@ logs/
 
 # Local runtime state
 data/
+*.db
+*.sqlite
 
 # OS artifacts
 .DS_Store
