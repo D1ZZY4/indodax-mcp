@@ -14,6 +14,8 @@ import { registerAuditTools } from "./tools/audit.js";
 import { registerAlertTools } from "./tools/alerts.js";
 import { registerSystemTools } from "./tools/system.js";
 import { registerFundingTools } from "./tools/funding.js";
+import { registerHistoryTools } from "./tools/history.js";
+import { registerOpsTools } from "./tools/ops.js";
 import { registerResources } from "./resources.js";
 import { registerPrompts } from "./prompts.js";
 import type { AppEnv } from "@indodax-mcp/config";
@@ -41,6 +43,8 @@ export function buildIndodaxServer(env: AppEnv) {
   registerAlertTools(registry, handlers, app);
   registerSystemTools(registry, handlers, app);
   registerFundingTools(registry, handlers, app);
+  registerHistoryTools(registry, handlers, app);
+  registerOpsTools(registry, handlers, app);
   registerResources(registry, handlers, app);
   registerPrompts(registry, handlers, app);
   const server = buildServer({ name: SERVER_NAME, version: SERVER_VERSION, registry, handlers });

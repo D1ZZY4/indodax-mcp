@@ -10,8 +10,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
-      - run: cargo fmt --all -- --check
-      - run: cargo check --workspace --all-targets
-      - run: cargo test --workspace --all-targets
-      - run: cargo clippy --workspace --all-targets -- -D warnings
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.4.2"
+      - run: bun install --frozen-lockfile
+      - run: bun run format:check
+      - run: bun run lint
+      - run: bunx turbo typecheck
+      - run: bunx turbo test
+      - run: bunx turbo build

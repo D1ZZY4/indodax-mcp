@@ -1,50 +1,52 @@
 # MCP surface
 
-Transport: stdio JSON-RPC via `indodax-mcp-server`, HTTP via `indodax-mcp-http`.
-Both share `V2Server::execute_tool`, so behavior is identical.
+Transport: stdio JSON-RPC via `apps/mcp-stdio`, Streamable HTTP via
+`apps/mcp-http` on the official Hono adapter. Both share one registry
+and dispatch, so behavior is identical. Protocol 2025-11-25.
 
-## Tool groups
+## Tool groups (73 tools)
 
-Market (7, read-only, live): server_time, ticker, ticker_all, pairs,
-orderbook, trades, candles.
+Market (10): server time, pairs, ticker, tickers all, orderbook,
+trades, candles, price increments, summaries, market status via WS.
 
-Account (6, read-only, needs credentials): info, balances, open_orders,
-order_history, trade_history, transactions (7-day window validated).
+Account (3 plus history): account, balances, capabilities, open
+orders, order details, order history (v2), trade history (v2).
 
-Orders (3): live order_get (needs credentials), paper_order_get,
-order_reconcile (paper vs live price, no mutation).
+Orders (4): validate, propose, create (paper default, live locked),
+cancel (paper default, live locked).
 
-Trading (4): validate and propose never execute. place and cancel run
-paper by default through risk and ExecutionService. Live is denied by
-server policy and needs acknowledged true even where enabled.
+Portfolio (3): portfolio, positions, PnL with live-price exposure.
 
-Portfolio (3, read-only): paper valuation at live prices, positions, pnl.
+Risk (3): limits, state (includes Deadman), evaluate.
 
-Risk (3, read-only or pure): limits, policy, evaluate.
+Paper (9): account, status, orders, snapshots, place, fill, cancel,
+reset, fills list. Simulated money only.
 
-Paper (8): balances, status, place, fill, cancel, orders, reset, topup.
-Simulated money only.
+Strategy (4) and backtest (3 with stored runs): list, detail,
+evaluate, validate, run (stored with id), get, compare.
 
-Strategy (2) and backtest (1): pure signal evaluation and replay.
-Backtest is separate from paper trading.
+Alerts (4): list, create, cancel, check against live price.
 
-Alerts (4): create, list, cancel, check against live price. Persisted
-when the server is configured with a state path.
+Reconciliation (4): balances, orders, trades, ledger state.
 
-Reconciliation (2) and audit (2): divergence analysis and traces.
-Audit never contains secrets.
+Audit (3): events, execution trace, risk decisions.
 
-System (4), auth (2): health, version, mode, capabilities, credential
-presence booleans. No secret content is ever returned.
+System (8) plus auth and funding guard: health, readiness, version,
+capabilities, config, runtime, auth status, withdraw denial.
 
-Funding (3): fee and deposit address reads need credentials. Withdraw
-is disabled by default and always denied without a separate grant.
+Funding reads (5): withdraw history, deposit history, fiat history,
+deposit address, withdraw fee. Mutations locked.
 
-WebSocket (2): one-shot ticker and book snapshots, 10s timeout.
+History extras: paper fills.
 
-## Resources and prompts
+Operations: backtest get/compare, strategy validate, exposure,
+WebSocket reconnect, Deadman arm/status/disarm.
 
-Resources expose state: config, pairs, market cache size, paper state,
-risk limits, health, recent audit. Prompts guide analyze_market,
-check_portfolio, preflight_trade, review_open_orders, and
-explain_risk_rejection. Prompts never place orders.
+WebSocket (2): status, one-shot ticker snapshot.
+
+## Resources (11) and prompts (5)
+
+Resources expose state: market snapshot, pair metadata, account,
+open orders, portfolio, risk, reconciliation, audit, health,
+websocket, capabilities. Prompts guide market, portfolio, order,
+strategy, and incident review. Prompts never place orders.

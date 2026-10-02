@@ -11,6 +11,7 @@ import {
 } from "@indodax-mcp/indodax-strategy";
 import { runBacktest } from "@indodax-mcp/indodax-backtest";
 import { fail, ok, pairArg, parseArgs } from "../respond.js";
+import { storeBacktest } from "./ops.js";
 import type { AppServices } from "../composition.js";
 
 const closesArg = z.array(z.number().positive());
@@ -146,7 +147,9 @@ export function registerStrategyTools(
           notional: new Decimal(args.notional ?? 1000),
         },
       );
+      const stored = storeBacktest(report);
       return ok({
+        id: stored.id,
         signalsEvaluated: report.signalsEvaluated,
         hypotheticalFills: report.hypotheticalFills,
         totalFees: report.totalFees.toString(),

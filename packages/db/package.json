@@ -12,7 +12,8 @@
     "lint": "biome lint .",
     "format:check": "biome format .",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "bun ./src/migrate.ts"
+    "db:migrate": "bun ./src/migrate.ts",
+    "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
     "drizzle-orm": "catalog:",
@@ -20,6 +21,7 @@
   },
   "devDependencies": {
     "@types/node": "catalog:",
+    "@vitest/coverage-v8": "catalog:",
     "bun-types": "catalog:",
     "drizzle-kit": "catalog:",
     "embedded-postgres": "17.10.0-beta.17",

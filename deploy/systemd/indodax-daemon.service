@@ -3,8 +3,9 @@ Description=indodax daemon
 After=network-online.target
 
 [Service]
-ExecStart=/usr/local/bin/indodax-daemon
+ExecStart=/usr/local/bin/bun /opt/indodax-mcp/apps/daemon/src/main.ts
 Restart=on-failure
+Environment=APP_ENV=paper
 
 [Install]
 WantedBy=multi-user.target

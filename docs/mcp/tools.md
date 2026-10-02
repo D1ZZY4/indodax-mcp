@@ -16,9 +16,9 @@ sequenceDiagram
 ```
 
 Each area under `tools/` owns three things: the tool schemas agents see,
-the dispatch from `execute_tool`, and the calls into shared services.
+the registration in the shared registry, and the calls into shared services.
 Nothing in this folder signs requests, manages sockets, or decides risk.
-Those live in `indodax-api`, `indodax-websocket`, and `indodax-risk`.
+Those live in `indodax-client`, `indodax-websocket`, and `indodax-risk`.
 
 * `market.rs`: live public reads through `MarketService`.
 * `account.rs`: credential-gated reads through `AccountService`.

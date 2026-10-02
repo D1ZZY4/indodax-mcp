@@ -10,6 +10,10 @@ const port = env.MCP_PORT ?? 8000;
 
 const app = buildHttpApp(() => mcpServer);
 
+app.get("/health", (c) =>
+  c.json({ status: "ok", server: "indodax-mcp", version: "1.0.0", mode: env.APP_ENV }),
+);
+
 const server = Bun.serve({
   port,
   hostname: "127.0.0.1",

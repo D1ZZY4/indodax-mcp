@@ -1,6 +1,8 @@
 #!/bin/sh
 set -e
-cargo fmt --all
-cargo check --workspace --all-targets
-cargo test --workspace --all-targets
-cargo clippy --workspace --all-targets -- -D warnings
+bun install --frozen-lockfile
+bun run format:check
+bun run lint
+bunx turbo typecheck
+bunx turbo test
+bunx turbo build

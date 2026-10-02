@@ -10,7 +10,8 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
     "lint": "biome lint .",
-    "format:check": "biome format ."
+    "format:check": "biome format .",
+    "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
     "@indodax-mcp/errors": "workspace:*",
@@ -19,7 +20,10 @@
     "zod": "catalog:"
   },
   "devDependencies": {
+    "@indodax-mcp/mcp-testing": "workspace:*",
+    "@types/node": "catalog:",
+    "@vitest/coverage-v8": "catalog:",
     "bun-types": "catalog:",
-    "@types/node": "catalog:"
+    "vitest": "catalog:"
   }
 }

@@ -47,7 +47,8 @@
     "@testing-library/react": "^16.0.0",
     "@testing-library/user-event": "^14.0.0",
     "@testing-library/jest-dom": "^6.0.0",
-    "bun-types": "^1.4.0"
+    "bun-types": "^1.4.0",
+    "jsdom": "^26.0.0"
   },
   "scripts": {
     "dev": "turbo dev",
@@ -68,10 +69,11 @@
   },
   "devDependencies": {
     "@biomejs/biome": "catalog:",
-    "turbo": "catalog:",
-    "typescript": "catalog:",
+    "@playwright/test": "catalog:",
     "@types/node": "catalog:",
-    "bun-types": "catalog:"
+    "bun-types": "catalog:",
+    "turbo": "catalog:",
+    "typescript": "catalog:"
   },
   "packageManager": "bun@1.4.2"
 }

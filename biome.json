@@ -5,11 +5,11 @@
 		"indentStyle": "space",
 		"indentWidth": 2,
 		"lineWidth": 100,
-		"includes": ["**", "!**/node_modules/**", "!**/dist/**", "!**/packages/db/drizzle/**"]
+		"includes": ["**", "!**/node_modules/**", "!**/dist/**", "!**/coverage/**", "!**/packages/db/drizzle/**"]
 	},
 	"linter": {
 		"enabled": true,
-		"includes": ["**", "!**/node_modules/**", "!**/dist/**", "!**/packages/db/drizzle/**"],
+		"includes": ["**", "!**/node_modules/**", "!**/dist/**", "!**/coverage/**", "!**/packages/db/drizzle/**"],
 		"rules": {
 			"preset": "recommended",
 			"style": {

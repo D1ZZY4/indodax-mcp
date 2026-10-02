@@ -10,10 +10,12 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
     "lint": "biome lint .",
-    "format:check": "biome format ."
+    "format:check": "biome format .",
+    "test:coverage": "vitest run --coverage"
   },
   "devDependencies": {
     "@types/node": "catalog:",
+    "@vitest/coverage-v8": "catalog:",
     "bun-types": "catalog:",
     "vitest": "catalog:"
   }

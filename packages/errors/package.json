@@ -10,13 +10,15 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
     "lint": "biome lint .",
-    "format:check": "biome format ."
+    "format:check": "biome format .",
+    "test:coverage": "vitest run --coverage"
   },
   "dependencies": {},
   "devDependencies": {
-    "typescript": "catalog:",
-    "vitest": "catalog:",
     "@biomejs/biome": "catalog:",
-    "@types/node": "catalog:"
+    "@types/node": "catalog:",
+    "@vitest/coverage-v8": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
   }
 }

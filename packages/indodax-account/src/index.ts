@@ -58,8 +58,50 @@ export interface AccountClientOptions {
   omitZeroBalances?: boolean;
 }
 
+export interface HistoryOptions {
+  symbol: string;
+  limit?: number | undefined;
+  startTime?: number | undefined;
+  endTime?: number | undefined;
+}
+
 export class AccountClient {
   constructor(private readonly options: AccountClientOptions) {}
+
+  private async signedGet<T>(path: string, params: Record<string, string>): Promise<T> {
+    const signer = this.options.signer;
+    const query = signer.buildTimestampParams(params);
+    const signature = signer.signQuery(query);
+    const url = `${V2_BASE}${path}?${query}`;
+    const response = await fetchWithRetry(
+      url,
+      { headers: { "X-APIKEY": signer.key, Sign: signature } },
+      undefined,
+      this.options.fetchFn,
+    );
+    return (await response.json()) as T;
+  }
+
+  async openOrders(symbol?: string): Promise<unknown> {
+    const params: Record<string, string> = {};
+    if (symbol) params.symbol = symbol.toUpperCase();
+    return this.signedGet("/api/v2/openOrders", params);
+  }
+
+  async getOrder(symbol: string, orderId?: string, clientOrderId?: string): Promise<unknown> {
+    const params: Record<string, string> = { symbol: symbol.toUpperCase() };
+    if (orderId) params.orderId = orderId;
+    if (clientOrderId) params.origClientOrderId = clientOrderId;
+    return this.signedGet("/api/v2/order", params);
+  }
+
+  async orderHistories(options: HistoryOptions): Promise<unknown> {
+    return this.signedGet("/api/v2/order/histories", historyParams(options));
+  }
+
+  async myTrades(options: HistoryOptions): Promise<unknown> {
+    return this.signedGet("/api/v2/myTrades", historyParams(options));
+  }
 
   async getAccount(): Promise<AccountInfo> {
     const params: Record<string, string> = {};
@@ -82,4 +124,13 @@ export class AccountClient {
     }
     return parsed.data;
   }
+}
+
+function historyParams(options: HistoryOptions): Record<string, string> {
+  const params: Record<string, string> = { symbol: options.symbol.toLowerCase() };
+  const limit = Math.min(1000, Math.max(10, Math.floor(options.limit ?? 100)));
+  params.limit = String(limit);
+  if (options.startTime !== undefined) params.startTime = String(options.startTime);
+  if (options.endTime !== undefined) params.endTime = String(options.endTime);
+  return params;
 }

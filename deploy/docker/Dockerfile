@@ -1,5 +1,8 @@
-FROM debian:bookworm-slim
-RUN apt-get update && apt-get install -y ca-certificates && rm -rf /var/lib/apt/lists/*
-COPY target/release/indodax /usr/local/bin/indodax
+FROM oven/bun:1.4.2-slim
+WORKDIR /app
+COPY package.json bun.lock bunfig.toml turbo.json ./
+COPY packages ./packages
+COPY apps ./apps
+RUN bun install --frozen-lockfile
 EXPOSE 8000
-ENTRYPOINT ["indodax", "system", "health"]
+CMD ["bun", "apps/mcp-http/src/main.ts"]
