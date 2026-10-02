@@ -48,5 +48,5 @@ order. Skipping a stage is a bug, not an optimization.
 * `indodax-mcp`: thin tools over services. See [MCP surface](../mcp/surface.md).
 * `indodax-gateway`, `indodax-oauth`: HTTP transport isolation.
 
-Withdrawal uses `Capability::FundingWithdraw`. Trading permission never
+Withdrawal uses `WITHDRAW` capability. Trading permission never
 implies it.

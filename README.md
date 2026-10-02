@@ -132,6 +132,10 @@ MCP handlers stay thin: validate, guard, call service, serialize.
 
 ## Docs
 
+* [Beginner guide](docs/guides/beginner.md)
+* [Advanced guide](docs/guides/advanced.md)
+* [Agent harness guide](docs/guides/agent-harness.md)
+* [Developer guide](docs/guides/developer.md)
 * [System overview](docs/architecture/overview.md)
 * [Execution flow](docs/architecture/execution.md)
 * [Completeness](docs/architecture/completeness.md)

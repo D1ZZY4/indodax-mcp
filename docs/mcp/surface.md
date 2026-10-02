@@ -4,6 +4,17 @@ Transport: stdio JSON-RPC via `apps/mcp-stdio`, Streamable HTTP via
 `apps/mcp-http` on the official Hono adapter. Both share one registry
 and dispatch, so behavior is identical. Protocol 2025-11-25.
 
+```mermaid
+flowchart TD
+    Agent["Agent"] --> Registry["Tool registry"]
+    Registry --> Guard["Capability plus risk guard"]
+    Guard --> Service["Application service"]
+    Service --> Risk["RiskEngine"]
+    Risk --> Exec["ExecutionService"]
+    Exec --> Paper["Paper"]
+    Exec --> Live["Live, locked"]
+```
+
 ## Tool groups (73 tools)
 
 Market (10): server time, pairs, ticker, tickers all, orderbook,

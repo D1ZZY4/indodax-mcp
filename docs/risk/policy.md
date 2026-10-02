@@ -17,9 +17,9 @@ dependency on MCP, strategy, transport, or storage.
 
 ## Gates
 
-Live trading requires `ExecutionMode::Live` together with
-`Capability::TradePlace`. Either one missing means denial. Withdrawal
-requires the separate `Capability::FundingWithdraw` and stays disabled
+Live trading requires `live` mode together with
+`TRADE` capability. Either one missing means denial. Withdrawal
+requires the separate `WITHDRAW` capability and stays disabled
 in the default policy.
 
 ## Deny reasons

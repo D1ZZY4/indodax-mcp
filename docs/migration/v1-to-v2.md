@@ -1,5 +1,16 @@
 # Migration from indodax-cli
 
+> Historical record of the original rebuild. The current TypeScript
+> platform is mapped in [Rust to TypeScript](rust-to-typescript.md).
+
+```mermaid
+flowchart LR
+    V1["indodax-cli behavior"] --> Map["Domain mapping"]
+    Map --> Arch["New architecture"]
+    Arch --> Slice["Vertical slices"]
+    Slice --> Verify["Regression tests"]
+```
+
 Indodax MCP is a rebuild of
 [indodax-cli](https://github.com/ibidathoillah/indodax-cli) by
 ibidathoillah, rebuilt for high flexibility and extended features under the name
