@@ -94,7 +94,7 @@ impl V2Server {
             name if name.starts_with("account_") => {
                 crate::tools::account::handle(self, name, &args).await
             }
-            name if name.starts_with("order_") || name.starts_with("paper_order") => {
+            name if name.starts_with("order_") || name == "paper_order_get" => {
                 crate::tools::orders::handle(self, name, &args).await
             }
             name if name.starts_with("trade_") => {
