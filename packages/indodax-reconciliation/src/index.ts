@@ -42,7 +42,7 @@ export function reconcileFills(
   const mismatched: string[] = [];
   for (const fill of local) {
     const expected = byOrder.get(fill.exchangeOrderId);
-    if (!expected || !expected.eq(new Decimal(fill.quantity))) {
+    if (!expected?.eq(new Decimal(fill.quantity))) {
       mismatched.push(fill.exchangeOrderId);
     }
   }

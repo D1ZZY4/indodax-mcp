@@ -98,7 +98,10 @@ export class PaperExecutor implements ExecutionBackend {
   }
 
   async cancel(internalOrderId: string): Promise<boolean> {
-    const record = this.ledger.orders.find((order) => order.internalOrderId === internalOrderId);
+    const record = this.ledger.orders.find(
+      (order) =>
+        order.internalOrderId === internalOrderId || order.exchangeOrderId === internalOrderId,
+    );
     if (!record || (record.state !== "ACCEPTED" && record.state !== "PARTIALLY_FILLED")) {
       return false;
     }

@@ -189,7 +189,9 @@
       "dependencies": {
         "@indodax-mcp/core": "workspace:*",
         "@indodax-mcp/errors": "workspace:*",
+        "@indodax-mcp/indodax-auth": "workspace:*",
         "@indodax-mcp/indodax-orders": "workspace:*",
+        "@indodax-mcp/transport": "workspace:*",
       },
       "devDependencies": {
         "@types/node": "catalog:",
@@ -207,6 +209,47 @@
         "@indodax-mcp/indodax-client": "workspace:*",
       },
       "devDependencies": {
+        "@types/node": "catalog:",
+        "bun-types": "catalog:",
+        "vitest": "catalog:",
+      },
+    },
+    "packages/indodax-mcp": {
+      "name": "@indodax-mcp/indodax-mcp",
+      "version": "1.0.0",
+      "dependencies": {
+        "@indodax-mcp/config": "workspace:*",
+        "@indodax-mcp/core": "workspace:*",
+        "@indodax-mcp/errors": "workspace:*",
+        "@indodax-mcp/events": "workspace:*",
+        "@indodax-mcp/indodax-account": "workspace:*",
+        "@indodax-mcp/indodax-alerts": "workspace:*",
+        "@indodax-mcp/indodax-audit": "workspace:*",
+        "@indodax-mcp/indodax-auth": "workspace:*",
+        "@indodax-mcp/indodax-backtest": "workspace:*",
+        "@indodax-mcp/indodax-client": "workspace:*",
+        "@indodax-mcp/indodax-deadman": "workspace:*",
+        "@indodax-mcp/indodax-execution": "workspace:*",
+        "@indodax-mcp/indodax-market": "workspace:*",
+        "@indodax-mcp/indodax-orders": "workspace:*",
+        "@indodax-mcp/indodax-paper": "workspace:*",
+        "@indodax-mcp/indodax-portfolio": "workspace:*",
+        "@indodax-mcp/indodax-risk": "workspace:*",
+        "@indodax-mcp/indodax-strategy": "workspace:*",
+        "@indodax-mcp/indodax-trading": "workspace:*",
+        "@indodax-mcp/indodax-websocket": "workspace:*",
+        "@indodax-mcp/logging": "workspace:*",
+        "@indodax-mcp/mcp-contracts": "workspace:*",
+        "@indodax-mcp/mcp-core": "workspace:*",
+        "@indodax-mcp/mcp-registry": "workspace:*",
+        "@indodax-mcp/observability": "workspace:*",
+        "@indodax-mcp/scheduler": "workspace:*",
+        "@indodax-mcp/transport": "workspace:*",
+        "decimal.js": "catalog:",
+        "zod": "catalog:",
+      },
+      "devDependencies": {
+        "@indodax-mcp/mcp-testing": "workspace:*",
         "@types/node": "catalog:",
         "bun-types": "catalog:",
         "vitest": "catalog:",
@@ -621,6 +664,8 @@
     "@indodax-mcp/indodax-execution": ["@indodax-mcp/indodax-execution@workspace:packages/indodax-execution"],
 
     "@indodax-mcp/indodax-market": ["@indodax-mcp/indodax-market@workspace:packages/indodax-market"],
+
+    "@indodax-mcp/indodax-mcp": ["@indodax-mcp/indodax-mcp@workspace:packages/indodax-mcp"],
 
     "@indodax-mcp/indodax-orders": ["@indodax-mcp/indodax-orders@workspace:packages/indodax-orders"],
 

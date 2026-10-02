@@ -40,3 +40,5 @@ export class ExecutionService<Backend extends ExecutionBackend> {
 function isAllow(risk: RiskDecision): boolean {
   return risk.outcome === "ALLOW";
 }
+
+export * from "./live.js";

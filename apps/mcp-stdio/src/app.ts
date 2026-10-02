@@ -42,7 +42,21 @@ export function createRegistry(): Registry {
 export function createHandlers(): ServerHandlers {
   return {
     tools: new Map([
-      ["system_health", () => ({ status: "healthy", checks: ["startup complete"], mode: "paper" })],
+      [
+        "system_health",
+        () => ({
+          content: [
+            {
+              type: "text" as const,
+              text: JSON.stringify({
+                status: "healthy",
+                checks: ["startup complete"],
+                mode: "paper",
+              }),
+            },
+          ],
+        }),
+      ],
     ]),
     resources: new Map([
       [

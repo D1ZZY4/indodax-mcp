@@ -1,0 +1,47 @@
+import { z } from "zod";
+import { AppError, ValidationError } from "@indodax-mcp/errors";
+
+export interface ToolSuccess {
+  content: { type: "text"; text: string }[];
+  isError?: false;
+}
+
+export interface ToolFailure {
+  content: { type: "text"; text: string }[];
+  isError: true;
+}
+
+export function ok(data: unknown, warnings: string[] = []): ToolSuccess {
+  const body: Record<string, unknown> = {
+    status: "ok",
+    data,
+    fetchedAt: new Date().toISOString(),
+  };
+  if (warnings.length > 0) body.warnings = warnings;
+  return { content: [{ type: "text", text: JSON.stringify(body, null, 2) }] };
+}
+
+export function fail(error: unknown): ToolFailure {
+  const payload =
+    error instanceof AppError
+      ? { status: "error", ...error.toJSON() }
+      : {
+          status: "error",
+          code: "InternalError",
+          message: error instanceof Error ? error.message : String(error),
+          retryable: false,
+        };
+  return { content: [{ type: "text", text: JSON.stringify(payload, null, 2) }], isError: true };
+}
+
+export function parseArgs<T>(schema: z.ZodType<T>, raw: Record<string, unknown>): T {
+  const parsed = schema.safeParse(raw);
+  if (!parsed.success) {
+    throw ValidationError("invalid tool arguments", {
+      safeMetadata: { issues: parsed.error.issues.slice(0, 3) },
+    });
+  }
+  return parsed.data;
+}
+
+export const pairArg = z.string().min(1).describe("Trading pair, e.g. btc_idr");

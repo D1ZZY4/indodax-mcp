@@ -1,4 +1,4 @@
-import type { z } from "zod";
+import { z } from "zod";
 import { ExchangeApiError, ValidationError } from "@indodax-mcp/errors";
 import {
   OFFICIAL_PUBLIC_BUCKET,
@@ -27,7 +27,7 @@ export type { Depth as DepthBook, OhlcBar, PairInfo, ServerTime, TickerBody };
 
 export interface PublicClientOptions {
   fetchFn?: FetchFn;
-  rateLimitRps?: number;
+  rateLimitRps?: number | undefined;
 }
 
 export class PublicClient {
@@ -94,6 +94,10 @@ export class PublicClient {
 
   tickerAll(): Promise<z.infer<typeof tickerAllSchema>> {
     return this.get(PublicApi.TICKER_ALL, tickerAllSchema);
+  }
+
+  async raw(path: string): Promise<unknown> {
+    return this.get(path, z.unknown());
   }
 
   trades(pair: string): Promise<z.infer<typeof tradesSchema>> {

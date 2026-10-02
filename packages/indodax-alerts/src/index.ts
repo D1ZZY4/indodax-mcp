@@ -59,7 +59,7 @@ export class AlertStore {
 
   cancel(id: string): boolean {
     const alert = this.alerts.get(id);
-    if (!alert || alert.status !== "active") return false;
+    if (alert?.status !== "active") return false;
     alert.status = "cancelled";
     return true;
   }

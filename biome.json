@@ -1,33 +1,35 @@
 {
-  "$schema": "https://biomejs.dev/schemas/2.5.15/schema.json",
-  "formatter": {
-    "enabled": true,
-    "indentStyle": "space",
-    "indentWidth": 2,
-    "lineWidth": 100
-  },
-  "linter": {
-    "enabled": true,
-    "rules": {
-      "recommended": true,
-      "style": {
-        "noNonNullAssertion": "error"
-      },
-      "suspicious": {
-        "noExplicitAny": "error"
-      }
-    }
-  },
-  "javascript": {
-    "formatter": {
-      "quoteStyle": "double",
-      "semicolons": "always",
-      "trailingCommas": "all"
-    }
-  },
-  "json": {
-    "formatter": {
-      "enabled": true
-    }
-  }
+	"$schema": "https://biomejs.dev/schemas/2.5.15/schema.json",
+	"formatter": {
+		"enabled": true,
+		"indentStyle": "space",
+		"indentWidth": 2,
+		"lineWidth": 100,
+		"includes": ["**", "!**/packages/db/drizzle/**"]
+	},
+	"linter": {
+		"enabled": true,
+		"includes": ["**", "!**/packages/db/drizzle/**"],
+		"rules": {
+			"preset": "recommended",
+			"style": {
+				"noNonNullAssertion": "error"
+			},
+			"suspicious": {
+				"noExplicitAny": "error"
+			}
+		}
+	},
+	"javascript": {
+		"formatter": {
+			"quoteStyle": "double",
+			"semicolons": "always",
+			"trailingCommas": "all"
+		}
+	},
+	"json": {
+		"formatter": {
+			"enabled": true
+		}
+	}
 }

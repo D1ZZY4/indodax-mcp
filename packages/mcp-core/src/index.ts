@@ -10,7 +10,12 @@ export interface ToolContext {
 export type ToolHandler = (
   args: Record<string, unknown>,
   ctx: ToolContext,
-) => Promise<unknown> | unknown;
+) => Promise<ToolResult> | ToolResult;
+
+export interface ToolResult {
+  content: { type: "text"; text: string }[];
+  isError?: boolean;
+}
 
 export type ResourceHandler = (uri: string) => Promise<string> | string;
 
@@ -36,10 +41,6 @@ export interface BuildServerOptions {
   handlers: ServerHandlers;
 }
 
-function toTextPayload(value: unknown): string {
-  return typeof value === "string" ? value : JSON.stringify(value, null, 2);
-}
-
 function toErrorPayload(error: unknown): { text: string; isError: true } {
   if (error instanceof AppError) {
     return { text: JSON.stringify(error.toJSON(), null, 2), isError: true };
@@ -61,10 +62,16 @@ export function buildServer(options: BuildServerOptions): McpServer {
       async (args) => {
         try {
           const result = await handler(args as Record<string, unknown>, {});
-          return { content: [{ type: "text" as const, text: toTextPayload(result) }] };
+          return {
+            content: result.content,
+            ...(result.isError === true ? { isError: true as const } : {}),
+          };
         } catch (error) {
           const failure = toErrorPayload(error);
-          return { content: [{ type: "text" as const, text: failure.text }], isError: true };
+          return {
+            content: [{ type: "text" as const, text: failure.text }],
+            isError: true as const,
+          };
         }
       },
     );

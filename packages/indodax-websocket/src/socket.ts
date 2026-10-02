@@ -104,7 +104,7 @@ export class ManagedSocket {
       return;
     }
     const envelope = parseEnvelope(value);
-    if (!envelope || !envelope.channel) return;
+    if (!envelope?.channel) return;
     const duplicate =
       envelope.offset === null ? false : isDuplicate(this.seenOffsets, envelope.offset);
     if (envelope.offset !== null) {

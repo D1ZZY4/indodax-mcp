@@ -11,7 +11,7 @@ import {
 export interface ToolEntry {
   metadata: ToolMetadata;
   inputSchema: z.ZodType<unknown>;
-  outputSchema?: z.ZodType<unknown>;
+  outputSchema?: z.ZodType<unknown> | undefined;
 }
 
 export interface ResourceEntry {
@@ -30,7 +30,7 @@ export class Registry {
   registerTool(entry: {
     metadata: ToolMetadata;
     inputSchema: z.ZodType<unknown>;
-    outputSchema?: z.ZodType<unknown>;
+    outputSchema?: z.ZodType<unknown> | undefined;
   }): void {
     const metadata = toolMetadataSchema.parse(entry.metadata);
     if (this.tools.has(metadata.name)) {
