@@ -73,6 +73,34 @@
         "vitest": "catalog:",
       },
     },
+    "packages/indodax-client": {
+      "name": "@indodax-mcp/indodax-client",
+      "version": "1.0.0",
+      "dependencies": {
+        "@indodax-mcp/errors": "workspace:*",
+        "@indodax-mcp/transport": "workspace:*",
+        "zod": "catalog:",
+      },
+      "devDependencies": {
+        "@types/node": "catalog:",
+        "bun-types": "catalog:",
+        "vitest": "catalog:",
+      },
+    },
+    "packages/indodax-market": {
+      "name": "@indodax-mcp/indodax-market",
+      "version": "1.0.0",
+      "dependencies": {
+        "@indodax-mcp/core": "workspace:*",
+        "@indodax-mcp/errors": "workspace:*",
+        "@indodax-mcp/indodax-client": "workspace:*",
+      },
+      "devDependencies": {
+        "@types/node": "catalog:",
+        "bun-types": "catalog:",
+        "vitest": "catalog:",
+      },
+    },
     "packages/logging": {
       "name": "@indodax-mcp/logging",
       "version": "1.0.0",
@@ -161,6 +189,18 @@
         "vitest": "catalog:",
       },
     },
+    "packages/transport": {
+      "name": "@indodax-mcp/transport",
+      "version": "1.0.0",
+      "dependencies": {
+        "@indodax-mcp/errors": "workspace:*",
+      },
+      "devDependencies": {
+        "@types/node": "catalog:",
+        "bun-types": "catalog:",
+        "vitest": "catalog:",
+      },
+    },
   },
   "catalog": {
     "@biomejs/biome": "^2.5.0",
@@ -228,6 +268,10 @@
 
     "@indodax-mcp/errors": ["@indodax-mcp/errors@workspace:packages/errors"],
 
+    "@indodax-mcp/indodax-client": ["@indodax-mcp/indodax-client@workspace:packages/indodax-client"],
+
+    "@indodax-mcp/indodax-market": ["@indodax-mcp/indodax-market@workspace:packages/indodax-market"],
+
     "@indodax-mcp/logging": ["@indodax-mcp/logging@workspace:packages/logging"],
 
     "@indodax-mcp/mcp-contracts": ["@indodax-mcp/mcp-contracts@workspace:packages/mcp-contracts"],
@@ -243,6 +287,8 @@
     "@indodax-mcp/mcp-testing": ["@indodax-mcp/mcp-testing@workspace:packages/mcp-testing"],
 
     "@indodax-mcp/secrets": ["@indodax-mcp/secrets@workspace:packages/secrets"],
+
+    "@indodax-mcp/transport": ["@indodax-mcp/transport@workspace:packages/transport"],
 
     "@jridgewell/resolve-uri": ["@jridgewell/resolve-uri@3.1.2", "", {}, "sha512-bRISgCIjP20/tbWSPWMEi54QVPRZExkuD9lJL+UIxUKtwVJA8wW1Trb1jMs1RFXo1CBTNZ/5hpC9QvmKWdopKw=="],
 
