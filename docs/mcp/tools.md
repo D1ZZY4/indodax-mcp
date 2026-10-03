@@ -19,21 +19,13 @@ sequenceDiagram
 
 ## Handler pattern
 
-~~~text
-MCP arguments
-    |
-    v
-schema validation
-    |
-    v
-operation-specific guard
-    |
-    v
-application/service call
-    |
-    v
-shared response envelope
-~~~
+```mermaid
+flowchart TD
+    Args["MCP arguments"] --> Schema["Schema validation"]
+    Schema --> Guard["Operation-specific guard"]
+    Guard --> Service["Application or service call"]
+    Service --> Envelope["Shared response envelope"]
+```
 
 Handlers **must not** own exchange signing, WebSocket protocol details, database access, or financial policy.
 
