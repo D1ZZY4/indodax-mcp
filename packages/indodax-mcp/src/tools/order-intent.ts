@@ -96,6 +96,9 @@ export async function placeLiveOrder(app: AppServices, placement: LivePlacement)
   if (app.env.APP_ENV !== "live") {
     throw AuthorizationError("live execution needs APP_ENV=live plus restart");
   }
+  if (app.env.TRADE_ENABLED !== true) {
+    throw AuthorizationError("live execution needs TRADE_ENABLED=true");
+  }
   if (!app.policy.allowedModes.includes("live")) {
     throw AuthorizationError("live mode is disabled by server policy");
   }

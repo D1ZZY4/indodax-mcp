@@ -164,49 +164,6 @@ export function registerOpsTools(
     },
     inputSchema: z.object({}),
   });
-  registry.registerTool({
-    metadata: {
-      name: "indodax_deadman_arm",
-      title: "Arm Deadman",
-      description:
-        "Mutating safety state. Arm the Deadman countdown for pairs. Paper only simulates. Args: pairs, countdownMs.",
-      capability: "TRADE",
-      riskClass: "mutation",
-      environmentRequirement: "paper",
-      authRequirement: "none",
-      destructive: false,
-      idempotencyClass: "none",
-      auditClass: "mutation",
-    },
-    inputSchema: z.object({
-      pairs: z.array(z.string().min(1)).min(1),
-      countdownMs: z.number().positive(),
-    }),
-  });
-  registry.registerTool({
-    metadata: {
-      name: "indodax_deadman_status",
-      title: "Deadman status",
-      description: "Read-only. Deadman state, pairs, and failure count.",
-      ...READ,
-    },
-    inputSchema: z.object({}),
-  });
-  registry.registerTool({
-    metadata: {
-      name: "indodax_deadman_disarm",
-      title: "Disarm Deadman",
-      description: "Mutating safety state. Disarm the Deadman countdown.",
-      capability: "TRADE",
-      riskClass: "mutation",
-      environmentRequirement: "paper",
-      authRequirement: "none",
-      destructive: false,
-      idempotencyClass: "none",
-      auditClass: "mutation",
-    },
-    inputSchema: z.object({}),
-  });
 
   handlers.tools.set("indodax_backtest_get", async (raw) => {
     try {
@@ -357,17 +314,4 @@ export function registerOpsTools(
       return fail(error);
     }
   });
-  handlers.tools.set("indodax_deadman_arm", async (raw) => {
-    try {
-      const args = parseArgs(
-        z.object({ pairs: z.array(z.string().min(1)).min(1), countdownMs: z.number().positive() }),
-        raw,
-      );
-      return ok(app.deadman.arm(args.pairs, args.countdownMs));
-    } catch (error) {
-      return fail(error);
-    }
-  });
-  handlers.tools.set("indodax_deadman_status", async () => ok(app.deadman.snapshot()));
-  handlers.tools.set("indodax_deadman_disarm", async () => ok(app.deadman.disarm()));
 }

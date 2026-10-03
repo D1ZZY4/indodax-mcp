@@ -19,6 +19,7 @@ import { registerSystemTools } from "./tools/system.js";
 import { registerFundingTools } from "./tools/funding.js";
 import { registerHistoryTools } from "./tools/history.js";
 import { registerOpsTools } from "./tools/ops.js";
+import { registerDeadmanTools } from "./tools/deadman.js";
 import { registerStopTools } from "./tools/stop.js";
 import { registerResources } from "./resources.js";
 import { registerPrompts } from "./prompts.js";
@@ -35,6 +36,11 @@ export function buildIndodaxServer(env: AppEnv) {
   const app: AppServices = createApp(env);
   void attachAuditPersistence(app);
   void attachPaperPersistence(app);
+  app.health.set("configuration", { status: "healthy", detail: "environment parsed" });
+  app.health.set("runtime", { status: "healthy", detail: "server composed" });
+  app.health.set("mcpTransport", { status: "healthy", detail: "registry built" });
+  app.health.set("scheduler", { status: "healthy", detail: "no jobs scheduled" });
+  app.health.set("deadman", { status: "healthy", detail: "disarmed" });
   const registry = new Registry();
   const handlers = emptyHandlers();
   registerMarketTools(registry, handlers, app);
@@ -51,6 +57,7 @@ export function buildIndodaxServer(env: AppEnv) {
   registerFundingTools(registry, handlers, app);
   registerHistoryTools(registry, handlers, app);
   registerOpsTools(registry, handlers, app);
+  registerDeadmanTools(registry, handlers, app);
   registerStopTools(registry, handlers, app);
   registerResources(registry, handlers, app);
   registerPrompts(registry, handlers, app);

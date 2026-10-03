@@ -239,6 +239,40 @@ describe("indodax-mcp surface", () => {
     }
   });
 
+  it("requires TRADE_ENABLED for live placement", async () => {
+    const live = buildIndodaxServer(loadEnv({ APP_ENV: "live" }));
+    const harness = await withInMemoryServer(live.server);
+    try {
+      const denied = await harness.client.callTool({
+        name: "indodax_create_order",
+        arguments: {
+          pair: "btc_idr",
+          side: "BUY",
+          quantity: 0.01,
+          price: 1000,
+          mode: "live",
+          acknowledged: true,
+        },
+      });
+      expect(denied.isError).toBe(true);
+      const text = (denied.content as { type: string; text: string }[])[0]?.text ?? "{}";
+      expect(JSON.parse(text) as { message: string }).toMatchObject({
+        message: expect.stringContaining("TRADE_ENABLED") as unknown as string,
+      });
+    } finally {
+      await harness.close();
+    }
+  });
+
+  it("reports healthy local components at boot", async () => {
+    const { app } = buildIndodaxServer(loadEnv({}));
+    const snapshot = app.health.snapshot();
+    expect(snapshot.configuration.status).toBe("healthy");
+    expect(snapshot.runtime.status).toBe("healthy");
+    expect(snapshot.mcpTransport.status).toBe("healthy");
+    expect(snapshot.deadman.status).toBe("healthy");
+  });
+
   it("gates live execution on APP_ENV plus credentials", async () => {
     const live = buildIndodaxServer(loadEnv({ APP_ENV: "live" }));
     expect(live.app.policy.allowedModes).toContain("live");

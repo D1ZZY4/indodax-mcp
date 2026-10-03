@@ -41,7 +41,7 @@ For paper execution:
 
 ## 4. Live calls
 
-Paper is the default. Live placement needs `APP_ENV=live` plus credentials, `acknowledged: true`, risk ALLOW, IP whitelist, and funds above minimums.
+Paper is the default. Live placement needs `APP_ENV=live` plus `TRADE_ENABLED=true`, credentials, `acknowledged: true`, risk ALLOW, IP whitelist, and funds above minimums.
 
 **Never use a live mutation as a verification probe.**
 

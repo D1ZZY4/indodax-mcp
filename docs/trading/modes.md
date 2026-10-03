@@ -27,7 +27,7 @@ The live adapter uses TAPI v2 signing. Live stays gated and needs credentials, a
 
 Before live execution can be enabled, the repository needs integrated proof for complete runtime risk context, durable state, exchange reconciliation, client-order idempotency, retry behavior for state-changing requests, private-order WebSocket handling, Deadman lifecycle integration, and end-to-end live-safe tests.
 
-**Setting `APP_ENV=live` alone is not enough.** It also needs credentials, acknowledgement, risk ALLOW, IP whitelist, and funds above minimums.
+**Setting `APP_ENV=live` alone is not enough.** It also needs `TRADE_ENABLED=true`, credentials, acknowledgement, risk ALLOW, IP whitelist, and funds above minimums.
 
 ## Ambiguous outcomes
 

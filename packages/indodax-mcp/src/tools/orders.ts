@@ -227,8 +227,8 @@ export function registerOrderTools(
         if (args.acknowledged !== true) {
           throw AuthorizationError("live cancel needs acknowledged true");
         }
-        if (app.env.APP_ENV !== "live") {
-          throw AuthorizationError("live cancel needs APP_ENV=live plus restart");
+        if (app.env.APP_ENV !== "live" || app.env.TRADE_ENABLED !== true) {
+          throw AuthorizationError("live cancel needs APP_ENV=live and TRADE_ENABLED=true");
         }
         if (!app.liveExecutor) {
           throw AuthenticationError("live cancel needs API credentials");
