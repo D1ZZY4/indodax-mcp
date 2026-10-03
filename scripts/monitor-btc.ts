@@ -1,3 +1,5 @@
+export {};
+
 const PAIR = process.env.MONITOR_PAIR ?? "btc_idr";
 const REFERENCE = Number(process.env.MONITOR_REFERENCE ?? "1514997000");
 const UP_PCT = Number(process.env.MONITOR_UP_PCT ?? "2");
