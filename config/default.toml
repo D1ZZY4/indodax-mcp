@@ -1,3 +1,0 @@
-mode = "paper"
-rate_limit_rps = 7
-default_pairs = ["btc_idr", "eth_idr"]
