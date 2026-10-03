@@ -39,12 +39,12 @@ async function tick(latched: Set<string>): Promise<void> {
   const downAt = REFERENCE * (1 - DOWN_PCT / 100);
   if (last >= upAt && !latched.has("up")) {
     latched.add("up");
-    notify("BTC alert naik", `${PAIR} ${last} tembus +${UP_PCT}% dari ${REFERENCE}`);
+    notify("BTC alert up", `${PAIR} ${last} crossed +${UP_PCT}% from ${REFERENCE}`);
     console.log(`${at} TRIGGER up ${last}`);
   }
   if (last <= downAt && !latched.has("down")) {
     latched.add("down");
-    notify("BTC alert turun", `${PAIR} ${last} tembus -${DOWN_PCT}% dari ${REFERENCE}`);
+    notify("BTC alert down", `${PAIR} ${last} crossed -${DOWN_PCT}% from ${REFERENCE}`);
     console.log(`${at} TRIGGER down ${last}`);
   }
 }
