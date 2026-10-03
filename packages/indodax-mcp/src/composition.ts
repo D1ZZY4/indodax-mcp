@@ -26,6 +26,7 @@ import {
 } from "@indodax-mcp/indodax-websocket";
 import { Scheduler } from "@indodax-mcp/scheduler";
 import { createLogger } from "@indodax-mcp/logging";
+import { StopStore } from "./stop-store.js";
 
 export interface AppServices {
   env: AppEnv;
@@ -50,6 +51,7 @@ export interface AppServices {
   marketSocket: ManagedSocket;
   privateChannel: PrivateChannelManager;
   privateTokenFetcher: TokenFetcher | null;
+  stops: StopStore;
   tenantId: string;
   accountId: string;
   /** Epoch ms of the last successful authenticated account read. Null when never synced. */
@@ -130,6 +132,7 @@ export function createApp(env: AppEnv): AppServices {
     marketSocket: new ManagedSocket(() => {}),
     privateChannel,
     privateTokenFetcher,
+    stops: new StopStore(),
     tenantId: "local",
     accountId: "local",
     accountSyncedAt: null,

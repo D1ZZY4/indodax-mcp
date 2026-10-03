@@ -1,11 +1,5 @@
 import { z } from "zod";
-import {
-  AuthenticationError,
-  AuthorizationError,
-  RiskDeniedError,
-  ValidationError,
-} from "@indodax-mcp/errors";
-import { ExecutionService } from "@indodax-mcp/indodax-execution";
+import { AuthenticationError, AuthorizationError, ValidationError } from "@indodax-mcp/errors";
 import type { Registry } from "@indodax-mcp/mcp-registry";
 import type { ServerHandlers } from "@indodax-mcp/mcp-core";
 import { placePaperOrder } from "./paper.js";
@@ -19,9 +13,14 @@ import {
   quantityArg,
   sideArg,
 } from "../schemas.js";
-import { resolveRiskContext } from "../risk-context.js";
 import type { AppServices } from "../composition.js";
-import { draftIntent, reviewHypothetical, stpModeArg, timeInForceArg } from "./order-intent.js";
+import {
+  draftIntent,
+  placeLiveOrder,
+  reviewHypothetical,
+  stpModeArg,
+  timeInForceArg,
+} from "./order-intent.js";
 
 export function registerOrderTools(
   registry: Registry,
@@ -178,50 +177,19 @@ export function registerOrderTools(
         }),
         raw,
       );
-      const { intent, mode, capability } = draftIntent(app, args);
+      const { intent, mode } = draftIntent(app, args);
       if (mode !== "paper") {
-        if (args.acknowledged !== true) {
-          throw AuthorizationError("live execution needs acknowledged true");
-        }
-        if (app.env.APP_ENV !== "live") {
-          throw AuthorizationError("live execution needs APP_ENV=live plus restart");
-        }
-        if (!app.policy.allowedModes.includes("live")) {
-          throw AuthorizationError("live mode is disabled by server policy");
-        }
-        if (!app.accountClient || !app.liveExecutor) {
-          throw AuthenticationError("live execution needs API credentials");
-        }
-        const proposal = app.trading.propose(intent);
-        const order = app.trading.toOrder(proposal, {
-          tenantId: app.tenantId,
-          exchangeAccountId: app.accountId,
-        });
-        if (args.clientOrderId !== undefined && args.clientOrderId !== "") {
-          order.clientOrderId = args.clientOrderId.slice(0, 36);
-        }
-        const decision = app.trading.review(
-          order,
-          await resolveRiskContext(app, {
-            mode: "live",
-            capability,
-            pair: args.pair,
-            clientOrderId: order.clientOrderId,
-          }),
-        );
-        if (decision.outcome !== "ALLOW") throw RiskDeniedError(decision.message);
-        const execution = new ExecutionService(app.liveExecutor);
         return ok(
-          await execution.execute(
-            {
-              order,
-              mode: "live",
-              capability,
-              correlationId: proposal.correlationId,
-              requestedAt: new Date().toISOString(),
-            },
-            decision,
-          ),
+          await placeLiveOrder(app, {
+            pair: args.pair,
+            side: args.side,
+            quantity: args.quantity,
+            ...(args.price === undefined ? {} : { price: args.price }),
+            ...(args.clientOrderId === undefined ? {} : { clientOrderId: args.clientOrderId }),
+            ...(args.timeInForce === undefined ? {} : { timeInForce: args.timeInForce }),
+            ...(args.stpMode === undefined ? {} : { stpMode: args.stpMode }),
+            ...(args.acknowledged === undefined ? {} : { acknowledged: args.acknowledged }),
+          }),
         );
       }
       return ok(

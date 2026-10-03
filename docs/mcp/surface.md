@@ -12,13 +12,14 @@ The current SDK environment negotiates MCP protocol 2025-11-25.
 
 ## Surface
 
-The registry currently contains **75 tools**, **11 resources**, and **5 prompts**.
+The registry currently contains **79 tools**, **11 resources**, and **5 prompts**.
 
 | Area | Current role |
 | --- | --- |
 | Market | Public market data |
 | Account | Authenticated account and order reads |
-| Orders | Validation, proposal, paper placement, and cancellation |
+| Orders | Validation, proposal, paper placement, live placement, cancellation, and timeInForce/STP options |
+| Stops | Server-side emulated stop orders: create, list, cancel, and trigger checks |
 | Portfolio | Paper exposure, positions, and PnL views |
 | Risk | Limits, state, and hypothetical evaluation |
 | Paper | Virtual ledger, fills, cancellation, and reset |

@@ -1,5 +1,11 @@
 import { z } from "zod";
-import { ValidationError } from "@indodax-mcp/errors";
+import {
+  AuthenticationError,
+  AuthorizationError,
+  RiskDeniedError,
+  ValidationError,
+} from "@indodax-mcp/errors";
+import { ExecutionService } from "@indodax-mcp/indodax-execution";
 import type { Capability, ExecutionMode } from "@indodax-mcp/core";
 import { parseSymbolFlexible } from "@indodax-mcp/core";
 import type { TradeIntent } from "@indodax-mcp/indodax-trading";
@@ -66,6 +72,67 @@ export function draftIntent(
 }
 
 export interface HypotheticalArgs extends DraftArgs {}
+
+export interface LivePlacement {
+  pair: string;
+  side: "BUY" | "SELL";
+  quantity: number;
+  price?: number | undefined;
+  clientOrderId?: string | undefined;
+  timeInForce?: "GTC" | "MOC" | undefined;
+  stpMode?: "EXPIRE_TAKER" | "EXPIRE_MAKER" | "EXPIRE_BOTH" | undefined;
+  acknowledged?: boolean | undefined;
+}
+
+/**
+ * Shared live placement used by direct orders and triggered stops.
+ * Every gate stays mandatory: acknowledgement, APP_ENV, policy,
+ * credentials, and a fresh risk ALLOW. Throws otherwise.
+ */
+export async function placeLiveOrder(app: AppServices, placement: LivePlacement) {
+  if (placement.acknowledged !== true) {
+    throw AuthorizationError("live execution needs acknowledged true");
+  }
+  if (app.env.APP_ENV !== "live") {
+    throw AuthorizationError("live execution needs APP_ENV=live plus restart");
+  }
+  if (!app.policy.allowedModes.includes("live")) {
+    throw AuthorizationError("live mode is disabled by server policy");
+  }
+  if (!app.accountClient || !app.liveExecutor) {
+    throw AuthenticationError("live execution needs API credentials");
+  }
+  const { intent, capability } = draftIntent(app, placement);
+  const proposal = app.trading.propose(intent);
+  const order = app.trading.toOrder(proposal, {
+    tenantId: app.tenantId,
+    exchangeAccountId: app.accountId,
+  });
+  if (placement.clientOrderId !== undefined && placement.clientOrderId !== "") {
+    order.clientOrderId = placement.clientOrderId.slice(0, 36);
+  }
+  const decision = app.trading.review(
+    order,
+    await resolveRiskContext(app, {
+      mode: "live",
+      capability,
+      pair: placement.pair,
+      clientOrderId: order.clientOrderId,
+    }),
+  );
+  if (decision.outcome !== "ALLOW") throw RiskDeniedError(decision.message);
+  const execution = new ExecutionService(app.liveExecutor);
+  return execution.execute(
+    {
+      order,
+      mode: "live",
+      capability,
+      correlationId: proposal.correlationId,
+      requestedAt: new Date().toISOString(),
+    },
+    decision,
+  );
+}
 
 export async function reviewHypothetical(app: AppServices, args: HypotheticalArgs) {
   const { intent, capability } = draftIntent(app, args);
