@@ -47,6 +47,15 @@ export function paperOnlyPolicy(): RiskPolicy {
   };
 }
 
+export function liveEnabledPolicy(): RiskPolicy {
+  return {
+    killSwitch: false,
+    circuitBreaker: false,
+    allowedModes: ["paper", "live"],
+    allowedCapabilities: ["READ", "PAPER", "TRADE"],
+  };
+}
+
 export interface OrderFacts {
   notional: Decimal | null;
   quantity: Decimal | null;

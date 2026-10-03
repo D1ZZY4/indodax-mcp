@@ -238,4 +238,26 @@ describe("indodax-mcp surface", () => {
       await harness.close();
     }
   });
+
+  it("gates live execution on APP_ENV plus credentials", async () => {
+    const live = buildIndodaxServer(loadEnv({ APP_ENV: "live" }));
+    expect(live.app.policy.allowedModes).toContain("live");
+    const harness = await withInMemoryServer(live.server);
+    try {
+      const denied = await harness.client.callTool({
+        name: "indodax_create_order",
+        arguments: {
+          pair: "btc_idr",
+          side: "BUY",
+          quantity: 0.01,
+          price: 1000,
+          mode: "live",
+          acknowledged: true,
+        },
+      });
+      expect(denied.isError).toBe(true);
+    } finally {
+      await harness.close();
+    }
+  });
 });

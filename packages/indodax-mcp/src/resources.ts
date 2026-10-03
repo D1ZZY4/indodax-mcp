@@ -123,7 +123,10 @@ export function registerResources(
     JSON.stringify({
       "market.read": true,
       "account.read": app.accountClient !== null,
-      "trade.place": false,
+      "trade.place":
+        app.env.APP_ENV === "live" &&
+        app.policy.allowedModes.includes("live") &&
+        app.accountClient !== null,
       "funding.withdraw": false,
     }),
   );

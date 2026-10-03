@@ -1,6 +1,6 @@
 <h1 align="center">Trading modes</h1>
 
-The repository models paper, live, and shadow execution modes. The current application policy supports paper mode only.
+The repository models paper, live, and shadow execution modes. Paper is default. Live is gated by `APP_ENV=live` plus credentials, acknowledgement, and risk ALLOW.
 
 ## Current behavior
 
@@ -19,15 +19,15 @@ flowchart LR
 
 The indodax_paper_order flow builds a trade intent, creates an order proposal, runs risk review, and executes through ExecutionService into PaperExecutor.
 
-The indodax_create_order tool routes paper requests into the same paper placement helper. Live requests are explicitly denied after acknowledgement checks.
+The indodax_create_order tool routes paper requests into the same paper placement helper. Live requests need acknowledgement, APP_ENV live, credentials, and risk ALLOW, then execute via LiveExecutor.
 
 ## Live readiness boundary
 
-The live adapter exists and uses TAPI v2 signing, but enabling live is not currently a supported configuration.
+The live adapter uses TAPI v2 signing. Live stays gated and needs credentials, acknowledgement, risk ALLOW, plus operational readiness below.
 
 Before live execution can be enabled, the repository needs integrated proof for complete runtime risk context, durable state, exchange reconciliation, client-order idempotency, retry behavior for state-changing requests, private-order WebSocket handling, Deadman lifecycle integration, and end-to-end live-safe tests.
 
-**No documentation should imply** that setting `APP_ENV=live` currently enables trading.
+**Setting `APP_ENV=live` alone is not enough.** It also needs credentials, acknowledgement, risk ALLOW, IP whitelist, and funds above minimums.
 
 ## Ambiguous outcomes
 

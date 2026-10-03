@@ -9,7 +9,12 @@ import { LiveExecutor } from "@indodax-mcp/indodax-execution";
 import { EventBus } from "@indodax-mcp/events";
 import { HealthTracker, Counters } from "@indodax-mcp/observability";
 import { PaperExecutor } from "@indodax-mcp/indodax-paper";
-import { createRiskEngine, defaultRiskLimits, paperOnlyPolicy } from "@indodax-mcp/indodax-risk";
+import {
+  createRiskEngine,
+  defaultRiskLimits,
+  liveEnabledPolicy,
+  paperOnlyPolicy,
+} from "@indodax-mcp/indodax-risk";
 import type { RiskEngine, RiskLimits, RiskPolicy } from "@indodax-mcp/indodax-risk";
 import { OFFICIAL_V2_BUCKET, RateLimiter } from "@indodax-mcp/transport";
 import { TradingService } from "@indodax-mcp/indodax-trading";
@@ -65,7 +70,7 @@ export function createApp(env: AppEnv): AppServices {
   const alerts = new AlertStore();
   const audit = new AuditTrail();
   const limits = defaultRiskLimits();
-  const policy = paperOnlyPolicy();
+  const policy = env.APP_ENV === "live" ? liveEnabledPolicy() : paperOnlyPolicy();
   const risk = createRiskEngine(limits, policy);
   const auditKinds = ["AgentIntentCreated", "RiskApproved", "RiskRejected"] as const;
   const trading = new TradingService(risk, {

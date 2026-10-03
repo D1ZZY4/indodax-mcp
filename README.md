@@ -6,7 +6,7 @@
 > Unofficial community software. It is **not affiliated** with, endorsed by, or supported by INDODAX. Cryptocurrency trading **can result in loss of funds**.
 
 > [!IMPORTANT]
-> The current application policy is **paper-only**. A live execution adapter exists, but the composed server does **not** currently permit live order placement. Withdrawal is **disabled by design**.
+> Live execution is gated by `APP_ENV=live` plus credentials, explicit acknowledgement, and risk ALLOW. Paper is the default. Withdrawal is **disabled by design**.
 
 ## History
 
@@ -113,7 +113,7 @@ See [MCP surface](docs/mcp/surface.md), [MCP implementation notes](docs/mcp/tool
 
 Paper execution is the default. Mutation tools use explicit metadata, a central auth and environment guard, plus handler-level checks. Risk evaluation is **deterministic** and **fail-closed** for kill switch, circuit breaker, reconciliation halt, mode/capability mismatch, stale state, limits, and other configured constraints.
 
-For live trading, the application policy currently allows only paper mode, so APP_ENV=live does not enable order placement.
+For live trading, set `APP_ENV=live` with credentials, explicit acknowledgement, and risk ALLOW. Paper stays the default when live is not fully gated.
 
 See [Risk policy](docs/risk/policy.md), [Trading modes](docs/trading/modes.md), and [Security](SECURITY.md).
 

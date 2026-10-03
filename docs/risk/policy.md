@@ -4,7 +4,7 @@ The risk engine is **deterministic and side-effect free**. It evaluates an order
 
 ## Current policy
 
-The application currently uses paperOnlyPolicy:
+Paper is default via paperOnlyPolicy:
 
 ~~~text
 allowedModes = ["paper"]
@@ -13,7 +13,14 @@ killSwitch = false
 circuitBreaker = false
 ~~~
 
-This means the live execution branch is **not enabled by configuration alone**. The live adapter exists, but the composed policy **denies live mode**.
+With `APP_ENV=live` the composition uses liveEnabledPolicy:
+
+~~~text
+allowedModes = ["paper", "live"]
+allowedCapabilities = ["READ", "PAPER", "TRADE"]
+~~~
+
+Live still needs credentials, acknowledgement, and risk ALLOW. Withdrawal stays denied.
 
 ## Evaluation order
 

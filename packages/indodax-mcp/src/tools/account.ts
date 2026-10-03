@@ -81,14 +81,16 @@ export function registerAccountTools(
     }
   });
   handlers.tools.set("indodax_capabilities", async () => {
-    // The composed server always uses paperOnlyPolicy(), so live placement is
-    // denied regardless of APP_ENV or TRADE_ENABLED. Report the enforced
-    // policy here instead of the raw configuration flags.
+    const liveAllowed =
+      app.env.APP_ENV === "live" &&
+      app.policy.allowedModes.includes("live") &&
+      app.policy.allowedCapabilities.includes("TRADE") &&
+      app.accountClient !== null;
     return ok({
       "market.read": true,
       "account.read": app.accountClient !== null,
-      "trade.place": false,
-      "trade.cancel": false,
+      "trade.place": liveAllowed,
+      "trade.cancel": liveAllowed,
       "funding.withdraw": false,
       "paper.*": true,
       mode: app.env.APP_ENV,
