@@ -25,7 +25,7 @@ The registry currently contains **74 tools**, **11 resources**, and **5 prompts*
 | Strategy | Built-in strategy discovery and evaluation |
 | Backtest | Deterministic replay and in-process stored results |
 | Alerts | Alert definitions and condition checks |
-| Reconciliation | Balance comparison and paper/local checks |
+| Reconciliation | Balance comparison, paper consistency, and full exchange checks |
 | Audit | Recent audit records and risk decisions |
 | System | Health, readiness, configuration, runtime, auth, and withdrawal denial |
 | Funding | Authenticated read-only funding information |

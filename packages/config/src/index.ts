@@ -7,7 +7,6 @@ const serverSchema = {
   INDODAX_RATE_LIMIT: z.coerce.number().int().positive().optional(),
   INDODAX_WS_TOKEN: z.string().min(1).optional(),
   DATABASE_URL: z.string().min(1).optional(),
-  BRIDGE_SECRET: z.string().min(1).optional(),
   MCP_PORT: z.coerce.number().int().positive().optional(),
   APP_ENV: z.enum(["development", "paper", "live"]).default("paper"),
   TRADE_ENABLED: z.coerce.boolean().optional(),
@@ -20,7 +19,6 @@ export interface AppEnv {
   INDODAX_RATE_LIMIT?: number | undefined;
   INDODAX_WS_TOKEN?: string | undefined;
   DATABASE_URL?: string | undefined;
-  BRIDGE_SECRET?: string | undefined;
   MCP_PORT?: number | undefined;
   APP_ENV: "development" | "paper" | "live";
   TRADE_ENABLED?: boolean | undefined;
