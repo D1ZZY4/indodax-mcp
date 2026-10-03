@@ -51,9 +51,12 @@ export function registerMarketTools(
     {
       metadata: meta(
         "indodax_tickers_all",
-        "Read-only. All tickers in one call for scans. Takes no arguments. Large output.",
+        "Read-only. All tickers in one call for scans. Args: optional quote filter like IDR, optional limit 1 to 500 default all. Large output without filters.",
       ),
-      inputSchema: z.object({}),
+      inputSchema: z.object({
+        quote: z.string().min(1).max(10).optional(),
+        limit: z.number().int().min(1).max(500).optional(),
+      }),
     },
     {
       metadata: meta(
@@ -66,8 +69,14 @@ export function registerMarketTools(
       }),
     },
     {
-      metadata: meta("indodax_trades", "Read-only. Recent public trades for one pair. Args: pair."),
-      inputSchema: z.object({ pair: pairArg }),
+      metadata: meta(
+        "indodax_trades",
+        "Read-only. Recent public trades for one pair. Args: pair, optional limit 1 to 500 default all.",
+      ),
+      inputSchema: z.object({
+        pair: pairArg,
+        limit: z.number().int().min(1).max(500).optional(),
+      }),
     },
     {
       metadata: meta(
@@ -120,9 +129,23 @@ export function registerMarketTools(
       return fail(error);
     }
   });
-  handlers.tools.set("indodax_tickers_all", async () => {
+  handlers.tools.set("indodax_tickers_all", async (raw) => {
     try {
-      return ok(await app.publicClient.tickerAll());
+      const args = parseArgs(
+        z.object({
+          quote: z.string().min(1).max(10).optional(),
+          limit: z.number().int().min(1).max(500).optional(),
+        }),
+        raw,
+      );
+      const all = await app.publicClient.tickerAll();
+      let entries = Object.entries(all.tickers);
+      if (args.quote !== undefined) {
+        const wanted = args.quote.toLowerCase();
+        entries = entries.filter(([pair]) => pair.toLowerCase().endsWith(`_${wanted}`));
+      }
+      if (args.limit !== undefined) entries = entries.slice(0, args.limit);
+      return ok(Object.fromEntries(entries));
     } catch (error) {
       return fail(error);
     }
@@ -139,8 +162,15 @@ export function registerMarketTools(
   });
   handlers.tools.set("indodax_trades", async (raw) => {
     try {
-      const args = parseArgs(z.object({ pair: pairArg }), raw);
-      return ok(await app.publicClient.trades(toCompactPair(args.pair)));
+      const args = parseArgs(
+        z.object({
+          pair: pairArg,
+          limit: z.number().int().min(1).max(500).optional(),
+        }),
+        raw,
+      );
+      const trades = await app.publicClient.trades(toCompactPair(args.pair));
+      return ok(args.limit === undefined ? trades : trades.slice(0, args.limit));
     } catch (error) {
       return fail(error);
     }
