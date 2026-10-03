@@ -30,7 +30,7 @@ Definitions:
 | Event bus | yes | daemon | yes | daemon path |
 | Scheduler | yes | daemon | yes | daemon lifecycle |
 | Observability | yes | yes | yes | health/runtime path |
-| MCP tools | 74 | yes | yes | protocol harness |
+| MCP tools | 75 | yes | yes | protocol harness |
 | MCP resources | 11 | yes | protocol | protocol path |
 | MCP prompts | 5 | yes | protocol | protocol path |
 | MCP metadata contracts | yes | guard for auth/environment | schema tests | handler plus risk checks stay downstream |
@@ -49,6 +49,6 @@ Definitions:
 2. The MCP reconciliation tools are **not a complete local-versus-exchange reconciliation workflow**.
 3. Some MCP risk callers supply fixed freshness values and null daily PnL, so risk context is **not fully authoritative** at every entrypoint.
 4. The transport retry helper is **not idempotency-aware** for state-changing requests.
-5. Live order placement remains **disabled by server policy**.
+5. Live order placement is gated by `APP_ENV=live` plus credentials, acknowledgement, and risk approval. Withdrawal stays denied.
 
 **Promote a capability to a stronger status only when** its wiring and tests are updated with it.

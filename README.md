@@ -14,7 +14,7 @@ Indodax MCP is a **rebuild** of [indodax-cli](https://github.com/ibidathoillah/i
 
 An agent harness can operate your account through the MCP surface, so **supervise your agent harness and do not trust it blindly**. Give it **clear instructions with full context**, and treat its proposals as suggestions until you have verified balances, risk verdicts, and reconciliation state.
 
-The repository ships with **default safeguards that constrain agent harnesses**, including paper-only server policy, explicit capability metadata, auth and environment guards, deterministic risk review, and no server-side withdrawal path.
+The repository ships with **default safeguards that constrain agent harnesses**, including paper-default policy with APP_ENV-gated live, explicit capability metadata, auth and environment guards, deterministic risk review, and no server-side withdrawal path.
 
 ## Requirements
 
@@ -89,21 +89,26 @@ flowchart TD
     Live --> API["Indodax API"]
 ```
 
-The live branch is intentionally closed:
+The live branch is gated, not closed:
 
 ```mermaid
 flowchart TD
-    Intent["Live intent"] --> Policy{"Server policy?"}
-    Policy -->|"Locked"| Deny["DENY"]
+    Intent["Live intent"] --> Ack{"Acknowledged?"}
+    Ack -->|"No"| Deny1["DENY"]
+    Ack -->|"Yes"| Policy{"APP_ENV=live plus policy?"}
+    Policy -->|"No"| Deny2["DENY"]
+    Policy -->|"Yes"| Risk{"Risk ALLOW?"}
+    Risk -->|"No"| Deny3["DENY or HALT"]
+    Risk -->|"Yes"| LiveExec["Live backend"]
 ```
 
-The live backend is maintained behind the execution interface so it can be hardened and verified independently **before any production enablement**.
+The live backend shares the execution interface. Paper stays the default; live needs credentials, acknowledgement, risk approval, and reconciliation on ambiguous outcomes.
 
 Withdrawal has **no server-side grant path**.
 
 ## MCP surface
 
-The current server exposes 74 tools, 11 resources, and 5 prompts.
+The current server exposes 75 tools, 11 resources, and 5 prompts.
 
 Tool areas include market data, account reads, order validation and paper execution, portfolio views, risk, strategies, backtests, alerts, reconciliation, audit, system status, funding reads, history, and WebSocket inspection.
 

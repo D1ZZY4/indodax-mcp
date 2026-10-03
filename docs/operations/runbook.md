@@ -1,6 +1,6 @@
 <h1 align="center">Operations runbook</h1>
 
-This runbook covers the current application and its operational limits. The main composition is paper-only and keeps operational state in memory.
+This runbook covers the current application and its operational limits. Paper is the default and operational state is in-memory; live additionally needs the full gate from the trading modes page.
 
 ## Validation
 
@@ -38,7 +38,7 @@ Use indodax_readiness to check whether the server considers itself able to serve
 
 Use indodax_runtime_status for scheduler state, socket state, counters, and Deadman state.
 
-A halted risk or reconciliation condition should be treated as a closed trading path. The current application is already paper-only, so health state does not enable live execution.
+A halted risk or reconciliation condition should be treated as a closed trading path. Paper stays the default; live additionally needs the full gate from the trading modes page.
 
 ## Market and WebSocket checks
 

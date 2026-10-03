@@ -17,7 +17,7 @@ Current TypeScript/Bun rebuild includes:
 
 ### Current capability boundary
 
-The main application composition is **paper-only**. Live order and cancel adapters exist but are **disabled by application policy**. PostgreSQL is **not yet the main runtime source of truth**, and the MCP reconciliation surface is **not yet a full exchange-state reconciliation workflow**.
+The main application composition defaults to **paper**. Live order and cancel run through the risk-guarded path when `APP_ENV=live` with credentials and acknowledgement. PostgreSQL is **not yet the main runtime source of truth**, and the MCP reconciliation surface is **not yet a full exchange-state reconciliation workflow**.
 
 ## 1.0.1: foundation (Rust)
 

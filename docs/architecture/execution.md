@@ -60,9 +60,9 @@ Canonical order states live in @indodax-mcp/indodax-orders.
 
 ## Live execution boundary
 
-LiveExecutor implements the current TAPI v2 order and cancel adapters. The main application still uses paperOnlyPolicy(), so the composed MCP server denies live placement.
+LiveExecutor implements the TAPI v2 order and cancel adapters with timeInForce and self-trade prevention passthrough. The composition selects paperOnlyPolicy by default and liveEnabledPolicy when `APP_ENV=live`, so live placement needs credentials, acknowledgement, and risk approval.
 
-The generic transport retry helper is method-agnostic. It retries HTTP 429, 5xx, and timeout conditions, including state-changing POST requests. That means the retry helper alone does not provide live order idempotency safety.
+State-changing requests attempt exactly once by default; callers opt into `retryStateChanging` only with proven idempotency. Paper placement replays repeated `clientOrderId` values instead of submitting twice.
 
 ## Unknown outcomes
 

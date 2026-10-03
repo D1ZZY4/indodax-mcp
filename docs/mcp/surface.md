@@ -12,7 +12,7 @@ The current SDK environment negotiates MCP protocol 2025-11-25.
 
 ## Surface
 
-The registry currently contains **74 tools**, **11 resources**, and **5 prompts**.
+The registry currently contains **75 tools**, **11 resources**, and **5 prompts**.
 
 | Area | Current role |
 | --- | --- |
@@ -30,7 +30,7 @@ The registry currently contains **74 tools**, **11 resources**, and **5 prompts*
 | System | Health, readiness, configuration, runtime, auth, and withdrawal denial |
 | Funding | Authenticated read-only funding information |
 | History | Exchange history and paper-fill helpers |
-| Operations | Exposure, WebSocket state/reconnect helpers, and Deadman state |
+| Operations | Exposure, WebSocket state/reconnect helpers, private channel connect, and Deadman state |
 
 ## Resources
 

@@ -60,7 +60,7 @@ The registry validates metadata when a tool is registered.
 - reconcile.ts: balance comparison, paper-local consistency checks, and full exchange reconciliation (open orders, fills, balances) with halt tracking.
 - system.ts: status, configuration, authentication state, WebSocket snapshots, and withdrawal denial.
 - funding.ts: authenticated read-only funding information.
-- history.ts and ops.ts: history and operational helpers.
+- history.ts and ops.ts: history, operational helpers, and private channel connect.
 
 ## Response contract
 
@@ -91,7 +91,7 @@ MCP failures also set isError=true. Agents should branch on stable error codes, 
 
 Paper mutations must remain simulation-only.
 
-Live-capable paths must enforce mode, capability, acknowledgement where applicable, server policy, risk approval, idempotency, and audit requirements in executable code. The current application policy denies live execution.
+Live-capable paths must enforce mode, capability, acknowledgement where applicable, server policy, risk approval, idempotency, and audit requirements in executable code. Paper stays the default; live additionally needs `APP_ENV=live`.
 
 **Withdrawal remains denied by design.**
 

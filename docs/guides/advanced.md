@@ -75,6 +75,6 @@ Run deterministic strategy replays with indodax_backtest_run, compare runs with 
 
 Current backtest results are stored in process memory. They are **not durable historical records and do not demonstrate profitability**.
 
-## 7. Future live-readiness
+## 7. Live operation
 
-Before enabling any live path, prove durable state, authoritative risk context, exchange reconciliation, idempotent order handling, state-changing retry policy, private WebSocket handling, Deadman lifecycle, audit persistence, and end-to-end safety tests.
+Live placement runs only with `APP_ENV=live`, credentials, acknowledgement, and risk ALLOW. Keep proving durable state, authoritative risk context, exchange reconciliation, idempotent order handling, private WebSocket handling, Deadman lifecycle, and audit persistence as the live surface grows.

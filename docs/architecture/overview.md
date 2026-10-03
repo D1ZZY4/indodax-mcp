@@ -22,7 +22,7 @@ flowchart TD
     Interface --> App --> Exec --> API["Indodax API"]
 ```
 
-The main composition currently uses paper execution and in-memory application state. The live backend is constructed when credentials exist, but the composed policy permits only paper execution.
+The main composition defaults to paper execution with in-memory application state. With `APP_ENV=live` plus credentials, acknowledgement, and risk approval, the live backend executes through the same risk-guarded path.
 
 ## Package layers
 
