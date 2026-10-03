@@ -35,6 +35,10 @@ jobs:
         with:
           bun-version: "1.4.2"
       - run: bun install --frozen-lockfile
+      - name: Probe DATABASE_URL visibility
+        run: |
+          if [ -n "$DATABASE_URL" ]; then echo "probe: shell sees DATABASE_URL"; else echo "probe: shell DATABASE_URL EMPTY"; fi
+          bun -e 'console.log("probe: bun sees DATABASE_URL=" + (process.env.DATABASE_URL ? "set" : "EMPTY"))'
       - run: bun run format:check
       - run: bun run lint
       - run: bunx turbo typecheck
