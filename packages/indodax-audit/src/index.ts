@@ -31,13 +31,18 @@ export interface AuditEntry {
   reason?: string;
 }
 
+let bootId: string | null = null;
+
 export class AuditTrail {
   private readonly entries: AuditEntry[] = [];
 
   record(entry: Omit<AuditEntry, "eventId" | "timestamp"> & { eventId?: string }): void {
+    // Suffix with boot time so ids stay unique across restarts and never
+    // collide with rows already persisted to Postgres.
+    if (bootId === null) bootId = Date.now().toString(36);
     this.entries.push({
       ...entry,
-      eventId: entry.eventId ?? `evt-${this.entries.length + 1}`,
+      eventId: entry.eventId ?? `evt-${bootId}-${this.entries.length + 1}`,
       timestamp: new Date().toISOString(),
     });
   }
