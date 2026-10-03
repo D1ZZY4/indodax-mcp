@@ -19,16 +19,18 @@ Definitions:
 | Risk engine | yes | yes | yes | deterministic evaluation |
 | Portfolio | yes | yes | yes | paper state with market valuation |
 | Paper execution | yes | yes | yes | MCP/CLI path |
-| Live execution adapter | yes | constructed | adapter/signing | blocked by server policy |
+| Live execution adapter | yes | yes, gated | adapter/signing plus mocked submit/cancel | live reads verified real; live placement covered by mocks plus one user-driven order, no automated live path |
 | Reconciliation primitives | yes | partial | yes | not a full exchange reconciliation flow |
-| Audit trail | yes | yes, in-memory | yes | application path |
-| PostgreSQL schema | yes | package-level | real PG tests | not main runtime source of truth |
-| DB repositories | yes | not main composition | repository tests | no |
-| Alerts | yes | yes, in-memory | yes | application path |
+| Audit trail | yes | yes, memory-first plus Postgres mirror | yes | application path |
+| PostgreSQL schema | yes | package-level | real PG tests | mirror verified live for alerts; not the main runtime source of truth |
+| DB repositories | yes | yes when DATABASE_URL is set, else memory | repository tests | mirror path for paper, audit, alerts, stops |
+| Alerts | yes | yes, memory-first plus Postgres mirror | yes, including restore | application path |
+| Stop orders | yes | yes, memory-first plus Postgres mirror | yes, trigger plus restore | paper trigger path; live trigger covered by mocks |
+| Private channel | yes | yes, on demand | yes, dialect plus mocked token | live connect verified once; no continuous live-traffic test |
 | Strategies | yes | yes | yes | deterministic evaluation |
 | Backtests | yes | yes | yes | in-process stored results |
 | Event bus | yes | daemon | yes | daemon path |
-| Scheduler | yes | daemon | yes | daemon lifecycle |
+| Scheduler | yes | daemon plus opt-in server autopoll | yes | daemon lifecycle |
 | Observability | yes | yes | yes | health/runtime path |
 | MCP tools | 79 | yes | yes | protocol harness |
 | MCP resources | 11 | yes | protocol | protocol path |
@@ -40,7 +42,7 @@ Definitions:
 | CLI | yes | yes | yes | subprocess path |
 | Daemon | yes | yes | yes | startup/lifecycle path |
 | Workbench | yes | yes | render/E2E | browser path |
-| Security controls | yes | handler/package level | yes | no live-order path |
+| Security controls | yes | handler/package level | yes | live path gated and mocked; no automated live-order path |
 | Deployment descriptors | yes | n/a | no | documented only |
 
 ## Current gaps
