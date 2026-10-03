@@ -16,4 +16,4 @@ The official exchange Deadman endpoint and private WebSocket lifecycle are separ
 
 ## Consequence
 
-Future live execution must integrate Deadman lifecycle, renewal, and failure handling into the same durable execution state used for orders and reconciliation.
+Live execution integrates Deadman lifecycle, renewal, and failure handling into the same execution path as orders and reconciliation. DISARMED stays an explicit opt-out.

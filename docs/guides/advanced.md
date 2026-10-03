@@ -45,9 +45,7 @@ Several MCP callers resolve market freshness from a live ticker read and daily P
 
 ## 3. Deadman
 
-The Deadman package implements its own state machine and tool surface. Live trading additionally requires Deadman to be armed, otherwise risk fails closed.
-
-Future live work must fail closed when the Deadman heartbeat is stale or unknown.
+The Deadman package implements its own state machine and tool surface. DISARMED means no heartbeat protection and still allows trading. Arm it when heartbeat protection is wanted; a stale or expired heartbeat then halts trading.
 
 ## 4. Daemon
 

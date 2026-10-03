@@ -66,6 +66,19 @@ After rotating an INDODAX key:
 
 The database package provides PostgreSQL schema, migrations, and repository implementations. Paper ledgers, audit trails, alerts, and stops mirror to Postgres when configured and reload on boot. Runtime state without a database row stays in memory.
 
+Local Postgres without sudo:
+
+~~~bash
+initdb --auth=trust --locale=C.UTF-8 -D ~/pgdata
+pg_ctl -D ~/pgdata -l ~/pgdata.log -o "-p 5433 -k /tmp" start
+~~~
+
+Then point `DATABASE_URL` at it and migrate from `packages/db`:
+
+~~~bash
+cd packages/db && DATABASE_URL=postgresql://dizzy@127.0.0.1:5433/indodax bun ./src/migrate.ts
+~~~
+
 The current main application composition does not use PostgreSQL as its source of truth. Database health must therefore be evaluated separately from MCP application health until runtime wiring is completed.
 
 ## Incident handling
