@@ -41,7 +41,7 @@ Current defaults from defaultRiskLimits():
 
 These are application limits, not exchange limits.
 
-Several MCP callers currently supply fixed freshness values or null daily PnL. The risk engine is deterministic, but caller context is not yet fully authoritative.
+Several MCP callers resolve market freshness from a live ticker read and daily PnL from realized paper fills. The risk engine is deterministic, but a market read can still fail offline, in which case the staleness check is skipped rather than failed.
 
 ## 3. Deadman
 

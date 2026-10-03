@@ -1,4 +1,4 @@
-import { z } from "zod";
+import type { z } from "zod";
 import { AppError, ValidationError } from "@indodax-mcp/errors";
 
 export interface ToolSuccess {
@@ -45,5 +45,3 @@ export function parseArgs<T>(schema: z.ZodType<T>, raw: Record<string, unknown>)
   }
   return parsed.data;
 }
-
-export const pairArg = z.string().min(1).describe("Trading pair, e.g. btc_idr");

@@ -10,7 +10,8 @@ import {
   validateSignalInput,
 } from "@indodax-mcp/indodax-strategy";
 import { runBacktest } from "@indodax-mcp/indodax-backtest";
-import { fail, ok, pairArg, parseArgs } from "../respond.js";
+import { fail, ok, parseArgs } from "../respond.js";
+import { pairArg } from "../schemas.js";
 import { storeBacktest } from "./ops.js";
 import type { AppServices } from "../composition.js";
 

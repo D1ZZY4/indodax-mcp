@@ -16,29 +16,29 @@ Impact: an application-local result is **not equivalent to exchange truth**.
 
 Mitigation: wire authenticated exchange order/trade reads into a durable reconciliation workflow before any live enablement.
 
-## R3. Risk context is incomplete at some entrypoints
+## R3. Risk context is partially authoritative
 
-The risk engine supports freshness, daily loss, position exposure, cooldown, balance, and other checks, but some MCP callers pass fixed freshness values, null PnL, or omit position context.
+The risk engine supports freshness, daily loss, position exposure, cooldown, balance, and other checks. MCP callers now resolve trade count, cooldown, duplicates, position exposure, and realized daily PnL from the live ledger, with market freshness from a best-effort ticker read that degrades to unknown offline.
 
-Impact: the policy primitive is **deterministic**, but the inputs are **not always authoritative**.
+Impact: the policy primitive is **deterministic**, and most inputs are now authoritative, but offline market age and unrealized PnL remain uncovered.
 
-Mitigation: build runtime risk context from current market, account, portfolio, and reconciliation state.
+Mitigation: keep resolving context from current market, account, portfolio, and reconciliation state; treat a null market age as unknown rather than fresh.
 
-## R4. State-changing retries are not idempotency-aware
+## R4. State-changing retries are classified (resolved)
 
-The generic transport retry helper retries 429, 5xx, and timeouts without distinguishing GET from state-changing POST requests.
+The generic transport retry helper retries 429, 5xx, and timeouts for safe methods only. State-changing requests attempt exactly once unless the caller opts into `retryStateChanging`, and paper placement replays repeated `clientOrderId` values instead of submitting twice.
 
-Impact: a lost response after a successful order submission could create an **ambiguous client state**.
+Impact: a lost response after a successful order submission no longer triggers a blind duplicate; callers must still reconcile unknown order state before resubmission.
 
-Mitigation: preserve client order IDs, classify retry safety by operation, reconcile unknown order state before resubmission, and test duplicate scenarios.
+Mitigation: keep client order IDs on every mutating path and test duplicate scenarios.
 
-## R5. Private WebSocket lifecycle is incomplete
+## R5. Private WebSocket lifecycle has a dedicated manager
 
-The official private WebSocket uses a generated private token and a private-channel connection/subscription message shape. The current managed socket abstraction is built around the market-style protocol.
+The official private WebSocket uses a generated private token and a private-channel connection/subscription message shape. A dedicated `PrivateChannelManager` now handles token refresh ahead of the 24h expiry, channel subscribe, and bounded exponential reconnect.
 
-Impact: private order-event synchronization **cannot yet be treated as production-complete**.
+Impact: private order-event synchronization is now covered by unit-tested lifecycle logic, though live socket traffic remains unverified without exchange credentials.
 
-Mitigation: implement a dedicated private protocol adapter with token generation, renewal, reconnect, and order-event reconciliation tests.
+Mitigation: keep renewal, reconnect, and order-event reconciliation tests current with the official private-channel contract.
 
 ## R6. MCP metadata is partially centralized
 

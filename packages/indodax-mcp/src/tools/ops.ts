@@ -25,6 +25,9 @@ interface StoredBacktest {
 const runs = new Map<string, StoredBacktest>();
 let runCounter = 1;
 
+/** Bounded so long-running processes cannot leak memory. Oldest run evicted first. */
+const MAX_STORED_RUNS = 100;
+
 export function storeBacktest(report: BacktestReport): StoredBacktest {
   const id = `backtest-${runCounter}`;
   runCounter += 1;
@@ -45,6 +48,11 @@ export function storeBacktest(report: BacktestReport): StoredBacktest {
     createdAt: new Date().toISOString(),
   };
   runs.set(id, stored);
+  while (runs.size > MAX_STORED_RUNS) {
+    const oldest = runs.keys().next().value;
+    if (oldest === undefined) break;
+    runs.delete(oldest);
+  }
   return stored;
 }
 

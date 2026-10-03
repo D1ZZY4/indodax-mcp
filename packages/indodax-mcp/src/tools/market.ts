@@ -2,7 +2,8 @@ import { z } from "zod";
 import type { Registry } from "@indodax-mcp/mcp-registry";
 import type { ServerHandlers } from "@indodax-mcp/mcp-core";
 import { getTicker, toCompactPair } from "@indodax-mcp/indodax-market";
-import { fail, ok, pairArg, parseArgs } from "../respond.js";
+import { fail, ok, parseArgs } from "../respond.js";
+import { pairArg } from "../schemas.js";
 import type { AppServices } from "../composition.js";
 
 function meta(name: string, description: string) {

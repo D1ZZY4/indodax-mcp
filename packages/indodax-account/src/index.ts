@@ -4,10 +4,10 @@ import Decimal from "decimal.js";
 import { decimalOrNull } from "@indodax-mcp/core";
 import type { FetchFn } from "@indodax-mcp/transport";
 import { OFFICIAL_V2_BUCKET, RateLimiter, fetchWithRetry } from "@indodax-mcp/transport";
-import type { TapiV2Signer } from "@indodax-mcp/indodax-auth";
+import { INDODAX_V2_BASE, type TapiV2Signer } from "@indodax-mcp/indodax-auth";
 import type { Capability } from "@indodax-mcp/core";
 
-export const V2_BASE = "https://api.indodax.com";
+export const V2_BASE = INDODAX_V2_BASE;
 
 const balanceSchema = z.object({
   asset: z.string(),

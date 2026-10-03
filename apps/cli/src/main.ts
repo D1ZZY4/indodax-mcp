@@ -33,6 +33,13 @@ const market = defineCommand({
   },
 });
 
+const MISSING_CREDENTIALS_EXIT = 2;
+
+function exitMissingCredentials(): never {
+  logger.error("private command needs INDODAX_API_KEY and INDODAX_API_SECRET");
+  process.exit(MISSING_CREDENTIALS_EXIT);
+}
+
 const account = defineCommand({
   meta: { name: "account", description: "Account reads (needs credentials)" },
   args: {
@@ -40,8 +47,7 @@ const account = defineCommand({
   },
   async run({ args }) {
     if (!app.accountClient) {
-      logger.error("private command needs INDODAX_API_KEY and INDODAX_API_SECRET");
-      process.exit(2);
+      exitMissingCredentials();
     }
     const info = await app.accountClient.getAccount();
     if (args.action === "balances") {

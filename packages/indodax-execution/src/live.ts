@@ -1,5 +1,5 @@
 import { OrderRejectedError, ValidationError } from "@indodax-mcp/errors";
-import type { TapiV2Signer } from "@indodax-mcp/indodax-auth";
+import { INDODAX_V2_BASE, type TapiV2Signer } from "@indodax-mcp/indodax-auth";
 import {
   OFFICIAL_V2_BUCKET,
   RateLimiter,
@@ -8,7 +8,7 @@ import {
 } from "@indodax-mcp/transport";
 import type { ExecutionBackend, ExecutionRequest, ExecutionResult } from "./index.js";
 
-const V2_BASE = "https://api.indodax.com";
+const V2_BASE = INDODAX_V2_BASE;
 
 export interface LiveExecutorOptions {
   signer: TapiV2Signer;

@@ -9,6 +9,11 @@ import { newOrderRecord, transition, type OrderRecord } from "@indodax-mcp/indod
 
 export const PAPER_TAKER_FEE = "0.0026";
 
+export interface CostBasis {
+  qty: string;
+  total: string;
+}
+
 export interface PaperLedger {
   balances: Record<string, string>;
   orders: OrderRecord[];
@@ -16,6 +21,14 @@ export interface PaperLedger {
   tradeCount: number;
   totalFees: string;
   initialBalances: Record<string, string>;
+  /** Average-cost basis per base asset, built from BUY fills including fees. */
+  costBasis: Record<string, CostBasis>;
+  /** Realized PnL in quote currency per UTC day (YYYY-MM-DD). */
+  realizedByDay: Record<string, string>;
+}
+
+export function currentUtcDay(at: Date = new Date()): string {
+  return at.toISOString().slice(0, 10);
 }
 
 export function defaultLedger(): PaperLedger {
@@ -27,6 +40,8 @@ export function defaultLedger(): PaperLedger {
     tradeCount: 0,
     totalFees: "0",
     initialBalances: { ...balances },
+    costBasis: {},
+    realizedByDay: {},
   };
 }
 
@@ -61,7 +76,11 @@ export class PaperExecutor implements ExecutionBackend {
     ) {
       throw ValidationError("paper snapshot has an unexpected shape");
     }
-    this.ledger = JSON.parse(JSON.stringify(candidate)) as PaperLedger;
+    // Snapshots persisted before cost-basis tracking lack the newer books.
+    const normalized = JSON.parse(JSON.stringify(candidate)) as PaperLedger;
+    normalized.costBasis ??= {};
+    normalized.realizedByDay ??= {};
+    this.ledger = normalized;
   }
 
   openOrders(): OrderRecord[] {
@@ -169,16 +188,43 @@ export class PaperExecutor implements ExecutionBackend {
         .plus(remaining)
         .toString();
       this.ledger.balances[quote] = quoteBalance.minus(fee).toString();
+      this.addBasis(base, remaining, price.mul(remaining).plus(fee));
     } else {
+      const proceeds = notional.minus(fee);
       this.ledger.balances[quote] = new Decimal(this.ledger.balances[quote] ?? "0")
-        .plus(notional.minus(fee))
+        .plus(proceeds)
         .toString();
+      this.realizePnl(base, remaining, proceeds);
     }
     record.remaining = "0";
     record.state = transition(record.state, "FILLED");
     record.updatedAt = new Date().toISOString();
     this.ledger.totalFees = new Decimal(this.ledger.totalFees).plus(fee).toString();
     return { fee: fee.toString() };
+  }
+
+  private addBasis(asset: string, qty: Decimal, cost: Decimal): void {
+    const basis = this.ledger.costBasis[asset] ?? { qty: "0", total: "0" };
+    this.ledger.costBasis[asset] = {
+      qty: new Decimal(basis.qty).plus(qty).toString(),
+      total: new Decimal(basis.total).plus(cost).toString(),
+    };
+  }
+
+  private realizePnl(asset: string, qty: Decimal, proceeds: Decimal): void {
+    const basis = this.ledger.costBasis[asset] ?? { qty: "0", total: "0" };
+    const basisQty = new Decimal(basis.qty);
+    const consumed = basisQty.gt(0)
+      ? new Decimal(basis.total).mul(Decimal.min(qty, basisQty)).div(basisQty)
+      : new Decimal(0);
+    this.ledger.costBasis[asset] = {
+      qty: Decimal.max(0, basisQty.minus(qty)).toString(),
+      total: Decimal.max(0, new Decimal(basis.total).minus(consumed)).toString(),
+    };
+    const realized = proceeds.minus(consumed);
+    const day = currentUtcDay();
+    const prior = new Decimal(this.ledger.realizedByDay[day] ?? "0");
+    this.ledger.realizedByDay[day] = prior.plus(realized).toString();
   }
 
   topup(asset: string, amount: string): string {

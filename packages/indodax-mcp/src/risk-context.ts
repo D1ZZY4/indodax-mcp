@@ -2,6 +2,7 @@ import Decimal from "decimal.js";
 import type { Capability, ExecutionMode } from "@indodax-mcp/core";
 import { decimalOrNull } from "@indodax-mcp/core";
 import { getTicker } from "@indodax-mcp/indodax-market";
+import { currentUtcDay } from "@indodax-mcp/indodax-paper";
 import type { RiskContext } from "@indodax-mcp/indodax-risk";
 import type { AppServices } from "./composition.js";
 
@@ -25,8 +26,8 @@ export interface RiskContextRequest {
  *   the engine skips the staleness check, so paper simulation keeps working
  *   offline while limits, balances, and cooldowns are still enforced;
  * - account age comes from the last successful authenticated read;
- * - trade count, cooldown, duplicate, and position exposure come from the
- *   live paper ledger;
+ * - trade count, cooldown, duplicate, position exposure, and daily realized
+ *   PnL come from the live paper ledger (average-cost basis, fees included);
  * - reconciliation halt is tracked from paper-local consistency checks and
  *   full exchange reconciliation; it is enforced for every mode because an
  *   inconsistent local ledger must not keep executing either.
@@ -60,7 +61,7 @@ export async function resolveRiskContext(
     marketAgeMs,
     accountAgeMs:
       app.accountSyncedAt === null ? null : Math.max(0, Date.now() - app.accountSyncedAt),
-    dailyPnl: null,
+    dailyPnl: decimalOrNull(ledger.realizedByDay[currentUtcDay()] ?? "0") ?? new Decimal(0),
     tradeCount: ledger.tradeCount,
     duplicate,
     reconciliationHalted: app.reconciliationHalted,

@@ -58,7 +58,6 @@ Treat the risk engine as a **correct policy primitive**, not as proof that every
 Agents should branch on **reason codes** rather than message strings.
 
 Examples include:
-
 - LIVE_MODE_DENIED
 - CAPABILITY_DENIED
 - MIN_ORDER_SIZE
@@ -69,5 +68,7 @@ Examples include:
 - STALE_MARKET_DATA
 - STALE_ACCOUNT_STATE
 - INSUFFICIENT_BALANCE
+
+A stale or expired Deadman switch halts paper placement as well as live trading. Disarm it when no heartbeat protection is intended.
 
 Risk evaluation is **not a network operation** and must remain **deterministic**.

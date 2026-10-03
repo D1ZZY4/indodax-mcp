@@ -2,13 +2,13 @@ import { z } from "zod";
 import { AuthenticationError, ValidationError } from "@indodax-mcp/errors";
 import type { Registry } from "@indodax-mcp/mcp-registry";
 import type { ServerHandlers } from "@indodax-mcp/mcp-core";
-import { LegacyTapiSigner, nextNonce } from "@indodax-mcp/indodax-auth";
+import { INDODAX_V2_BASE, LegacyTapiSigner, nextNonce } from "@indodax-mcp/indodax-auth";
 import { fetchWithRetry } from "@indodax-mcp/transport";
 import { fail, ok, parseArgs } from "../respond.js";
 import type { AppServices } from "../composition.js";
 
 const V1_BASE = "https://indodax.com/tapi";
-const V2_BASE = "https://api.indodax.com";
+const V2_BASE = INDODAX_V2_BASE;
 
 async function legacyPost(
   app: AppServices,

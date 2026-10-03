@@ -68,6 +68,32 @@ describe("indodax-mcp surface", () => {
     }
   });
 
+  it("denies live placement even when acknowledged", async () => {
+    const { server } = build();
+    const harness = await withInMemoryServer(server);
+    try {
+      const denied = await harness.client.callTool({
+        name: "indodax_create_order",
+        arguments: {
+          pair: "btc_idr",
+          side: "BUY",
+          quantity: 100,
+          price: 1000,
+          mode: "live",
+          acknowledged: true,
+        },
+      });
+      expect(denied.isError).toBe(true);
+      const unacked = await harness.client.callTool({
+        name: "indodax_cancel_order",
+        arguments: { orderId: "o1", mode: "live" },
+      });
+      expect(unacked.isError).toBe(true);
+    } finally {
+      await harness.close();
+    }
+  });
+
   it("keeps memory audit trail without a database", async () => {
     const { app } = build();
     expect(app.env.DATABASE_URL).toBeUndefined();

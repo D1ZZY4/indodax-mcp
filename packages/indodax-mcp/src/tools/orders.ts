@@ -6,12 +6,18 @@ import type { Capability, ExecutionMode } from "@indodax-mcp/core";
 import { parseSymbolFlexible } from "@indodax-mcp/core";
 import { placePaperOrder } from "./paper.js";
 import type { TradeIntent } from "@indodax-mcp/indodax-trading";
-import { fail, ok, pairArg, parseArgs } from "../respond.js";
+import { fail, ok, parseArgs } from "../respond.js";
+import {
+  acknowledgedArg,
+  clientOrderIdArg,
+  modeArg,
+  pairArg,
+  priceArg,
+  quantityArg,
+  sideArg,
+} from "../schemas.js";
 import { resolveRiskContext } from "../risk-context.js";
 import type { AppServices } from "../composition.js";
-
-const sideArg = z.enum(["BUY", "SELL"]);
-const modeArg = z.enum(["paper", "live", "shadow"]).optional();
 
 function executionMode(raw: string | undefined): ExecutionMode {
   if (raw === "live") return "live";
@@ -117,8 +123,8 @@ export function registerOrderTools(
     inputSchema: z.object({
       pair: pairArg,
       side: sideArg,
-      quantity: z.number().positive(),
-      price: z.number().positive().optional(),
+      quantity: quantityArg,
+      price: priceArg.optional(),
       mode: modeArg,
     }),
   });
@@ -135,8 +141,8 @@ export function registerOrderTools(
     inputSchema: z.object({
       pair: pairArg,
       side: sideArg,
-      quantity: z.number().positive(),
-      price: z.number().positive().optional(),
+      quantity: quantityArg,
+      price: priceArg.optional(),
       mode: modeArg,
       reason: z.string().optional(),
     }),
@@ -153,11 +159,11 @@ export function registerOrderTools(
     inputSchema: z.object({
       pair: pairArg,
       side: sideArg,
-      quantity: z.number().positive(),
-      price: z.number().positive().optional(),
+      quantity: quantityArg,
+      price: priceArg.optional(),
       mode: modeArg,
-      acknowledged: z.boolean().optional(),
-      clientOrderId: z.string().min(1).max(36).optional(),
+      acknowledged: acknowledgedArg,
+      clientOrderId: clientOrderIdArg,
     }),
   });
   registry.registerTool({
@@ -172,7 +178,7 @@ export function registerOrderTools(
     inputSchema: z.object({
       orderId: z.string().min(1),
       mode: modeArg,
-      acknowledged: z.boolean().optional(),
+      acknowledged: acknowledgedArg,
     }),
   });
 
@@ -182,8 +188,8 @@ export function registerOrderTools(
         z.object({
           pair: pairArg,
           side: sideArg,
-          quantity: z.number().positive(),
-          price: z.number().positive().optional(),
+          quantity: quantityArg,
+          price: priceArg.optional(),
           mode: modeArg,
         }),
         raw,
@@ -201,8 +207,8 @@ export function registerOrderTools(
         z.object({
           pair: pairArg,
           side: sideArg,
-          quantity: z.number().positive(),
-          price: z.number().positive().optional(),
+          quantity: quantityArg,
+          price: priceArg.optional(),
           mode: modeArg,
           reason: z.string().optional(),
         }),
@@ -221,11 +227,11 @@ export function registerOrderTools(
         z.object({
           pair: pairArg,
           side: sideArg,
-          quantity: z.number().positive(),
-          price: z.number().positive().optional(),
+          quantity: quantityArg,
+          price: priceArg.optional(),
           mode: modeArg,
-          acknowledged: z.boolean().optional(),
-          clientOrderId: z.string().min(1).max(36).optional(),
+          acknowledged: acknowledgedArg,
+          clientOrderId: clientOrderIdArg,
         }),
         raw,
       );
@@ -257,7 +263,7 @@ export function registerOrderTools(
         z.object({
           orderId: z.string().min(1),
           mode: modeArg,
-          acknowledged: z.boolean().optional(),
+          acknowledged: acknowledgedArg,
         }),
         raw,
       );

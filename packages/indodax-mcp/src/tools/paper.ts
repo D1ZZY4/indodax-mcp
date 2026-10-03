@@ -6,7 +6,8 @@ import type { ServerHandlers } from "@indodax-mcp/mcp-core";
 import { parseSymbolFlexible } from "@indodax-mcp/core";
 import { ExecutionService } from "@indodax-mcp/indodax-execution";
 import type { ExecutionResult } from "@indodax-mcp/indodax-execution";
-import { fail, ok, pairArg, parseArgs } from "../respond.js";
+import { fail, ok, parseArgs } from "../respond.js";
+import { clientOrderIdArg, pairArg, priceArg, quantityArg, sideArg } from "../schemas.js";
 import { resolveRiskContext } from "../risk-context.js";
 import type { AppServices } from "../composition.js";
 
@@ -25,6 +26,18 @@ const PAPER_READ = { ...PAPER, riskClass: "read" as const, auditClass: "read" as
 /** Idempotent replay: a repeated clientOrderId returns the first result. */
 const paperResults = new Map<string, ExecutionResult>();
 
+/** Bounded so long-running processes cannot leak memory. Oldest entry evicted first. */
+const MAX_REPLAY_ENTRIES = 100;
+
+function rememberResult(clientOrderId: string, result: ExecutionResult): void {
+  paperResults.set(clientOrderId, result);
+  while (paperResults.size > MAX_REPLAY_ENTRIES) {
+    const oldest = paperResults.keys().next().value;
+    if (oldest === undefined) break;
+    paperResults.delete(oldest);
+  }
+}
+
 export interface PaperPlacement {
   pair: string;
   side: "BUY" | "SELL";
@@ -41,6 +54,9 @@ export async function placePaperOrder(app: AppServices, placement: PaperPlacemen
   }
   const symbol = parseSymbolFlexible(placement.pair);
   if (!symbol) throw ValidationError(`invalid pair: ${placement.pair}`);
+  if (app.deadman.shouldHaltLiveTrading()) {
+    throw RiskDeniedError(`deadman ${app.deadman.snapshot().state} halts trading`);
+  }
   const orderType = placement.orderType ?? "LIMIT";
   const price = placement.price === undefined ? null : new Decimal(placement.price);
   const quantity = new Decimal(placement.quantity);
@@ -93,7 +109,7 @@ export async function placePaperOrder(app: AppServices, placement: PaperPlacemen
     decision,
   );
   if (placement.clientOrderId !== undefined && placement.clientOrderId !== "") {
-    paperResults.set(placement.clientOrderId, result);
+    rememberResult(placement.clientOrderId, result);
   }
   return result;
 }
@@ -155,10 +171,10 @@ export function registerPaperTools(
     },
     inputSchema: z.object({
       pair: pairArg,
-      side: z.enum(["BUY", "SELL"]),
-      price: z.number().positive(),
-      quantity: z.number().positive(),
-      clientOrderId: z.string().min(1).max(36).optional(),
+      side: sideArg,
+      price: priceArg,
+      quantity: quantityArg,
+      clientOrderId: clientOrderIdArg,
     }),
   });
   registry.registerTool({
@@ -213,10 +229,10 @@ export function registerPaperTools(
       const args = parseArgs(
         z.object({
           pair: pairArg,
-          side: z.enum(["BUY", "SELL"]),
-          price: z.number().positive(),
-          quantity: z.number().positive(),
-          clientOrderId: z.string().min(1).max(36).optional(),
+          side: sideArg,
+          price: priceArg,
+          quantity: quantityArg,
+          clientOrderId: clientOrderIdArg,
         }),
         raw,
       );
