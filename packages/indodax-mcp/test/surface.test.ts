@@ -260,4 +260,43 @@ describe("indodax-mcp surface", () => {
       await harness.close();
     }
   });
+
+  it("cancels paper orders by client order id", async () => {
+    const { server } = build();
+    const harness = await withInMemoryServer(server);
+    try {
+      const placed = await harness.client.callTool({
+        name: "indodax_paper_order",
+        arguments: {
+          pair: "btc_idr",
+          side: "BUY",
+          price: 1000,
+          quantity: 100,
+          clientOrderId: "cancel-by-cid",
+        },
+      });
+      expect(placed.isError).not.toBe(true);
+      const cancelled = await harness.client.callTool({
+        name: "indodax_paper_cancel",
+        arguments: { orderId: "cancel-by-cid" },
+      });
+      expect(cancelled.isError).not.toBe(true);
+    } finally {
+      await harness.close();
+    }
+  });
+
+  it("denies private channel connect without credentials", async () => {
+    const { server } = build();
+    const harness = await withInMemoryServer(server);
+    try {
+      const denied = await harness.client.callTool({
+        name: "indodax_private_connect",
+        arguments: {},
+      });
+      expect(denied.isError).toBe(true);
+    } finally {
+      await harness.close();
+    }
+  });
 });

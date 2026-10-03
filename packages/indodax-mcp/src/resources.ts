@@ -116,7 +116,7 @@ export function registerResources(
   handlers.resources.set("websocket://state", async () =>
     JSON.stringify({
       market: app.marketSocket.connectionState,
-      private: app.privateSocket.connectionState,
+      private: app.privateChannel.connectionState,
     }),
   );
   handlers.resources.set("capabilities://matrix", async () =>

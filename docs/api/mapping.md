@@ -28,8 +28,8 @@ The current official Trade API v2 documentation specifies HMAC-SHA256 signatures
 
 | Endpoint | Implementation | MCP surface | Status |
 | --- | --- | --- | --- |
-| POST /api/v2/order | LiveExecutor.submit | indodax_create_order | adapter implemented, live locked |
-| DELETE /api/v2/order | LiveExecutor.cancelByExchangeId | indodax_cancel_order | adapter implemented, live locked |
+| POST /api/v2/order | LiveExecutor.submit with timeInForce GTC/MOC and STP passthrough | indodax_create_order | adapter implemented, live gated |
+| DELETE /api/v2/order | LiveExecutor.cancelByExchangeId by orderId or origClientOrderId | indodax_cancel_order | adapter implemented, live gated |
 | GET /api/v2/openOrders | AccountClient.openOrders | indodax_open_orders | implemented |
 | GET /api/v2/order | AccountClient.getOrder | indodax_order | implemented |
 | GET /api/v2/account | AccountClient.getAccount | indodax_account, indodax_balances | implemented |
@@ -41,6 +41,10 @@ The current official Trade API v2 documentation specifies HMAC-SHA256 signatures
 | GET /api/v2/myTrades | AccountClient.myTrades | indodax_trade_history | implemented |
 | POST /api/v2/capital/withdraw/apply | not implemented | withdrawal tool | always denied |
 | POST /api/v2/fiat/withdraw | not implemented | withdrawal tool | always denied |
+
+## Private WebSocket
+
+Token endpoint `POST https://indodax.com/api/private_ws/v1/generate_token` (HMAC-SHA512 over `client=tapi&tapi_key=KEY`) is implemented in `requestPrivateToken` with the official `connect`/`subscribe` dialect and push parsing. Live channel connect runs through `indodax_private_connect`, which returns channel and state but never the token. No auto-connect on boot.
 
 ## Legacy v1
 

@@ -18,7 +18,12 @@ import {
 import type { RiskEngine, RiskLimits, RiskPolicy } from "@indodax-mcp/indodax-risk";
 import { OFFICIAL_V2_BUCKET, RateLimiter } from "@indodax-mcp/transport";
 import { TradingService } from "@indodax-mcp/indodax-trading";
-import { ManagedSocket } from "@indodax-mcp/indodax-websocket";
+import {
+  ManagedSocket,
+  PrivateChannelManager,
+  requestPrivateToken,
+  type TokenFetcher,
+} from "@indodax-mcp/indodax-websocket";
 import { Scheduler } from "@indodax-mcp/scheduler";
 import { createLogger } from "@indodax-mcp/logging";
 
@@ -43,7 +48,8 @@ export interface AppServices {
   scheduler: Scheduler;
   limiter: RateLimiter;
   marketSocket: ManagedSocket;
-  privateSocket: ManagedSocket;
+  privateChannel: PrivateChannelManager;
+  privateTokenFetcher: TokenFetcher | null;
   tenantId: string;
   accountId: string;
   /** Epoch ms of the last successful authenticated account read. Null when never synced. */
@@ -87,6 +93,20 @@ export function createApp(env: AppEnv): AppServices {
       });
     },
   });
+  const metrics = new Counters();
+  const privateChannel = new PrivateChannelManager({
+    onEvent: () => {
+      metrics.increment("private_events");
+    },
+  });
+  // Token endpoint uses the legacy TAPI key/secret pair, not the v2 signer.
+  // Null without credentials; the token itself never leaves the server.
+  const privateTokenFetcher: TokenFetcher | null = hasCreds
+    ? () =>
+        requestPrivateToken(env.INDODAX_API_KEY as string, env.INDODAX_API_SECRET as string).then(
+          (result) => ({ token: result.token, channel: result.channel }),
+        )
+    : null;
   return {
     env,
     logger,
@@ -103,12 +123,13 @@ export function createApp(env: AppEnv): AppServices {
     trading,
     deadman: new DeadmanSwitch(),
     health: new HealthTracker(),
-    metrics: new Counters(),
+    metrics,
     events: new EventBus(),
     scheduler: new Scheduler(),
     limiter,
     marketSocket: new ManagedSocket(() => {}),
-    privateSocket: new ManagedSocket(() => {}),
+    privateChannel,
+    privateTokenFetcher,
     tenantId: "local",
     accountId: "local",
     accountSyncedAt: null,

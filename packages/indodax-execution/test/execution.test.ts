@@ -152,4 +152,63 @@ describe("execution service", () => {
     });
     await expect(timeoutExecutor.submit(request)).rejects.toThrow();
   });
+
+  it("passes timeInForce and STP mode only when set", async () => {
+    let seenBody = "";
+    const fetchFn = (async (_input: string, init?: RequestInit) => {
+      seenBody = String(init?.body ?? "");
+      return new Response(JSON.stringify({ code: 0, data: { orderId: "ex-1" } }));
+    }) as import("@indodax-mcp/transport").FetchFn;
+    const executor = new LiveExecutor({ signer: new TapiV2Signer("k", "s"), fetchFn });
+    const base = {
+      internalOrderId: "o1",
+      clientOrderId: "c1",
+      exchangeOrderId: null,
+      symbol: { base: "btc", quote: "idr" },
+      side: "BUY" as const,
+      orderType: "LIMIT" as const,
+      price: "1000",
+      quantity: "1",
+      remaining: "1",
+      state: "NEW" as const,
+      environment: "live" as const,
+      tenantId: "t",
+      exchangeAccountId: "a",
+      strategyId: null,
+      runId: null,
+      riskDecisionId: null,
+      submittedAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    await executor.submit({
+      order: { ...base, timeInForce: "MOC", stpMode: "EXPIRE_BOTH" },
+      mode: "live",
+      capability: "TRADE",
+      correlationId: "corr-1",
+      requestedAt: new Date().toISOString(),
+    });
+    expect(seenBody).toContain("timeInForce=MOC");
+    expect(seenBody).toContain("selfTradePreventionMode=EXPIRE_BOTH");
+    await executor.submit({
+      order: base,
+      mode: "live",
+      capability: "TRADE",
+      correlationId: "corr-2",
+      requestedAt: new Date().toISOString(),
+    });
+    expect(seenBody).not.toContain("timeInForce");
+    expect(seenBody).not.toContain("selfTradePreventionMode");
+  });
+
+  it("cancels by client order id when exchange id is unknown", async () => {
+    let seenUrl = "";
+    const fetchFn = (async (input: string) => {
+      seenUrl = String(input);
+      return new Response(JSON.stringify({ code: 0, data: {} }));
+    }) as import("@indodax-mcp/transport").FetchFn;
+    const executor = new LiveExecutor({ signer: new TapiV2Signer("k", "s"), fetchFn });
+    await expect(executor.cancelByExchangeId("BTCIDR", undefined, "my-cid-1")).resolves.toBe(true);
+    expect(seenUrl).toContain("origClientOrderId=my-cid-1");
+    await expect(executor.cancelByExchangeId("BTCIDR")).rejects.toThrow(/orderId or clientOrderId/);
+  });
 });

@@ -1,0 +1,90 @@
+import { z } from "zod";
+import { ValidationError } from "@indodax-mcp/errors";
+import type { Capability, ExecutionMode } from "@indodax-mcp/core";
+import { parseSymbolFlexible } from "@indodax-mcp/core";
+import type { TradeIntent } from "@indodax-mcp/indodax-trading";
+import { resolveRiskContext } from "../risk-context.js";
+import type { AppServices } from "../composition.js";
+
+export const timeInForceArg = z.enum(["GTC", "MOC"]).optional();
+export const stpModeArg = z.enum(["EXPIRE_TAKER", "EXPIRE_MAKER", "EXPIRE_BOTH"]).optional();
+
+export function executionMode(raw: string | undefined): ExecutionMode {
+  if (raw === "live") return "live";
+  if (raw === "shadow") return "shadow";
+  return "paper";
+}
+
+export function capabilityFor(mode: ExecutionMode): Capability {
+  return mode === "paper" ? "PAPER" : "TRADE";
+}
+
+export interface DraftArgs {
+  pair: string;
+  side: "BUY" | "SELL";
+  quantity: number;
+  price?: number | undefined;
+  mode?: string | undefined;
+  reason?: string | undefined;
+  clientOrderId?: string | undefined;
+  timeInForce?: "GTC" | "MOC" | undefined;
+  stpMode?: "EXPIRE_TAKER" | "EXPIRE_MAKER" | "EXPIRE_BOTH" | undefined;
+}
+
+export function draftIntent(
+  _app: AppServices,
+  args: DraftArgs,
+): { intent: TradeIntent; mode: ExecutionMode; capability: Capability } {
+  const mode = executionMode(args.mode);
+  const capability = capabilityFor(mode);
+  const symbol = parseSymbolFlexible(args.pair);
+  if (!symbol) throw ValidationError(`invalid pair: ${args.pair}`);
+  if (mode === "paper" && args.price === undefined) {
+    throw ValidationError(
+      "paper orders require a limit price; MARKET orders are not supported in simulation",
+    );
+  }
+  return {
+    intent: {
+      agentId: "mcp",
+      sessionId: `mcp-${Date.now().toString(36)}`,
+      symbol,
+      side: args.side,
+      orderType: args.price === undefined ? "MARKET" : "LIMIT",
+      price: args.price === undefined ? null : String(args.price),
+      quantityOrIdr: String(args.quantity ?? 0),
+      quantityIsIdr: false,
+      mode,
+      capability,
+      reason: args.reason ?? "mcp request",
+      ...(args.timeInForce !== undefined ? { timeInForce: args.timeInForce } : {}),
+      ...(args.stpMode !== undefined ? { stpMode: args.stpMode } : {}),
+    },
+    mode,
+    capability,
+  };
+}
+
+export interface HypotheticalArgs extends DraftArgs {}
+
+export async function reviewHypothetical(app: AppServices, args: HypotheticalArgs) {
+  const { intent, capability } = draftIntent(app, args);
+  const proposal = app.trading.propose(intent);
+  const order = app.trading.toOrder(proposal, {
+    tenantId: app.tenantId,
+    exchangeAccountId: app.accountId,
+  });
+  if (args.clientOrderId !== undefined && args.clientOrderId !== "") {
+    order.clientOrderId = args.clientOrderId.slice(0, 36);
+  }
+  const decision = app.trading.review(
+    order,
+    await resolveRiskContext(app, {
+      mode: intent.mode,
+      capability,
+      pair: args.pair,
+      clientOrderId: order.clientOrderId,
+    }),
+  );
+  return { proposal, order, decision };
+}

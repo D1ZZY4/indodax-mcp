@@ -119,7 +119,7 @@ export function registerSystemTools(
       scheduler: app.scheduler.running,
       schedulerFailures: app.scheduler.failures.length,
       marketSocket: app.marketSocket.connectionState,
-      privateSocket: app.privateSocket.connectionState,
+      privateChannel: app.privateChannel.connectionState,
       metrics: app.metrics.snapshot(),
       deadman: app.deadman.snapshot(),
     }),
@@ -137,8 +137,8 @@ export function registerSystemTools(
         subscriptions: app.marketSocket.listSubscriptions(),
       },
       private: {
-        state: app.privateSocket.connectionState,
-        subscriptions: app.privateSocket.listSubscriptions(),
+        state: app.privateChannel.connectionState,
+        channel: app.privateChannel.channel,
       },
     }),
   );

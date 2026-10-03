@@ -69,6 +69,9 @@ export async function placePaperOrder(app: AppServices, placement: PaperPlacemen
     tenantId: app.tenantId,
     exchangeAccountId: app.accountId,
   });
+  if (placement.clientOrderId !== undefined && placement.clientOrderId !== "") {
+    order.clientOrderId = placement.clientOrderId.slice(0, 36);
+  }
   const decision = app.trading.review(
     order,
     await resolveRiskContext(app, {

@@ -70,8 +70,11 @@ export class PrivateChannelManager {
     const fetched = await fetchToken();
     this.token = { ...fetched, issuedAtMs: Date.now() };
     this.events.onTokenRefresh?.(this.token);
-    await this.socket.connect({ url, token: this.token.token });
-    this.socket.subscribe(this.token.channel);
+    await this.socket.connectPrivate({
+      url,
+      token: this.token.token,
+      channel: this.token.channel,
+    });
     this.failures = 0;
   }
 
@@ -95,8 +98,11 @@ export class PrivateChannelManager {
     if (this.stopped) return 0;
     try {
       await this.ensureFresh(fetchToken, nowMs + delay);
-      await this.socket.connect({ url, token: this.requireToken().token });
-      this.socket.subscribe(this.requireToken().channel);
+      await this.socket.connectPrivate({
+        url,
+        token: this.requireToken().token,
+        channel: this.requireToken().channel,
+      });
       this.failures = 0;
     } catch {
       this.failures += 1;

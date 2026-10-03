@@ -1,4 +1,4 @@
-import type { ExecutionState, OrderSide, OrderType } from "@indodax-mcp/core";
+import type { ExecutionState, OrderSide, OrderType, StpMode, TimeInForce } from "@indodax-mcp/core";
 import type { SymbolParts } from "@indodax-mcp/core";
 
 export interface OrderRecord {
@@ -20,6 +20,8 @@ export interface OrderRecord {
   riskDecisionId: string | null;
   submittedAt: string;
   updatedAt: string;
+  timeInForce?: TimeInForce | undefined;
+  stpMode?: StpMode | undefined;
 }
 
 export function newOrderRecord(

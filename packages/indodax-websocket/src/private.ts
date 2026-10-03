@@ -45,6 +45,21 @@ export function parseOrderUpdate(data: unknown): OrderUpdate {
   return parsed.data;
 }
 
+export function extractPrivateUpdates(value: unknown): OrderUpdate[] {
+  if (typeof value !== "object" || value === null) return [];
+  const push = (value as Record<string, unknown>).push;
+  if (typeof push !== "object" || push === null) return [];
+  const data = (push as Record<string, unknown>).pub as Record<string, unknown> | undefined;
+  const items = data?.data;
+  if (!Array.isArray(items)) return [];
+  const updates: OrderUpdate[] = [];
+  for (const item of items) {
+    const parsed = orderUpdateSchema.safeParse(item);
+    if (parsed.success) updates.push(parsed.data);
+  }
+  return updates;
+}
+
 export function isStpCancellation(update: OrderUpdate): boolean {
   return update.order.cancelReason === "SELF_TRADE_PREVENTION";
 }

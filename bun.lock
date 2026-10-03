@@ -474,6 +474,8 @@
       "dependencies": {
         "@indodax-mcp/core": "workspace:*",
         "@indodax-mcp/errors": "workspace:*",
+        "@indodax-mcp/indodax-auth": "workspace:*",
+        "@indodax-mcp/transport": "workspace:*",
         "zod": "catalog:",
       },
       "devDependencies": {

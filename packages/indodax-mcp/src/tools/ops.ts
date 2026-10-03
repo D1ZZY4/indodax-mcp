@@ -150,6 +150,22 @@ export function registerOpsTools(
   });
   registry.registerTool({
     metadata: {
+      name: "indodax_private_connect",
+      title: "Connect private channel",
+      description:
+        "Mutating connection state, needs credentials. Fetch a private token and subscribe to the private order-event channel. Returns the channel and connection state, never the token.",
+      capability: "READ",
+      riskClass: "mutation",
+      environmentRequirement: "any",
+      authRequirement: "credentials",
+      destructive: false,
+      idempotencyClass: "none",
+      auditClass: "mutation",
+    },
+    inputSchema: z.object({}),
+  });
+  registry.registerTool({
+    metadata: {
       name: "indodax_deadman_arm",
       title: "Arm Deadman",
       description:
@@ -316,12 +332,27 @@ export function registerOpsTools(
         }
       }
       if (scope === "private" || scope === "all") {
-        app.privateSocket.disconnect();
-        for (const sub of app.privateSocket.listSubscriptions()) {
-          app.privateSocket.subscribe(sub.channel);
+        if (!app.privateTokenFetcher) {
+          throw ValidationError("private channel needs API credentials");
         }
+        app.privateChannel.disconnect();
+        await app.privateChannel.connect(app.privateTokenFetcher);
       }
       return ok({ scope, reconnected: true });
+    } catch (error) {
+      return fail(error);
+    }
+  });
+  handlers.tools.set("indodax_private_connect", async () => {
+    try {
+      if (!app.privateTokenFetcher) {
+        throw ValidationError("private channel needs API credentials");
+      }
+      await app.privateChannel.connect(app.privateTokenFetcher);
+      return ok({
+        channel: app.privateChannel.channel,
+        state: app.privateChannel.connectionState,
+      });
     } catch (error) {
       return fail(error);
     }

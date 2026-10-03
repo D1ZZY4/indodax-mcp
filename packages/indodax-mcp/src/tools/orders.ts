@@ -8,10 +8,7 @@ import {
 import { ExecutionService } from "@indodax-mcp/indodax-execution";
 import type { Registry } from "@indodax-mcp/mcp-registry";
 import type { ServerHandlers } from "@indodax-mcp/mcp-core";
-import type { Capability, ExecutionMode } from "@indodax-mcp/core";
-import { parseSymbolFlexible } from "@indodax-mcp/core";
 import { placePaperOrder } from "./paper.js";
-import type { TradeIntent } from "@indodax-mcp/indodax-trading";
 import { fail, ok, parseArgs } from "../respond.js";
 import {
   acknowledgedArg,
@@ -24,88 +21,7 @@ import {
 } from "../schemas.js";
 import { resolveRiskContext } from "../risk-context.js";
 import type { AppServices } from "../composition.js";
-
-function executionMode(raw: string | undefined): ExecutionMode {
-  if (raw === "live") return "live";
-  if (raw === "shadow") return "shadow";
-  return "paper";
-}
-
-function capabilityFor(mode: ExecutionMode): Capability {
-  return mode === "paper" ? "PAPER" : "TRADE";
-}
-
-function draftIntent(
-  _app: AppServices,
-  args: {
-    pair: string;
-    side: "BUY" | "SELL";
-    quantity: number;
-    price?: number | undefined;
-    mode?: string | undefined;
-    reason?: string | undefined;
-    clientOrderId?: string | undefined;
-  },
-): { intent: TradeIntent; mode: ExecutionMode; capability: Capability } {
-  const mode = executionMode(args.mode);
-  const capability = capabilityFor(mode);
-  const symbol = parseSymbolFlexible(args.pair);
-  if (!symbol) throw ValidationError(`invalid pair: ${args.pair}`);
-  if (mode === "paper" && args.price === undefined) {
-    throw ValidationError(
-      "paper orders require a limit price; MARKET orders are not supported in simulation",
-    );
-  }
-  return {
-    intent: {
-      agentId: "mcp",
-      sessionId: `mcp-${Date.now().toString(36)}`,
-      symbol,
-      side: args.side,
-      orderType: args.price === undefined ? "MARKET" : "LIMIT",
-      price: args.price === undefined ? null : String(args.price),
-      quantityOrIdr: String(args.quantity ?? 0),
-      quantityIsIdr: false,
-      mode,
-      capability,
-      reason: args.reason ?? "mcp request",
-    },
-    mode,
-    capability,
-  };
-}
-
-interface HypotheticalArgs {
-  pair: string;
-  side: "BUY" | "SELL";
-  quantity: number;
-  price?: number | undefined;
-  mode?: string | undefined;
-  reason?: string | undefined;
-  clientOrderId?: string | undefined;
-}
-
-async function reviewHypothetical(app: AppServices, args: HypotheticalArgs) {
-  const { intent, capability } = draftIntent(app, args);
-  const proposal = app.trading.propose(intent);
-  const order = app.trading.toOrder(proposal, {
-    tenantId: app.tenantId,
-    exchangeAccountId: app.accountId,
-  });
-  if (args.clientOrderId !== undefined && args.clientOrderId !== "") {
-    order.clientOrderId = args.clientOrderId.slice(0, 36);
-  }
-  const decision = app.trading.review(
-    order,
-    await resolveRiskContext(app, {
-      mode: intent.mode,
-      capability,
-      pair: args.pair,
-      clientOrderId: order.clientOrderId,
-    }),
-  );
-  return { proposal, order, decision };
-}
+import { draftIntent, reviewHypothetical, stpModeArg, timeInForceArg } from "./order-intent.js";
 
 export function registerOrderTools(
   registry: Registry,
@@ -156,6 +72,8 @@ export function registerOrderTools(
       price: priceArg.optional(),
       mode: modeArg,
       reason: z.string().optional(),
+      timeInForce: timeInForceArg,
+      stpMode: stpModeArg,
     }),
   });
   registry.registerTool({
@@ -163,7 +81,7 @@ export function registerOrderTools(
       name: "indodax_create_order",
       title: "Create order",
       description:
-        "MUTATING in paper mode only. Places through risk into the paper backend by default. Live needs acknowledged true plus explicit live enablement, otherwise denied. Returns acceptance, never a fill. Accepts optional clientOrderId for idempotent replay.",
+        "Places through risk into the paper backend by default. Live needs acknowledged true, APP_ENV=live, credentials, and risk ALLOW. Returns acceptance, never a fill. Accepts optional clientOrderId, timeInForce GTC/MOC for LIMIT, and self-trade prevention mode.",
       ...base,
       destructive: true,
     },
@@ -175,6 +93,8 @@ export function registerOrderTools(
       mode: modeArg,
       acknowledged: acknowledgedArg,
       clientOrderId: clientOrderIdArg,
+      timeInForce: timeInForceArg,
+      stpMode: stpModeArg,
     }),
   });
   registry.registerTool({
@@ -182,15 +102,21 @@ export function registerOrderTools(
       name: "indodax_cancel_order",
       title: "Cancel order",
       description:
-        "MUTATING a paper order by default with refund. Live cancel needs credentials, live mode, and acknowledged true.",
+        "MUTATING a paper order by default with refund. Live cancel needs credentials, APP_ENV=live, acknowledged true, plus symbol and exchange orderId or clientOrderId.",
       ...base,
       destructive: true,
     },
-    inputSchema: z.object({
-      orderId: z.string().min(1),
-      mode: modeArg,
-      acknowledged: acknowledgedArg,
-    }),
+    inputSchema: z
+      .object({
+        orderId: z.string().min(1).optional(),
+        mode: modeArg,
+        acknowledged: acknowledgedArg,
+        symbol: z.string().min(1).optional(),
+        clientOrderId: z.string().min(1).optional(),
+      })
+      .refine((args) => args.orderId !== undefined || args.clientOrderId !== undefined, {
+        message: "cancel needs orderId or clientOrderId",
+      }),
   });
 
   handlers.tools.set("indodax_validate_order", async (raw) => {
@@ -202,6 +128,8 @@ export function registerOrderTools(
           quantity: quantityArg,
           price: priceArg.optional(),
           mode: modeArg,
+          timeInForce: timeInForceArg,
+          stpMode: stpModeArg,
         }),
         raw,
       );
@@ -222,6 +150,8 @@ export function registerOrderTools(
           price: priceArg.optional(),
           mode: modeArg,
           reason: z.string().optional(),
+          timeInForce: timeInForceArg,
+          stpMode: stpModeArg,
         }),
         raw,
       );
@@ -243,6 +173,8 @@ export function registerOrderTools(
           mode: modeArg,
           acknowledged: acknowledgedArg,
           clientOrderId: clientOrderIdArg,
+          timeInForce: timeInForceArg,
+          stpMode: stpModeArg,
         }),
         raw,
       );
@@ -310,12 +242,17 @@ export function registerOrderTools(
   handlers.tools.set("indodax_cancel_order", async (raw) => {
     try {
       const args = parseArgs(
-        z.object({
-          orderId: z.string().min(1),
-          mode: modeArg,
-          acknowledged: acknowledgedArg,
-          symbol: z.string().min(1).optional(),
-        }),
+        z
+          .object({
+            orderId: z.string().min(1).optional(),
+            mode: modeArg,
+            acknowledged: acknowledgedArg,
+            symbol: z.string().min(1).optional(),
+            clientOrderId: z.string().min(1).optional(),
+          })
+          .refine((value) => value.orderId !== undefined || value.clientOrderId !== undefined, {
+            message: "cancel needs orderId or clientOrderId",
+          }),
         raw,
       );
       if (args.mode === "live") {
@@ -331,14 +268,23 @@ export function registerOrderTools(
         if (!args.symbol) {
           throw ValidationError("live cancel needs symbol plus exchange orderId");
         }
-        const cancelled = await app.liveExecutor.cancelByExchangeId(args.symbol, args.orderId);
-        return ok({ orderId: args.orderId, status: cancelled ? "cancelled" : "unknown" });
+        const cancelled = await app.liveExecutor.cancelByExchangeId(
+          args.symbol,
+          args.orderId,
+          args.clientOrderId,
+        );
+        return ok({
+          orderId: args.orderId ?? args.clientOrderId,
+          status: cancelled ? "cancelled" : "unknown",
+        });
       }
-      const cancelled = await app.paper.cancel(args.orderId);
+      const target = args.orderId ?? args.clientOrderId;
+      if (!target) throw ValidationError("cancel needs orderId or clientOrderId");
+      const cancelled = await app.paper.cancel(target);
       if (!cancelled) {
-        throw ValidationError(`paper order ${args.orderId} is not open`);
+        throw ValidationError(`paper order ${target} is not open`);
       }
-      return ok({ orderId: args.orderId, status: "cancelled" });
+      return ok({ orderId: target, status: "cancelled" });
     } catch (error) {
       return fail(error);
     }

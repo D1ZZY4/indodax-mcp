@@ -5,6 +5,8 @@ import type {
   OrderSide,
   OrderType,
   RiskDecision,
+  StpMode,
+  TimeInForce,
 } from "@indodax-mcp/core";
 import { decimalOrNull, isValidClientOrderId, validateOrderInput } from "@indodax-mcp/core";
 import type { SymbolParts } from "@indodax-mcp/core";
@@ -23,6 +25,8 @@ export interface TradeIntent {
   mode: ExecutionMode;
   capability: Capability;
   reason: string;
+  timeInForce?: TimeInForce | undefined;
+  stpMode?: StpMode | undefined;
 }
 
 export interface TradeProposal {
@@ -105,6 +109,9 @@ export class TradingService {
   ): OrderRecord {
     const { price, quantity } = intentToOrderShape(proposal.intent);
     if (quantity === null) throw ValidationError("invalid quantity");
+    if (proposal.intent.timeInForce !== undefined && proposal.intent.orderType !== "LIMIT") {
+      throw ValidationError("timeInForce only applies to LIMIT orders");
+    }
     const now = new Date().toISOString();
     return {
       internalOrderId: `order-${proposal.correlationId}`,
@@ -125,6 +132,10 @@ export class TradingService {
       riskDecisionId: null,
       submittedAt: now,
       updatedAt: now,
+      ...(proposal.intent.timeInForce !== undefined
+        ? { timeInForce: proposal.intent.timeInForce }
+        : {}),
+      ...(proposal.intent.stpMode !== undefined ? { stpMode: proposal.intent.stpMode } : {}),
     };
   }
 

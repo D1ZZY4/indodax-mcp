@@ -4,12 +4,20 @@ import {
   authMessage,
   isDuplicate,
   parseEnvelope,
+  parsePrivatePush,
   pingMessage,
+  privateConnectMessage,
+  privateSubscribeMessage,
   subscribeMessage,
   unsubscribeMessage,
 } from "../src/protocol.js";
 import { compactPair, summaryRows, ManagedSocket } from "../src/socket.js";
-import { isStpCancellation, parseOrderUpdate, tokenExpired } from "../src/private.js";
+import {
+  extractPrivateUpdates,
+  isStpCancellation,
+  parseOrderUpdate,
+  tokenExpired,
+} from "../src/private.js";
 
 describe("websocket protocol", () => {
   it("builds auth, subscribe, and ping frames", () => {
@@ -97,5 +105,83 @@ describe("summary snapshot", () => {
     expect(socket.connectionState).toBe("DISCONNECTED");
     socket.recover("c", 9);
     expect(socket.connectionState).toBe("DISCONNECTED");
+  });
+
+  it("speaks the official private handshake dialect", () => {
+    expect(JSON.parse(privateConnectMessage("tok"))).toEqual({ connect: { token: "tok" }, id: 1 });
+    expect(JSON.parse(privateSubscribeMessage("pws:#c"))).toEqual({
+      subscribe: { channel: "pws:#c" },
+      id: 2,
+    });
+  });
+
+  it("parses official private pushes with NEW, FILL, and DONE", () => {
+    const sample = {
+      push: {
+        channel: "pws:#c",
+        pub: {
+          data: [
+            {
+              eventType: "order_update",
+              order: {
+                orderId: "aaveidr-limit-3397",
+                symbol: "aaveidr",
+                side: "BUY",
+                origQty: "0.00996909",
+                unfilledQty: "0.00996909",
+                executedQty: "0",
+                price: "2000000",
+                status: "NEW",
+                transactionTime: 1705635775203,
+              },
+            },
+            {
+              eventType: "order_update",
+              order: {
+                orderId: "aaveidr-limit-13525",
+                tradeId: "72057594037968281",
+                symbol: "aaveidr",
+                side: "BUY",
+                origQty: "0.0046462",
+                unfilledQty: "0",
+                executedQty: "0.0046462",
+                price: "4289899",
+                status: "FILL",
+                transactionTime: 1734490232679,
+                fillInformation: {
+                  participant: "TAKER",
+                  filledQty: "0.0046462",
+                  qty: "0.0046462",
+                  feeAsset: "idr",
+                  feeRate: 0.002,
+                  fee: "39",
+                },
+              },
+            },
+            {
+              eventType: "order_update",
+              order: {
+                orderId: "aaveidr-limit-3397",
+                symbol: "aaveidr",
+                side: "BUY",
+                origQty: "0.00996909",
+                unfilledQty: "0",
+                executedQty: "0.00996909",
+                price: "2000000",
+                status: "DONE",
+                transactionTime: 1705635775203,
+              },
+            },
+            { nope: true },
+          ],
+        },
+      },
+    };
+    const parsed = parsePrivatePush(sample);
+    expect(parsed?.channel).toBe("pws:#c");
+    const updates = extractPrivateUpdates(sample);
+    expect(updates.map((update) => update.order.status)).toEqual(["NEW", "FILL", "DONE"]);
+    expect(parsePrivatePush({ result: {} })).toBeNull();
+    expect(extractPrivateUpdates({})).toEqual([]);
   });
 });

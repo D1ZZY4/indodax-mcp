@@ -68,6 +68,8 @@ export class LiveExecutor implements ExecutionBackend {
       params.quantity = order.quantity;
     }
     params.newClientOrderId = order.clientOrderId;
+    if (order.timeInForce !== undefined) params.timeInForce = order.timeInForce;
+    if (order.stpMode !== undefined) params.selfTradePreventionMode = order.stpMode;
     const raw = await this.signed<Record<string, unknown>>("POST", "/api/v2/order", params);
     const code = (raw as { code?: number }).code;
     if (typeof code === "number" && code !== 0) {
@@ -88,11 +90,18 @@ export class LiveExecutor implements ExecutionBackend {
     throw ValidationError("live cancel needs exchange order id plus symbol; use cancelOrder tool");
   }
 
-  async cancelByExchangeId(symbol: string, orderId: string): Promise<boolean> {
-    const raw = await this.signed<Record<string, unknown>>("DELETE", "/api/v2/order", {
-      symbol,
-      orderId,
-    });
+  async cancelByExchangeId(
+    symbol: string,
+    orderId?: string,
+    clientOrderId?: string,
+  ): Promise<boolean> {
+    if (!orderId && !clientOrderId) {
+      throw ValidationError("cancel needs exchange orderId or clientOrderId plus symbol");
+    }
+    const params: Record<string, string> = { symbol };
+    if (orderId) params.orderId = orderId;
+    else if (clientOrderId) params.origClientOrderId = clientOrderId;
+    const raw = await this.signed<Record<string, unknown>>("DELETE", "/api/v2/order", params);
     const code = (raw as { code?: number }).code;
     if (typeof code === "number" && code !== 0) {
       throw OrderRejectedError(`exchange rejected cancel: ${JSON.stringify(raw).slice(0, 200)}`);

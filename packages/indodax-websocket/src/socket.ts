@@ -3,10 +3,14 @@ import {
   authMessage,
   isDuplicate,
   parseEnvelope,
+  parsePrivatePush,
+  privateConnectMessage,
+  privateSubscribeMessage,
   subscribeMessage,
   type ChannelSubscription,
   type ConnectionState,
 } from "./protocol.js";
+import { extractPrivateUpdates } from "./private.js";
 import { SubscriptionRegistry } from "./protocol.js";
 
 export const PUBLIC_WS_URL = "wss://ws3.indodax.com/ws/";
@@ -81,6 +85,47 @@ export class ManagedSocket {
     if (this.state === "CONNECTED") this.state = "LIVE";
   }
 
+  /**
+   * Private-channel handshake from the official Private WebSocket doc.
+   * Separate from the market handshake: connect carries the token and
+   * subscribe carries the private channel. No offsets on this channel.
+   */
+  async connectPrivate(options: SocketOptions & { channel: string }): Promise<void> {
+    this.disconnect();
+    this.state = "RECONNECTING";
+    const timeoutMs = options.timeoutMs ?? 10_000;
+    const socket = new WebSocket(options.url);
+    this.socket = socket;
+    await new Promise<void>((resolve, reject) => {
+      const timer = setTimeout(() => reject(WebSocketError("connect timed out")), timeoutMs);
+      socket.onopen = () => {
+        clearTimeout(timer);
+        resolve();
+      };
+      socket.onerror = () => {
+        clearTimeout(timer);
+        reject(WebSocketError("connect failed"));
+      };
+    });
+    socket.onmessage = (message) => this.handleMessage(String(message.data));
+    socket.onclose = () => {
+      if (this.socket === socket) {
+        this.socket = null;
+        this.state = "DISCONNECTED";
+      }
+    };
+    socket.send(privateConnectMessage(options.token));
+    this.subscriptions.subscribe(options.channel);
+    socket.send(privateSubscribeMessage(options.channel));
+    this.state = "LIVE";
+  }
+
+  subscribePrivate(channel: string): void {
+    this.subscriptions.subscribe(channel);
+    this.socket?.send(privateSubscribeMessage(channel));
+    if (this.state === "CONNECTED") this.state = "LIVE";
+  }
+
   recover(channel: string, offset: number): void {
     this.state = "RECOVERING";
     this.socket?.send(subscribeMessage(channel, 2, offset));
@@ -102,6 +147,13 @@ export class ManagedSocket {
     try {
       value = JSON.parse(text);
     } catch {
+      return;
+    }
+    const push = parsePrivatePush(value);
+    if (push) {
+      for (const update of extractPrivateUpdates(value)) {
+        this.onEvent({ channel: push.channel, offset: null, data: update, duplicate: false });
+      }
       return;
     }
     const envelope = parseEnvelope(value);
