@@ -298,3 +298,16 @@ export const idempotencyRecords = pgTable(
   },
   (table) => [uniqueIndex("idempotency_scope_key_uidx").on(table.scope, table.key)],
 );
+
+export const paperLedgers = pgTable(
+  "paper_ledgers",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenants.id),
+    snapshot: jsonb("snapshot").notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [uniqueIndex("paper_ledgers_tenant_uidx").on(table.tenantId)],
+);

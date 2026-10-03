@@ -78,4 +78,15 @@ describe("paper executor", () => {
     executor.reset();
     expect(executor.snapshot().balances.usdt).toBeUndefined();
   });
+
+  it("restores a persisted snapshot for restart recovery", () => {
+    const first = new PaperExecutor();
+    first.topup("usdt", "500");
+    const snapshot = first.snapshot();
+    const second = new PaperExecutor();
+    second.restore(snapshot);
+    expect(second.snapshot().balances.usdt).toBe("500");
+    expect(() => second.restore({ nope: true })).toThrow();
+    expect(() => second.restore(null)).toThrow();
+  });
 });

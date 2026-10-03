@@ -39,6 +39,31 @@ export class PaperExecutor implements ExecutionBackend {
     return JSON.parse(JSON.stringify(this.ledger)) as PaperLedger;
   }
 
+  /**
+   * Restart recovery: replace the in-memory ledger with a previously
+   * persisted snapshot. The snapshot shape is validated defensively;
+   * anything unexpected throws instead of installing corrupt state.
+   */
+  restore(snapshot: unknown): void {
+    if (typeof snapshot !== "object" || snapshot === null) {
+      throw ValidationError("paper snapshot must be an object");
+    }
+    const candidate = snapshot as Record<string, unknown>;
+    if (
+      typeof candidate.balances !== "object" ||
+      candidate.balances === null ||
+      !Array.isArray(candidate.orders) ||
+      typeof candidate.nextOrderId !== "number" ||
+      typeof candidate.tradeCount !== "number" ||
+      typeof candidate.totalFees !== "string" ||
+      typeof candidate.initialBalances !== "object" ||
+      candidate.initialBalances === null
+    ) {
+      throw ValidationError("paper snapshot has an unexpected shape");
+    }
+    this.ledger = JSON.parse(JSON.stringify(candidate)) as PaperLedger;
+  }
+
   openOrders(): OrderRecord[] {
     return this.ledger.orders.filter(
       (order) => order.state === "ACCEPTED" || order.state === "PARTIALLY_FILLED",

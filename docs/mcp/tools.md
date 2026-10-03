@@ -57,7 +57,7 @@ The registry validates metadata when a tool is registered.
 - orders.ts: order validation, proposals, paper creation, and paper cancellation.
 - paper.ts: paper ledger operations and risk-reviewed paper placement.
 - risk.ts: direct deterministic risk evaluation.
-- reconcile.ts: balance comparison plus paper/local reconciliation views.
+- reconcile.ts: balance comparison, paper-local consistency checks, and full exchange reconciliation (open orders, fills, balances) with halt tracking.
 - system.ts: status, configuration, authentication state, WebSocket snapshots, and withdrawal denial.
 - funding.ts: authenticated read-only funding information.
 - history.ts and ops.ts: history and operational helpers.

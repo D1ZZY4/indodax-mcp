@@ -7,6 +7,7 @@ import { parseSymbolFlexible } from "@indodax-mcp/core";
 import { placePaperOrder } from "./paper.js";
 import type { TradeIntent } from "@indodax-mcp/indodax-trading";
 import { fail, ok, pairArg, parseArgs } from "../respond.js";
+import { resolveRiskContext } from "../risk-context.js";
 import type { AppServices } from "../composition.js";
 
 const sideArg = z.enum(["BUY", "SELL"]);
@@ -31,6 +32,7 @@ function draftIntent(
     price?: number | undefined;
     mode?: string | undefined;
     reason?: string | undefined;
+    clientOrderId?: string | undefined;
   },
 ): { intent: TradeIntent; mode: ExecutionMode; capability: Capability } {
   const mode = executionMode(args.mode);
@@ -63,28 +65,28 @@ interface HypotheticalArgs {
   price?: number | undefined;
   mode?: string | undefined;
   reason?: string | undefined;
+  clientOrderId?: string | undefined;
 }
 
-function reviewHypothetical(app: AppServices, args: HypotheticalArgs) {
+async function reviewHypothetical(app: AppServices, args: HypotheticalArgs) {
   const { intent, capability } = draftIntent(app, args);
   const proposal = app.trading.propose(intent);
   const order = app.trading.toOrder(proposal, {
     tenantId: app.tenantId,
     exchangeAccountId: app.accountId,
   });
-  const decision = app.trading.review(order, {
-    mode: intent.mode,
-    capability,
-    marketAgeMs: 5_000,
-    accountAgeMs: 5_000,
-    dailyPnl: null,
-    tradeCount: 0,
-    duplicate: false,
-    reconciliationHalted: false,
-    deadmanUnknown: false,
-    deadmanState: app.deadman.snapshot().state,
-    balanceSufficient: null,
-  });
+  if (args.clientOrderId !== undefined && args.clientOrderId !== "") {
+    order.clientOrderId = args.clientOrderId.slice(0, 36);
+  }
+  const decision = app.trading.review(
+    order,
+    await resolveRiskContext(app, {
+      mode: intent.mode,
+      capability,
+      pair: args.pair,
+      clientOrderId: order.clientOrderId,
+    }),
+  );
   return { proposal, order, decision };
 }
 
@@ -144,7 +146,7 @@ export function registerOrderTools(
       name: "indodax_create_order",
       title: "Create order",
       description:
-        "MUTATING in paper mode only. Places through risk into the paper backend by default. Live needs acknowledged true plus explicit live enablement, otherwise denied. Returns acceptance, never a fill.",
+        "MUTATING in paper mode only. Places through risk into the paper backend by default. Live needs acknowledged true plus explicit live enablement, otherwise denied. Returns acceptance, never a fill. Accepts optional clientOrderId for idempotent replay.",
       ...base,
       destructive: true,
     },
@@ -155,6 +157,7 @@ export function registerOrderTools(
       price: z.number().positive().optional(),
       mode: modeArg,
       acknowledged: z.boolean().optional(),
+      clientOrderId: z.string().min(1).max(36).optional(),
     }),
   });
   registry.registerTool({
@@ -185,7 +188,7 @@ export function registerOrderTools(
         }),
         raw,
       );
-      const { proposal, order, decision } = reviewHypothetical(app, args);
+      const { proposal, order, decision } = await reviewHypothetical(app, args);
       return ok({ proposal: proposal.correlationId, order, decision });
     } catch (error) {
       return fail(error);
@@ -205,7 +208,7 @@ export function registerOrderTools(
         }),
         raw,
       );
-      const { proposal, order, decision } = reviewHypothetical(app, args);
+      const { proposal, order, decision } = await reviewHypothetical(app, args);
       return ok({ proposal: proposal.correlationId, order, decision });
     } catch (error) {
       return fail(error);
@@ -222,6 +225,7 @@ export function registerOrderTools(
           price: z.number().positive().optional(),
           mode: modeArg,
           acknowledged: z.boolean().optional(),
+          clientOrderId: z.string().min(1).max(36).optional(),
         }),
         raw,
       );
@@ -239,6 +243,7 @@ export function registerOrderTools(
           orderType: intent.orderType,
           ...(args.price === undefined ? {} : { price: args.price }),
           quantity: args.quantity,
+          ...(args.clientOrderId === undefined ? {} : { clientOrderId: args.clientOrderId }),
         }),
       );
     } catch (error) {

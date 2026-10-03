@@ -63,7 +63,9 @@ export function registerAccountTools(
   handlers.tools.set("indodax_account", async () => {
     try {
       if (!app.accountClient) throw credentialError();
-      return ok(await app.accountClient.getAccount());
+      const account = await app.accountClient.getAccount();
+      app.accountSyncedAt = Date.now();
+      return ok(account);
     } catch (error) {
       return fail(error);
     }
@@ -72,18 +74,21 @@ export function registerAccountTools(
     try {
       if (!app.accountClient) throw credentialError();
       const account = await app.accountClient.getAccount();
+      app.accountSyncedAt = Date.now();
       return ok(toBalanceViews(account).filter((view) => view.total !== "0"));
     } catch (error) {
       return fail(error);
     }
   });
   handlers.tools.set("indodax_capabilities", async () => {
-    const live = app.env.APP_ENV === "live" && app.env.TRADE_ENABLED === true;
+    // The composed server always uses paperOnlyPolicy(), so live placement is
+    // denied regardless of APP_ENV or TRADE_ENABLED. Report the enforced
+    // policy here instead of the raw configuration flags.
     return ok({
       "market.read": true,
       "account.read": app.accountClient !== null,
-      "trade.place": live,
-      "trade.cancel": live,
+      "trade.place": false,
+      "trade.cancel": false,
       "funding.withdraw": false,
       "paper.*": true,
       mode: app.env.APP_ENV,

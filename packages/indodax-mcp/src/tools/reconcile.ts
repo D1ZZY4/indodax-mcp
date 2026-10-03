@@ -3,8 +3,10 @@ import Decimal from "decimal.js";
 import { ValidationError } from "@indodax-mcp/errors";
 import type { Registry } from "@indodax-mcp/mcp-registry";
 import type { ServerHandlers } from "@indodax-mcp/mcp-core";
-import { compareBalance, compareOrderIds } from "@indodax-mcp/indodax-orders";
+import { decimalOrNull } from "@indodax-mcp/core";
+import { compareBalance } from "@indodax-mcp/indodax-orders";
 import { getTicker } from "@indodax-mcp/indodax-market";
+import { reconcileAll, reconcileFills } from "@indodax-mcp/indodax-reconciliation";
 import { fail, ok, parseArgs } from "../respond.js";
 import type { AppServices } from "../composition.js";
 
@@ -17,6 +19,47 @@ const READ = {
   idempotencyClass: "none" as const,
   auditClass: "read" as const,
 };
+
+interface PaperConsistency {
+  state: "MATCH" | "MISMATCH";
+  checkedOrders: number;
+  mismatchedOrders: string[];
+}
+
+/** Every open paper order must hold valid amounts with remaining in [0, quantity]. */
+export function checkPaperConsistency(app: AppServices): PaperConsistency {
+  const snapshot = app.paper.snapshot();
+  const open = snapshot.orders.filter(
+    (order) => order.state === "ACCEPTED" || order.state === "PARTIALLY_FILLED",
+  );
+  const mismatched: string[] = [];
+  for (const order of open) {
+    const remaining = decimalOrNull(order.remaining);
+    const quantity = decimalOrNull(order.quantity);
+    if (remaining === null || quantity === null || remaining.lt(0) || remaining.gt(quantity)) {
+      mismatched.push(order.internalOrderId);
+    }
+  }
+  return {
+    state: mismatched.length === 0 ? "MATCH" : "MISMATCH",
+    checkedOrders: open.length,
+    mismatchedOrders: mismatched,
+  };
+}
+
+const exchangeOrderSchema = z
+  .object({
+    orderId: z.union([z.string(), z.number()]).optional(),
+    fullOrderId: z.string().optional(),
+  })
+  .passthrough();
+
+const exchangeTradeSchema = z
+  .object({
+    orderId: z.string().optional(),
+    qty: z.union([z.string(), z.number()]).optional(),
+  })
+  .passthrough();
 
 export function registerReconcileTools(
   registry: Registry,
@@ -53,6 +96,20 @@ export function registerReconcileTools(
     },
     inputSchema: z.object({}),
   });
+  registry.registerTool({
+    metadata: {
+      name: "indodax_reconcile_full",
+      title: "Full reconciliation",
+      description:
+        "Read-only, needs credentials. Paper-local consistency plus live exchange open orders, fills, and balances in one report. Paper and exchange are separate ledgers; the cross-scope section is observational and never halts paper trading.",
+      ...READ,
+      authRequirement: "credentials" as const,
+    },
+    inputSchema: z.object({
+      symbol: z.string().min(1).optional(),
+      tolerance: z.string().optional(),
+    }),
+  });
 
   handlers.tools.set("indodax_reconcile_balances", async (raw) => {
     try {
@@ -60,6 +117,7 @@ export function registerReconcileTools(
       const args = parseArgs(z.object({ tolerance: z.string().optional() }), raw);
       const tolerance = new Decimal(args.tolerance ?? "0.01");
       const account = await app.accountClient.getAccount();
+      app.accountSyncedAt = Date.now();
       const paper = app.paper.snapshot();
       const rows = [];
       for (const balance of account.balances) {
@@ -114,12 +172,111 @@ export function registerReconcileTools(
 
   handlers.tools.set("indodax_reconciliation_state", async () => {
     try {
-      const snapshot = app.paper.snapshot();
-      const local = snapshot.orders
-        .filter((order) => order.state === "ACCEPTED")
-        .map((order) => order.exchangeOrderId ?? order.internalOrderId);
-      const outcome = compareOrderIds(local, local);
-      return ok({ state: outcome.state, checkedOrders: outcome.checkedOrders });
+      const outcome = checkPaperConsistency(app);
+      app.reconciliationHalted = outcome.state === "MISMATCH";
+      return ok(outcome);
+    } catch (error) {
+      return fail(error);
+    }
+  });
+
+  handlers.tools.set("indodax_reconcile_full", async (raw) => {
+    try {
+      if (!app.accountClient) throw ValidationError("credentials required");
+      const args = parseArgs(
+        z.object({ symbol: z.string().min(1).optional(), tolerance: z.string().optional() }),
+        raw,
+      );
+      const tolerance = new Decimal(args.tolerance ?? "0.01");
+      const paper = checkPaperConsistency(app);
+      app.reconciliationHalted = paper.state === "MISMATCH";
+
+      const failures: string[] = [];
+      let exchangeOrders: { exchangeOrderId: string; state: string }[] = [];
+      try {
+        const rawOrders = await app.accountClient.openOrders(args.symbol);
+        if (!Array.isArray(rawOrders)) throw new Error("unexpected openOrders shape");
+        exchangeOrders = rawOrders.map((item, index) => {
+          const parsed = exchangeOrderSchema.safeParse(item);
+          const id = parsed.success
+            ? String(parsed.data.orderId ?? parsed.data.fullOrderId ?? `unknown-${index}`)
+            : `unknown-${index}`;
+          return { exchangeOrderId: id, state: "OPEN" };
+        });
+      } catch {
+        failures.push("openOrders");
+      }
+
+      let exchangeFills: { exchangeOrderId: string; quantity: string }[] = [];
+      if (args.symbol !== undefined) {
+        try {
+          const trades = (await app.accountClient.myTrades({ symbol: args.symbol })) as {
+            data?: unknown;
+          };
+          const list = Array.isArray(trades?.data) ? (trades?.data as unknown[]) : null;
+          if (!list) throw new Error("unexpected myTrades shape");
+          exchangeFills = list.map((item, index) => {
+            const parsed = exchangeTradeSchema.safeParse(item);
+            return {
+              exchangeOrderId:
+                parsed.success && parsed.data.orderId ? parsed.data.orderId : `unknown-${index}`,
+              quantity:
+                parsed.success && parsed.data.qty !== undefined ? String(parsed.data.qty) : "0",
+            };
+          });
+        } catch {
+          failures.push("myTrades");
+        }
+      }
+
+      const localFills = app.paper
+        .snapshot()
+        .orders.filter((order) => order.state === "FILLED")
+        .map((order) => ({
+          exchangeOrderId: order.exchangeOrderId ?? order.internalOrderId,
+          quantity: new Decimal(order.quantity).minus(new Decimal(order.remaining)).toString(),
+        }));
+      const fills = reconcileFills(localFills, exchangeFills);
+
+      let balanceRows: { asset: string; state: string }[] = [];
+      try {
+        const account = await app.accountClient.getAccount();
+        app.accountSyncedAt = Date.now();
+        const ledger = app.paper.snapshot();
+        balanceRows = account.balances.map((balance) => {
+          const asset = balance.asset.toLowerCase();
+          return {
+            asset,
+            state: compareBalance(
+              new Decimal(ledger.balances[asset] ?? "0"),
+              new Decimal(balance.free).plus(new Decimal(balance.locked)),
+              tolerance,
+            ),
+          };
+        });
+      } catch {
+        failures.push("account");
+      }
+
+      const exchangeReport = reconcileAll({
+        localOrders: [],
+        exchangeOrders,
+        localFills: [],
+        exchangeFills,
+        balances: [],
+      });
+      return ok({
+        paper,
+        exchange: {
+          openOrders: exchangeOrders,
+          fills: { state: fills.state, checked: fills.checked, exchangeOnly: fills.exchangeOnly },
+          balances: balanceRows,
+          observed: exchangeReport.orders.state,
+        },
+        unknownLegs: failures,
+        crossScopeNote:
+          "paper and exchange are separate ledgers; paper fills never settle on exchange",
+      });
     } catch (error) {
       return fail(error);
     }

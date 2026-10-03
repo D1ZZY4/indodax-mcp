@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm";
 import type { Database } from "./client.js";
-import { auditEvents, orders } from "./schema.js";
+import { auditEvents, orders, paperLedgers, tenants } from "./schema.js";
 
 export interface AuditRecord {
   eventId: string;
@@ -74,5 +74,47 @@ export class DrizzleOrderRepository {
       price: row.price ?? null,
       clientOrderId: row.clientOrderId ?? null,
     });
+  }
+}
+
+export interface PaperLedgerSnapshot {
+  balances: Record<string, string>;
+  orders: unknown[];
+  nextOrderId: number;
+  tradeCount: number;
+  totalFees: string;
+  initialBalances: Record<string, string>;
+}
+
+export class DrizzlePaperLedgerRepository {
+  constructor(private readonly db: Database) {}
+
+  async ensureTenant(name: string): Promise<string> {
+    const existing = await this.db.select().from(tenants).where(eq(tenants.name, name));
+    const found = existing[0]?.id;
+    if (found) return found;
+    const created = await this.db.insert(tenants).values({ name }).returning();
+    const id = created[0]?.id;
+    if (!id) throw new Error("paper tenant creation failed");
+    return id;
+  }
+
+  async save(tenantId: string, snapshot: PaperLedgerSnapshot): Promise<void> {
+    await this.db
+      .insert(paperLedgers)
+      .values({ tenantId, snapshot })
+      .onConflictDoUpdate({
+        target: paperLedgers.tenantId,
+        set: { snapshot, updatedAt: new Date() },
+      });
+  }
+
+  async load(tenantId: string): Promise<PaperLedgerSnapshot | null> {
+    const rows = await this.db
+      .select()
+      .from(paperLedgers)
+      .where(eq(paperLedgers.tenantId, tenantId));
+    const snapshot = rows[0]?.snapshot as PaperLedgerSnapshot | undefined;
+    return snapshot ?? null;
   }
 }

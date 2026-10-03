@@ -5,7 +5,9 @@ import type { Registry } from "@indodax-mcp/mcp-registry";
 import type { ServerHandlers } from "@indodax-mcp/mcp-core";
 import { parseSymbolFlexible } from "@indodax-mcp/core";
 import { ExecutionService } from "@indodax-mcp/indodax-execution";
+import type { ExecutionResult } from "@indodax-mcp/indodax-execution";
 import { fail, ok, pairArg, parseArgs } from "../respond.js";
+import { resolveRiskContext } from "../risk-context.js";
 import type { AppServices } from "../composition.js";
 
 const PAPER = {
@@ -20,22 +22,8 @@ const PAPER = {
 
 const PAPER_READ = { ...PAPER, riskClass: "read" as const, auditClass: "read" as const };
 
-const PAPER_REVIEW = {
-  mode: "paper" as const,
-  capability: "PAPER" as const,
-  marketAgeMs: 5_000,
-  accountAgeMs: 5_000,
-  dailyPnl: null,
-  tradeCount: 0,
-  duplicate: false,
-  reconciliationHalted: false,
-  deadmanUnknown: false,
-  balanceSufficient: null,
-};
-
-function liveDeadmanState(app: AppServices): "DISARMED" | "ARMED" | "STALE" | "EXPIRED" {
-  return app.deadman.snapshot().state;
-}
+/** Idempotent replay: a repeated clientOrderId returns the first result. */
+const paperResults = new Map<string, ExecutionResult>();
 
 export interface PaperPlacement {
   pair: string;
@@ -43,9 +31,14 @@ export interface PaperPlacement {
   orderType?: "LIMIT" | "MARKET" | undefined;
   price?: number | undefined;
   quantity: number;
+  clientOrderId?: string | undefined;
 }
 
 export async function placePaperOrder(app: AppServices, placement: PaperPlacement) {
+  if (placement.clientOrderId !== undefined && placement.clientOrderId !== "") {
+    const replay = paperResults.get(placement.clientOrderId);
+    if (replay) return replay;
+  }
   const symbol = parseSymbolFlexible(placement.pair);
   if (!symbol) throw ValidationError(`invalid pair: ${placement.pair}`);
   const orderType = placement.orderType ?? "LIMIT";
@@ -53,9 +46,6 @@ export async function placePaperOrder(app: AppServices, placement: PaperPlacemen
   const quantity = new Decimal(placement.quantity);
   const notional = price === null ? null : price.mul(quantity);
   const ledger = app.paper.snapshot();
-  const lastSubmitted = ledger.orders
-    .map((order) => Date.parse(order.submittedAt))
-    .filter((value) => Number.isFinite(value));
   const intent = {
     agentId: "mcp",
     sessionId: `mcp-${Date.now().toString(36)}`,
@@ -74,16 +64,25 @@ export async function placePaperOrder(app: AppServices, placement: PaperPlacemen
     tenantId: app.tenantId,
     exchangeAccountId: app.accountId,
   });
-  const decision = app.trading.review(order, {
-    ...PAPER_REVIEW,
-    tradeCount: ledger.tradeCount,
-    lastOrderAtMs: lastSubmitted.length > 0 ? Math.max(...lastSubmitted) : null,
-    deadmanState: liveDeadmanState(app),
-    balanceSufficient: hasPaperBalance(ledger.balances, symbol, placement.side, notional, quantity),
-  });
+  const decision = app.trading.review(
+    order,
+    await resolveRiskContext(app, {
+      mode: "paper",
+      capability: "PAPER",
+      pair: placement.pair,
+      clientOrderId: placement.clientOrderId ?? order.clientOrderId,
+      balanceSufficient: hasPaperBalance(
+        ledger.balances,
+        symbol,
+        placement.side,
+        notional,
+        quantity,
+      ),
+    }),
+  );
   if (decision.outcome !== "ALLOW") throw RiskDeniedError(decision.message);
   const execution = new ExecutionService(app.paper);
-  return execution.execute(
+  const result = await execution.execute(
     {
       order,
       mode: "paper",
@@ -93,6 +92,10 @@ export async function placePaperOrder(app: AppServices, placement: PaperPlacemen
     },
     decision,
   );
+  if (placement.clientOrderId !== undefined && placement.clientOrderId !== "") {
+    paperResults.set(placement.clientOrderId, result);
+  }
+  return result;
 }
 
 function hasPaperBalance(
@@ -147,7 +150,7 @@ export function registerPaperTools(
       name: "indodax_paper_order",
       title: "Paper order",
       description:
-        "Simulated execution through validation and risk. Args: pair, side, price, quantity. Returns the open paper order id.",
+        "Simulated execution through validation and risk. Args: pair, side, price, quantity, optional clientOrderId for idempotent replay. Returns the open paper order id.",
       ...PAPER,
     },
     inputSchema: z.object({
@@ -155,6 +158,7 @@ export function registerPaperTools(
       side: z.enum(["BUY", "SELL"]),
       price: z.number().positive(),
       quantity: z.number().positive(),
+      clientOrderId: z.string().min(1).max(36).optional(),
     }),
   });
   registry.registerTool({
@@ -212,6 +216,7 @@ export function registerPaperTools(
           side: z.enum(["BUY", "SELL"]),
           price: z.number().positive(),
           quantity: z.number().positive(),
+          clientOrderId: z.string().min(1).max(36).optional(),
         }),
         raw,
       );

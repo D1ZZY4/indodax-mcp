@@ -4,6 +4,7 @@ import type { ServerHandlers } from "@indodax-mcp/mcp-core";
 import { createApp, type AppServices } from "./composition.js";
 import { buildGuard } from "./guard.js";
 import { attachAuditPersistence } from "./audit-store.js";
+import { attachPaperPersistence } from "./order-store.js";
 import { registerMarketTools } from "./tools/market.js";
 import { registerAccountTools } from "./tools/account.js";
 import { registerOrderTools } from "./tools/orders.js";
@@ -32,6 +33,7 @@ export function emptyHandlers(): ServerHandlers {
 export function buildIndodaxServer(env: AppEnv) {
   const app: AppServices = createApp(env);
   void attachAuditPersistence(app);
+  void attachPaperPersistence(app);
   const registry = new Registry();
   const handlers = emptyHandlers();
   registerMarketTools(registry, handlers, app);

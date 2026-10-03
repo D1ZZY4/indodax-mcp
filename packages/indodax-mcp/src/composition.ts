@@ -41,6 +41,10 @@ export interface AppServices {
   privateSocket: ManagedSocket;
   tenantId: string;
   accountId: string;
+  /** Epoch ms of the last successful authenticated account read. Null when never synced. */
+  accountSyncedAt: number | null;
+  /** Set by full exchange reconciliation; enforced for live-mode risk evaluation. */
+  reconciliationHalted: boolean;
 }
 
 export function createApp(env: AppEnv): AppServices {
@@ -100,5 +104,7 @@ export function createApp(env: AppEnv): AppServices {
     privateSocket: new ManagedSocket(() => {}),
     tenantId: "local",
     accountId: "local",
+    accountSyncedAt: null,
+    reconciliationHalted: false,
   };
 }

@@ -56,6 +56,39 @@ describe("fetchWithRetry", () => {
     ).rejects.toThrow(/unexpected HTTP 400/);
     expect(calls).toBe(1);
   });
+
+  it("attempts state-changing POST exactly once by default", async () => {
+    let calls = 0;
+    const fetchFn = (async () => {
+      calls += 1;
+      return new Response("slow", { status: 429 });
+    }) as FetchFn;
+    await expect(
+      fetchWithRetry(
+        "https://example.com/x",
+        { method: "POST", body: "a=b" },
+        { maxAttempts: 3, baseDelayMs: 1, timeoutMs: 5000 },
+        fetchFn,
+      ),
+    ).rejects.toThrow();
+    expect(calls).toBe(1);
+  });
+
+  it("retries state-changing POST when the caller opts into idempotent retry", async () => {
+    let calls = 0;
+    const fetchFn = (async () => {
+      calls += 1;
+      return calls === 1 ? new Response("slow", { status: 429 }) : new Response("ok");
+    }) as FetchFn;
+    const response = await fetchWithRetry(
+      "https://example.com/x",
+      { method: "POST", body: "a=b" },
+      { maxAttempts: 3, baseDelayMs: 1, timeoutMs: 5000, retryStateChanging: true },
+      fetchFn,
+    );
+    expect(await response.text()).toBe("ok");
+    expect(calls).toBe(2);
+  });
 });
 
 describe("RateLimiter", () => {

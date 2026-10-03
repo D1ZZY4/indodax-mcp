@@ -3,7 +3,7 @@ import EmbeddedPostgres from "embedded-postgres";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { connectDatabase } from "../src/client.js";
-import { DrizzleAuditRepository } from "../src/repositories.js";
+import { DrizzleAuditRepository, DrizzlePaperLedgerRepository } from "../src/repositories.js";
 import { tenants } from "../src/schema.js";
 
 const PORT = 18899;
@@ -44,9 +44,15 @@ describe("db on real PostgreSQL", () => {
     await embedded.start();
     const { db, close: closeDb } = connectDatabase(URL);
     close = closeDb;
-    const sql = readFileSync(join(process.cwd(), "drizzle", "0000_mighty_sentinels.sql"), "utf8");
+    const { readdirSync: listDir } = await import("node:fs");
+    const drizzleDir = join(process.cwd(), "drizzle");
+    const migrations = listDir(drizzleDir)
+      .filter((entry) => entry.endsWith(".sql"))
+      .sort();
     const client = (await import("postgres")).default(URL, { max: 1 });
-    await client.unsafe(sql);
+    for (const migration of migrations) {
+      await client.unsafe(readFileSync(join(drizzleDir, migration), "utf8"));
+    }
     await client.end();
     await db.insert(tenants).values({ name: "t1" });
   }, 180_000);
@@ -63,6 +69,31 @@ describe("db on real PostgreSQL", () => {
       await repo.append({ eventId: "e1", correlationId: "c1", kind: "RiskApproved" });
       expect(await repo.trace("c1")).toHaveLength(1);
       expect(await repo.trace("missing")).toHaveLength(0);
+    } finally {
+      await closeDb();
+    }
+  });
+
+  it("saves and reloads paper ledger snapshots per tenant", async () => {
+    const { db, close: closeDb } = connectDatabase(URL);
+    try {
+      const repo = new DrizzlePaperLedgerRepository(db);
+      const tenant = await db.insert(tenants).values({ name: "paper-tenant" }).returning();
+      const tenantId = tenant[0]?.id as string;
+      expect(await repo.load(tenantId)).toBeNull();
+      const snapshot = {
+        balances: { idr: "99999000" },
+        orders: [],
+        nextOrderId: 2,
+        tradeCount: 1,
+        totalFees: "2.6",
+        initialBalances: { idr: "100000000" },
+      };
+      await repo.save(tenantId, snapshot);
+      await repo.save(tenantId, { ...snapshot, tradeCount: 2 });
+      const loaded = await repo.load(tenantId);
+      expect(loaded?.tradeCount).toBe(2);
+      expect(loaded?.balances).toEqual({ idr: "99999000" });
     } finally {
       await closeDb();
     }

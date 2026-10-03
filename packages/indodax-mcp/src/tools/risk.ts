@@ -4,6 +4,7 @@ import type { Registry } from "@indodax-mcp/mcp-registry";
 import type { ServerHandlers } from "@indodax-mcp/mcp-core";
 import { decimalOrNull, parseSymbolFlexible } from "@indodax-mcp/core";
 import { fail, ok, pairArg, parseArgs } from "../respond.js";
+import { resolveRiskContext } from "../risk-context.js";
 import type { AppServices } from "../composition.js";
 
 export function registerRiskTools(
@@ -99,19 +100,11 @@ export function registerRiskTools(
       const mode = args.mode ?? "paper";
       const decision = app.risk.evaluate(
         { notional: price.mul(quantity), quantity, price, isMarket: false, symbol: args.pair },
-        {
+        await resolveRiskContext(app, {
           mode,
           capability: mode === "paper" ? "PAPER" : "TRADE",
-          marketAgeMs: 5_000,
-          accountAgeMs: 5_000,
-          dailyPnl: null,
-          tradeCount: 0,
-          duplicate: false,
-          reconciliationHalted: false,
-          deadmanUnknown: mode === "live" && app.deadman.snapshot().state === "DISARMED",
-          deadmanState: app.deadman.snapshot().state,
-          balanceSufficient: null,
-        },
+          pair: args.pair,
+        }),
       );
       return ok({
         outcome: decision.outcome,

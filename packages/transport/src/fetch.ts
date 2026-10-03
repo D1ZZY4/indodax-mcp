@@ -9,12 +9,22 @@ export interface RetryPolicy {
   maxAttempts: number;
   baseDelayMs: number;
   timeoutMs: number;
+  /**
+   * Retry classification for state-changing requests. Safe methods
+   * (GET/HEAD/OPTIONS) are always retried on 429/5xx/timeout. Unsafe
+   * methods (POST/PUT/PATCH/DELETE) are attempted exactly once unless
+   * this flag is true, because a lost response after a successful
+   * submission would otherwise risk duplicate execution. Callers that
+   * can prove idempotency (client order keys, exchange dedup) opt in.
+   */
+  retryStateChanging?: boolean;
 }
 
 export const DEFAULT_RETRY_POLICY: RetryPolicy = {
   maxAttempts: 4,
   baseDelayMs: 500,
   timeoutMs: 30_000,
+  retryStateChanging: false,
 };
 
 export type FetchFn = (input: string, init?: RequestInit) => Promise<Response>;
@@ -27,6 +37,15 @@ function isRetryableStatus(status: number): boolean {
   return status === 429 || (status >= 500 && status <= 599);
 }
 
+function requestMethod(init: RequestInit): string {
+  const method = init.method ?? "GET";
+  return method.toUpperCase();
+}
+
+function isStateChanging(method: string): boolean {
+  return method !== "GET" && method !== "HEAD" && method !== "OPTIONS";
+}
+
 export async function fetchWithRetry(
   url: string,
   init: RequestInit = {},
@@ -34,7 +53,9 @@ export async function fetchWithRetry(
   fetchFn: FetchFn = fetch,
 ): Promise<Response> {
   let lastError: Error | null = null;
-  for (let attempt = 1; attempt <= policy.maxAttempts; attempt += 1) {
+  const stateChanging = isStateChanging(requestMethod(init));
+  const attempts = stateChanging && policy.retryStateChanging !== true ? 1 : policy.maxAttempts;
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
     if (attempt > 1) {
       await new Promise((resolve) =>
         setTimeout(resolve, backoffDelay(attempt - 1, policy.baseDelayMs)),

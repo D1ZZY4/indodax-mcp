@@ -82,9 +82,10 @@ export class ManagedSocket {
   }
 
   recover(channel: string, offset: number): void {
+    const previous = this.state;
     this.state = "RECOVERING";
     this.socket?.send(subscribeMessage(channel, 2, offset));
-    this.state = "LIVE";
+    this.state = this.socket ? previous : "DISCONNECTED";
   }
 
   disconnect(): void {
