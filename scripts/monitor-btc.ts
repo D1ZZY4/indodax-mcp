@@ -4,6 +4,9 @@ const UP_PCT = Number(process.env.MONITOR_UP_PCT ?? "2");
 const DOWN_PCT = Number(process.env.MONITOR_DOWN_PCT ?? "2");
 const BTC_HELD = Number(process.env.MONITOR_BTC_HELD ?? "0.0000095");
 const ONCE = process.argv.includes("--once");
+// Exit the process when an alert triggers so the supervising session
+// wakes up and can notify the user. Set to "0" to keep looping.
+const EXIT_ON_TRIGGER = (process.env.MONITOR_EXIT_ON_TRIGGER ?? "1") !== "0";
 
 interface TickerBody {
   last: string;
@@ -41,11 +44,19 @@ async function tick(latched: Set<string>): Promise<void> {
     latched.add("up");
     notify("BTC alert up", `${PAIR} ${last} crossed +${UP_PCT}% from ${REFERENCE}`);
     console.log(`${at} TRIGGER up ${last}`);
+    if (EXIT_ON_TRIGGER) {
+      console.log(`${at} ALERT up delivered, exiting for supervisor pickup`);
+      process.exit(0);
+    }
   }
   if (last <= downAt && !latched.has("down")) {
     latched.add("down");
     notify("BTC alert down", `${PAIR} ${last} crossed -${DOWN_PCT}% from ${REFERENCE}`);
     console.log(`${at} TRIGGER down ${last}`);
+    if (EXIT_ON_TRIGGER) {
+      console.log(`${at} ALERT down delivered, exiting for supervisor pickup`);
+      process.exit(0);
+    }
   }
 }
 
