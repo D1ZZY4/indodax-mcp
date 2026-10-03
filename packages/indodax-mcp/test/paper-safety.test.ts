@@ -166,4 +166,16 @@ describe("paper safety", () => {
       vi.useRealTimers();
     }
   });
+
+  it("rejects MARKET paper orders with a clear simulation message", async () => {
+    const app = createApp(loadEnv({}));
+    await expect(
+      placePaperOrder(app, {
+        pair: "btc_idr",
+        side: "BUY",
+        orderType: "MARKET",
+        quantity: 1,
+      }),
+    ).rejects.toThrow(/MARKET is not supported in simulation/i);
+  });
 });

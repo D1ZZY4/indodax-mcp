@@ -45,6 +45,11 @@ function draftIntent(
   const capability = capabilityFor(mode);
   const symbol = parseSymbolFlexible(args.pair);
   if (!symbol) throw ValidationError(`invalid pair: ${args.pair}`);
+  if (mode === "paper" && args.price === undefined) {
+    throw ValidationError(
+      "paper orders require a limit price; MARKET orders are not supported in simulation",
+    );
+  }
   return {
     intent: {
       agentId: "mcp",

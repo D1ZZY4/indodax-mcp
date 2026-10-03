@@ -42,6 +42,11 @@ export async function placePaperOrder(app: AppServices, placement: PaperPlacemen
     throw RiskDeniedError(`deadman ${app.deadman.snapshot().state} halts trading`);
   }
   const orderType = placement.orderType ?? "LIMIT";
+  if (orderType !== "LIMIT") {
+    throw ValidationError(
+      "paper orders require LIMIT with a positive price; MARKET is not supported in simulation",
+    );
+  }
   const price = placement.price === undefined ? null : new Decimal(placement.price);
   const quantity = new Decimal(placement.quantity);
   const notional = price === null ? null : price.mul(quantity);
