@@ -45,7 +45,7 @@ Several MCP callers resolve market freshness from a live ticker read and daily P
 
 ## 3. Deadman
 
-The Deadman package implements its own state machine and tool surface. The current application does not expose a supported live trading path, so Deadman is currently an operational state model rather than a switch that can enable live trading.
+The Deadman package implements its own state machine and tool surface. Live trading additionally requires Deadman to be armed, otherwise risk fails closed.
 
 Future live work must fail closed when the Deadman heartbeat is stale or unknown.
 

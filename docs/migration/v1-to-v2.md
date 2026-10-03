@@ -30,7 +30,7 @@ The rebuild expands the original CLI scope for **developers**, **beginners**, **
 
 An agent harness can operate an account through the MCP surface, so **supervise your agent harness and do not trust it blindly**. Give it **clear instructions with full context**, and verify proposals against current balances, risk verdicts, and reconciliation state before acting.
 
-The current composition keeps **default safeguards that constrain agent harnesses**, including paper-only server policy, explicit capability metadata, auth and environment guards, deterministic risk review, and no server-side withdrawal path.
+The current composition keeps **default safeguards that constrain agent harnesses**, including paper-default policy with APP_ENV-gated live, explicit capability metadata, auth and environment guards, deterministic risk review, and no server-side withdrawal path.
 
 ## Important protocol corrections
 
@@ -50,7 +50,7 @@ Legacy v1 signing remains `HMAC-SHA512` and is isolated from the v2 signer.
 - `Decimal.js` is used at the financial boundary.
 - The order state machine is implemented in `packages/indodax-orders`.
 - Risk is a **deterministic service** with typed reasons.
-- Paper and live share the execution interface, while the current application policy allows **paper only**.
+- Paper and live share the execution interface, with paper as the default and live gated by environment, credentials, acknowledgement, and risk approval.
 - MCP handlers do **not own exchange signing or protocol details**.
 - PostgreSQL schema and repositories replace the old file-store direction at the persistence layer, but the main application remains **in-memory until repository wiring is completed**.
 - The old browser OAuth Authorization Code + PKCE flow is **not part of the current gateway**.

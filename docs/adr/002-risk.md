@@ -13,6 +13,6 @@ Execution must require an approving ALLOW risk decision at the ExecutionService 
 
 The risk engine evaluates policy, mode, capability, Deadman state for live contexts, duplicate state, freshness, notional limits, daily loss, trade count, balance, position exposure, and cooldown.
 
-The current application policy is paper-only. The live adapter exists, but the composed application does not currently authorize live execution.
+The current application policy defaults to paper. The live adapter executes only with environment, credential, acknowledgement, and risk gates satisfied.
 
 This ADR defines the boundary; it does not claim that every caller currently supplies complete authoritative runtime context.
