@@ -115,4 +115,20 @@ describe("risk engine", () => {
     const armed = engine.evaluate(order("100000"), { ...base, deadmanState: "ARMED" });
     expect(armed.outcome).toBe("ALLOW");
   });
+
+  it("treats DISARMED as explicit opt-out, not unknown", () => {
+    const engine = createRiskEngine(defaultRiskLimits(), {
+      ...paperOnlyPolicy(),
+      allowedModes: ["live", "paper"],
+      allowedCapabilities: ["READ", "PAPER", "TRADE"],
+    });
+    const decision = engine.evaluate(order("100000"), {
+      ...context(),
+      mode: "live" as const,
+      capability: "TRADE" as const,
+      deadmanUnknown: false,
+      deadmanState: "DISARMED",
+    });
+    expect(decision.outcome).toBe("ALLOW");
+  });
 });

@@ -83,7 +83,9 @@ export async function resolveRiskContext(
     tradeCount: ledger.tradeCount,
     duplicate,
     reconciliationHalted: app.reconciliationHalted,
-    deadmanUnknown: request.mode === "live" && app.deadman.snapshot().state === "DISARMED",
+    // DISARMED is an explicit opt-out of heartbeat protection, so it never
+    // counts as unknown. STALE and EXPIRED still halt live trading below.
+    deadmanUnknown: false,
     deadmanState: app.deadman.snapshot().state,
     balanceSufficient: request.balanceSufficient ?? null,
     positionNotional: openExposure(ledger.orders),
