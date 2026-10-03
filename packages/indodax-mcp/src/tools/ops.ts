@@ -282,10 +282,12 @@ export function registerOpsTools(
         raw,
       );
       const scope = args.scope ?? "all";
+      const restored: string[] = [];
       if (scope === "market" || scope === "all") {
         app.marketSocket.disconnect();
         for (const sub of app.marketSocket.listSubscriptions()) {
           app.marketSocket.subscribe(sub.channel);
+          restored.push(sub.channel);
         }
       }
       if (scope === "private" || scope === "all") {
@@ -294,8 +296,9 @@ export function registerOpsTools(
         }
         app.privateChannel.disconnect();
         await app.privateChannel.connect(app.privateTokenFetcher);
+        restored.push(app.privateChannel.channel ?? "private");
       }
-      return ok({ scope, reconnected: true });
+      return ok({ scope, reconnected: restored.length > 0, restored });
     } catch (error) {
       return fail(error);
     }
