@@ -8,7 +8,7 @@ import {
   subscribeMessage,
   unsubscribeMessage,
 } from "../src/protocol.js";
-import { compactPair, summaryRows } from "../src/socket.js";
+import { compactPair, summaryRows, ManagedSocket } from "../src/socket.js";
 import { isStpCancellation, parseOrderUpdate, tokenExpired } from "../src/private.js";
 
 describe("websocket protocol", () => {
@@ -90,5 +90,12 @@ describe("summary snapshot", () => {
     expect(rows).toEqual([["btcidr", 1, 2]]);
     expect(summaryRows({ data: "nope", offset: 1 })).toEqual([]);
     expect(summaryRows(null)).toEqual([]);
+  });
+
+  it("keeps RECOVERING until reconnect when socket exists", () => {
+    const socket = new ManagedSocket(() => {});
+    expect(socket.connectionState).toBe("DISCONNECTED");
+    socket.recover("c", 9);
+    expect(socket.connectionState).toBe("DISCONNECTED");
   });
 });
