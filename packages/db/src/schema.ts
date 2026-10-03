@@ -311,3 +311,15 @@ export const paperLedgers = pgTable(
   },
   (table) => [uniqueIndex("paper_ledgers_tenant_uidx").on(table.tenantId)],
 );
+
+export const alertSnapshots = pgTable("alert_snapshots", {
+  id: text("id").primaryKey(),
+  snapshot: jsonb("snapshot").notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+export const stopSnapshots = pgTable("stop_snapshots", {
+  id: text("id").primaryKey(),
+  snapshot: jsonb("snapshot").notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+});

@@ -45,6 +45,40 @@ export class AlertStore {
   private readonly alerts = new Map<string, PriceAlert>();
   private counter = 1;
 
+  restore(stored: unknown[]): void {
+    this.alerts.clear();
+    let max = 0;
+    for (const item of stored) {
+      if (typeof item !== "object" || item === null) continue;
+      const candidate = item as Record<string, unknown>;
+      if (
+        typeof candidate.id !== "string" ||
+        typeof candidate.pair !== "string" ||
+        typeof candidate.condition !== "object" ||
+        (candidate.status !== "active" &&
+          candidate.status !== "triggered" &&
+          candidate.status !== "cancelled") ||
+        typeof candidate.createdAt !== "string"
+      ) {
+        continue;
+      }
+      const numeric = Number(candidate.id.replace("alert-", ""));
+      if (Number.isInteger(numeric) && numeric > max) max = numeric;
+      this.alerts.set(candidate.id, {
+        id: candidate.id,
+        pair: candidate.pair,
+        condition: candidate.condition as PriceAlert["condition"],
+        status: candidate.status,
+        ...(typeof candidate.note === "string" ? { note: candidate.note } : {}),
+        createdAt: candidate.createdAt,
+        ...(typeof candidate.triggeredAt === "string"
+          ? { triggeredAt: candidate.triggeredAt }
+          : {}),
+      });
+    }
+    this.counter = max + 1;
+  }
+
   add(alert: Omit<PriceAlert, "id" | "status" | "createdAt">): PriceAlert {
     const record: PriceAlert = {
       ...alert,

@@ -1,6 +1,7 @@
 import { eq } from "drizzle-orm";
 import type { Database } from "./client.js";
 import { auditEvents, orders, paperLedgers, tenants } from "./schema.js";
+import type { alertSnapshots, stopSnapshots } from "./schema.js";
 
 export interface AuditRecord {
   eventId: string;
@@ -116,5 +117,28 @@ export class DrizzlePaperLedgerRepository {
       .where(eq(paperLedgers.tenantId, tenantId));
     const snapshot = rows[0]?.snapshot as PaperLedgerSnapshot | undefined;
     return snapshot ?? null;
+  }
+}
+
+export class DrizzleSnapshotRepository {
+  constructor(
+    private readonly db: Database,
+    private readonly table: typeof alertSnapshots | typeof stopSnapshots,
+  ) {}
+
+  async save(id: string, snapshot: unknown): Promise<void> {
+    await this.db
+      .insert(this.table)
+      .values({ id, snapshot })
+      .onConflictDoUpdate({
+        target: this.table.id,
+        set: { snapshot, updatedAt: new Date() },
+      });
+  }
+
+  async load(id: string): Promise<unknown[] | null> {
+    const rows = await this.db.select().from(this.table).where(eq(this.table.id, id));
+    const snapshot = rows[0]?.snapshot as unknown[] | undefined;
+    return Array.isArray(snapshot) ? snapshot : null;
   }
 }

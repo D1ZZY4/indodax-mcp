@@ -39,6 +39,56 @@ function crossed(side: "BUY" | "SELL", last: number, stopPrice: number): boolean
   return side === "SELL" ? last <= stopPrice : last >= stopPrice;
 }
 
+export interface StopFireResult {
+  checked: number;
+  fired: { id: string; status: string; price?: number; reason?: string }[];
+}
+
+/** Shared trigger evaluation used by the tool and the optional autopoll job. */
+export async function evaluateStops(app: AppServices): Promise<StopFireResult> {
+  const fired: StopFireResult["fired"] = [];
+  for (const stop of app.stops.list()) {
+    let last: number | null = null;
+    try {
+      const ticker = await getTicker(app.publicClient, stop.pair);
+      const parsed = decimalOrNull(ticker.last);
+      last = parsed ? parsed.toNumber() : null;
+    } catch {
+      last = null;
+    }
+    if (last === null || !crossed(stop.side, last, stop.stopPrice)) continue;
+    try {
+      const result =
+        stop.mode === "live"
+          ? await placeLiveOrder(app, {
+              pair: stop.pair,
+              side: stop.side,
+              quantity: stop.quantity,
+              price: stop.limitPrice,
+              ...(stop.clientOrderId !== undefined ? { clientOrderId: stop.clientOrderId } : {}),
+              ...(stop.timeInForce !== undefined ? { timeInForce: stop.timeInForce } : {}),
+              ...(stop.stpMode !== undefined ? { stpMode: stop.stpMode } : {}),
+              acknowledged: true,
+            })
+          : await placePaperOrder(app, {
+              pair: stop.pair,
+              side: stop.side,
+              orderType: "LIMIT",
+              price: stop.limitPrice,
+              quantity: stop.quantity,
+              ...(stop.clientOrderId !== undefined ? { clientOrderId: stop.clientOrderId } : {}),
+            });
+      app.stops.mark(stop.id, "triggered", { result });
+      fired.push({ id: stop.id, status: "triggered", price: last });
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : String(error);
+      app.stops.mark(stop.id, "failed", { reason });
+      fired.push({ id: stop.id, status: "failed", reason });
+    }
+  }
+  return { checked: app.stops.list(true).length, fired };
+}
+
 export function registerStopTools(
   registry: Registry,
   handlers: ServerHandlers,
@@ -129,51 +179,7 @@ export function registerStopTools(
 
   handlers.tools.set("indodax_stop_check", async () => {
     try {
-      const fired = [];
-      for (const stop of app.stops.list()) {
-        let last: number | null = null;
-        try {
-          const ticker = await getTicker(app.publicClient, stop.pair);
-          const parsed = decimalOrNull(ticker.last);
-          last = parsed ? parsed.toNumber() : null;
-        } catch {
-          last = null;
-        }
-        if (last === null || !crossed(stop.side, last, stop.stopPrice)) continue;
-        try {
-          const result =
-            stop.mode === "live"
-              ? await placeLiveOrder(app, {
-                  pair: stop.pair,
-                  side: stop.side,
-                  quantity: stop.quantity,
-                  price: stop.limitPrice,
-                  ...(stop.clientOrderId !== undefined
-                    ? { clientOrderId: stop.clientOrderId }
-                    : {}),
-                  ...(stop.timeInForce !== undefined ? { timeInForce: stop.timeInForce } : {}),
-                  ...(stop.stpMode !== undefined ? { stpMode: stop.stpMode } : {}),
-                  acknowledged: true,
-                })
-              : await placePaperOrder(app, {
-                  pair: stop.pair,
-                  side: stop.side,
-                  orderType: "LIMIT",
-                  price: stop.limitPrice,
-                  quantity: stop.quantity,
-                  ...(stop.clientOrderId !== undefined
-                    ? { clientOrderId: stop.clientOrderId }
-                    : {}),
-                });
-          app.stops.mark(stop.id, "triggered", { result });
-          fired.push({ id: stop.id, status: "triggered", price: last });
-        } catch (error) {
-          const reason = error instanceof Error ? error.message : String(error);
-          app.stops.mark(stop.id, "failed", { reason });
-          fired.push({ id: stop.id, status: "failed", reason });
-        }
-      }
-      return ok({ checked: app.stops.list(true).length, fired });
+      return ok(await evaluateStops(app));
     } catch (error) {
       return fail(error);
     }

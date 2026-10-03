@@ -11,6 +11,7 @@ const serverSchema = {
   APP_ENV: z.enum(["development", "paper", "live"]).default("paper"),
   TRADE_ENABLED: z.coerce.boolean().optional(),
   WITHDRAW_ENABLED: z.coerce.boolean().optional(),
+  STOP_AUTOPOLL_MS: z.coerce.number().int().positive().optional(),
 };
 
 export interface AppEnv {
@@ -23,6 +24,7 @@ export interface AppEnv {
   APP_ENV: "development" | "paper" | "live";
   TRADE_ENABLED?: boolean | undefined;
   WITHDRAW_ENABLED?: boolean | undefined;
+  STOP_AUTOPOLL_MS?: number | undefined;
 }
 
 export function loadEnv(source: Record<string, string | undefined> = process.env): AppEnv {

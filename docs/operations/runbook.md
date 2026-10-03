@@ -64,7 +64,7 @@ After rotating an INDODAX key:
 
 ## Database
 
-The database package provides PostgreSQL schema, migrations, and repository implementations.
+The database package provides PostgreSQL schema, migrations, and repository implementations. Paper ledgers, audit trails, alerts, and stops mirror to Postgres when configured and reload on boot. Runtime state without a database row stays in memory.
 
 The current main application composition does not use PostgreSQL as its source of truth. Database health must therefore be evaluated separately from MCP application health until runtime wiring is completed.
 

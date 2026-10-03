@@ -55,4 +55,32 @@ describe("stop orders", () => {
       await harness.close();
     }
   });
+
+  it("schedules stop autopoll only when configured", () => {
+    const off = buildIndodaxServer(loadEnv({}));
+    expect(off.app.scheduler.running).not.toContain("stop-autopoll");
+    off.app.scheduler.stopAll();
+    const on = buildIndodaxServer(loadEnv({ STOP_AUTOPOLL_MS: "60000" }));
+    expect(on.app.scheduler.running).toContain("stop-autopoll");
+    on.app.scheduler.stopAll();
+  });
+
+  it("restores stop snapshots and skips corrupt rows", () => {
+    const { app } = buildIndodaxServer(loadEnv({}));
+    app.stops.restore([
+      {
+        id: "stop-7",
+        pair: "btc_idr",
+        side: "SELL",
+        quantity: 0.01,
+        stopPrice: 100,
+        limitPrice: 100,
+        mode: "paper",
+        status: "open",
+        createdAt: "2026-01-01T00:00:00.000Z",
+      },
+      { nope: true },
+    ]);
+    expect(app.stops.list()).toHaveLength(1);
+  });
 });

@@ -5,6 +5,8 @@ import { createApp, type AppServices } from "./composition.js";
 import { buildGuard } from "./guard.js";
 import { attachAuditPersistence } from "./audit-store.js";
 import { attachPaperPersistence } from "./order-store.js";
+import { attachAlertPersistence, attachStopPersistence } from "./state-store.js";
+import { evaluateStops } from "./tools/stop.js";
 import { registerMarketTools } from "./tools/market.js";
 import { registerAccountTools } from "./tools/account.js";
 import { registerOrderTools } from "./tools/orders.js";
@@ -36,10 +38,28 @@ export function buildIndodaxServer(env: AppEnv) {
   const app: AppServices = createApp(env);
   void attachAuditPersistence(app);
   void attachPaperPersistence(app);
+  void attachAlertPersistence(app);
+  void attachStopPersistence(app);
+  if (app.env.STOP_AUTOPOLL_MS !== undefined) {
+    app.scheduler.start({
+      name: "stop-autopoll",
+      intervalMs: app.env.STOP_AUTOPOLL_MS,
+      task: async () => {
+        const { fired } = await evaluateStops(app);
+        if (fired.length > 0) {
+          app.logger.info({ fired: fired.length }, "stop autopoll fired");
+        }
+      },
+    });
+  }
   app.health.set("configuration", { status: "healthy", detail: "environment parsed" });
   app.health.set("runtime", { status: "healthy", detail: "server composed" });
   app.health.set("mcpTransport", { status: "healthy", detail: "registry built" });
-  app.health.set("scheduler", { status: "healthy", detail: "no jobs scheduled" });
+  app.health.set("scheduler", {
+    status: "healthy",
+    detail:
+      app.env.STOP_AUTOPOLL_MS !== undefined ? "stop-autopoll scheduled" : "no jobs scheduled",
+  });
   app.health.set("deadman", { status: "healthy", detail: "disarmed" });
   const registry = new Registry();
   const handlers = emptyHandlers();

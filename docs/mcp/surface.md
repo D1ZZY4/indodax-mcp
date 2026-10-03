@@ -31,7 +31,7 @@ The registry currently contains **79 tools**, **11 resources**, and **5 prompts*
 | System | Health, readiness, configuration, runtime, auth, and withdrawal denial |
 | Funding | Authenticated read-only funding information |
 | History | Exchange history and paper-fill helpers |
-| Operations | Exposure, WebSocket state/reconnect helpers, private channel connect, and Deadman state |
+| Operations | Exposure, WebSocket state/reconnect helpers, private channel connect, Deadman state, and stop trigger checks |
 
 ## Resources
 

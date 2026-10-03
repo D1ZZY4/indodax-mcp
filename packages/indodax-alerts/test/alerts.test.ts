@@ -15,4 +15,23 @@ describe("alerts", () => {
     expect(store.list()).toHaveLength(0);
     expect(store.cancel(alert.id)).toBe(false);
   });
+
+  it("restores snapshots and skips corrupt rows", () => {
+    const store = new AlertStore();
+    store.restore([
+      {
+        id: "alert-4",
+        pair: "btc_idr",
+        condition: { type: "above", price: "10" },
+        status: "active",
+        createdAt: "2026-01-01T00:00:00.000Z",
+      },
+      { nope: true },
+      { id: "alert-x", pair: "btc_idr" },
+    ]);
+    expect(store.list()).toHaveLength(1);
+    expect(store.add({ pair: "eth_idr", condition: { type: "below", price: "5" } }).id).toBe(
+      "alert-5",
+    );
+  });
 });
