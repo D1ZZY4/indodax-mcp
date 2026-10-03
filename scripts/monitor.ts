@@ -1,14 +1,30 @@
 export {};
 
+// Generic price monitor for any INDODAX pair.
+//
+// Usage:
+//   bun scripts/monitor.ts --once
+//   MONITOR_PAIR=eth_idr bun scripts/monitor.ts
+//
+// Environment:
+//   MONITOR_PAIR          pair like btc_idr (default btc_idr)
+//   MONITOR_REFERENCE     baseline price; defaults to the first observed tick
+//   MONITOR_UP_PCT        rise trigger percent (default 2, 0 disables)
+//   MONITOR_DOWN_PCT      fall trigger percent (default 2, 0 disables)
+//   MONITOR_AMOUNT_HELD   optional held base amount for position valuation
+//   MONITOR_EXIT_ON_TRIGGER  exit on first trigger so a supervisor picks
+//                            up the alert; set to "0" to keep looping
+//
+// Read-only. Makes no orders and holds no credentials.
+
 const PAIR = process.env.MONITOR_PAIR ?? "btc_idr";
-const REFERENCE = Number(process.env.MONITOR_REFERENCE ?? "1514997000");
 const UP_PCT = Number(process.env.MONITOR_UP_PCT ?? "2");
 const DOWN_PCT = Number(process.env.MONITOR_DOWN_PCT ?? "2");
-const BTC_HELD = Number(process.env.MONITOR_BTC_HELD ?? "0.0000095");
+const AMOUNT_HELD = Number(process.env.MONITOR_AMOUNT_HELD ?? "0");
 const ONCE = process.argv.includes("--once");
-// Exit the process when an alert triggers so the supervising session
-// wakes up and can notify the user. Set to "0" to keep looping.
 const EXIT_ON_TRIGGER = (process.env.MONITOR_EXIT_ON_TRIGGER ?? "1") !== "0";
+
+let reference = Number(process.env.MONITOR_REFERENCE ?? "0");
 
 interface TickerBody {
   last: string;
@@ -38,13 +54,17 @@ async function tick(latched: Set<string>): Promise<void> {
   const ticker = await fetchTicker(PAIR);
   const last = Number(ticker.last);
   const at = new Date().toISOString();
-  const value = last * BTC_HELD;
-  console.log(`${at} ${PAIR} last=${ticker.last} pos=${value.toFixed(0)}idr`);
-  const upAt = REFERENCE * (1 + UP_PCT / 100);
-  const downAt = REFERENCE * (1 - DOWN_PCT / 100);
+  if (!(reference > 0)) {
+    reference = last;
+    console.log(`${at} ${PAIR} baseline=${reference}`);
+  }
+  const held = AMOUNT_HELD > 0 ? ` pos=${(last * AMOUNT_HELD).toFixed(0)}` : "";
+  console.log(`${at} ${PAIR} last=${ticker.last}${held}`);
+  const upAt = UP_PCT > 0 ? reference * (1 + UP_PCT / 100) : Number.POSITIVE_INFINITY;
+  const downAt = DOWN_PCT > 0 ? reference * (1 - DOWN_PCT / 100) : 0;
   if (last >= upAt && !latched.has("up")) {
     latched.add("up");
-    notify("BTC alert up", `${PAIR} ${last} crossed +${UP_PCT}% from ${REFERENCE}`);
+    notify("Price alert up", `${PAIR} ${last} crossed +${UP_PCT}% from ${reference}`);
     console.log(`${at} TRIGGER up ${last}`);
     if (EXIT_ON_TRIGGER) {
       console.log(`${at} ALERT up delivered, exiting for supervisor pickup`);
@@ -53,7 +73,7 @@ async function tick(latched: Set<string>): Promise<void> {
   }
   if (last <= downAt && !latched.has("down")) {
     latched.add("down");
-    notify("BTC alert down", `${PAIR} ${last} crossed -${DOWN_PCT}% from ${REFERENCE}`);
+    notify("Price alert down", `${PAIR} ${last} crossed -${DOWN_PCT}% from ${reference}`);
     console.log(`${at} TRIGGER down ${last}`);
     if (EXIT_ON_TRIGGER) {
       console.log(`${at} ALERT down delivered, exiting for supervisor pickup`);
