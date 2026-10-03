@@ -44,7 +44,7 @@ The registry validates metadata when a tool is registered.
 
 ## Current groups
 
-- market.ts: public market reads.
+- market.ts: public market reads with quote and limit filters.
 - account.ts: authenticated account reads.
 - orders.ts: order validation, proposals, paper creation, and paper cancellation.
 - paper.ts: paper ledger operations and risk-reviewed paper placement.
