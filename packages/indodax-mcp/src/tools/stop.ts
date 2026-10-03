@@ -137,8 +137,16 @@ export function registerStopTools(
     try {
       const args = parseArgs(stopInput, raw);
       const mode = args.mode ?? "paper";
-      if (mode === "live" && args.acknowledged !== true) {
-        throw ValidationError("live stops need acknowledged true");
+      if (mode === "live") {
+        if (args.acknowledged !== true) {
+          throw ValidationError("live stops need acknowledged true");
+        }
+        if (app.env.APP_ENV !== "live" || app.env.TRADE_ENABLED !== true) {
+          throw ValidationError("live stops need APP_ENV=live and TRADE_ENABLED=true");
+        }
+        if (!app.accountClient || !app.liveExecutor) {
+          throw ValidationError("live stops need API credentials");
+        }
       }
       const stop = app.stops.add({
         pair: args.pair,
