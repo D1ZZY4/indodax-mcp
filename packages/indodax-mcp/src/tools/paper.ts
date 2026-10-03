@@ -5,7 +5,6 @@ import type { Registry } from "@indodax-mcp/mcp-registry";
 import type { ServerHandlers } from "@indodax-mcp/mcp-core";
 import { parseSymbolFlexible } from "@indodax-mcp/core";
 import { ExecutionService } from "@indodax-mcp/indodax-execution";
-import type { ExecutionResult } from "@indodax-mcp/indodax-execution";
 import { fail, ok, parseArgs } from "../respond.js";
 import { clientOrderIdArg, pairArg, priceArg, quantityArg, sideArg } from "../schemas.js";
 import { resolveRiskContext } from "../risk-context.js";
@@ -23,21 +22,6 @@ const PAPER = {
 
 const PAPER_READ = { ...PAPER, riskClass: "read" as const, auditClass: "read" as const };
 
-/** Idempotent replay: a repeated clientOrderId returns the first result. */
-const paperResults = new Map<string, ExecutionResult>();
-
-/** Bounded so long-running processes cannot leak memory. Oldest entry evicted first. */
-const MAX_REPLAY_ENTRIES = 100;
-
-function rememberResult(clientOrderId: string, result: ExecutionResult): void {
-  paperResults.set(clientOrderId, result);
-  while (paperResults.size > MAX_REPLAY_ENTRIES) {
-    const oldest = paperResults.keys().next().value;
-    if (oldest === undefined) break;
-    paperResults.delete(oldest);
-  }
-}
-
 export interface PaperPlacement {
   pair: string;
   side: "BUY" | "SELL";
@@ -49,7 +33,7 @@ export interface PaperPlacement {
 
 export async function placePaperOrder(app: AppServices, placement: PaperPlacement) {
   if (placement.clientOrderId !== undefined && placement.clientOrderId !== "") {
-    const replay = paperResults.get(placement.clientOrderId);
+    const replay = app.paper.replayResult(placement.clientOrderId);
     if (replay) return replay;
   }
   const symbol = parseSymbolFlexible(placement.pair);
@@ -109,7 +93,7 @@ export async function placePaperOrder(app: AppServices, placement: PaperPlacemen
     decision,
   );
   if (placement.clientOrderId !== undefined && placement.clientOrderId !== "") {
-    rememberResult(placement.clientOrderId, result);
+    app.paper.rememberResult(placement.clientOrderId, result);
   }
   return result;
 }

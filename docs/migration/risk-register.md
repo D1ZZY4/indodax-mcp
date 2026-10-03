@@ -18,9 +18,9 @@ Mitigation: wire authenticated exchange order/trade reads into a durable reconci
 
 ## R3. Risk context is partially authoritative
 
-The risk engine supports freshness, daily loss, position exposure, cooldown, balance, and other checks. MCP callers now resolve trade count, cooldown, duplicates, position exposure, and realized daily PnL from the live ledger, with market freshness from a best-effort ticker read that degrades to unknown offline.
+The risk engine supports freshness, daily loss, position exposure, cooldown, balance, and other checks. MCP callers now resolve trade count, cooldown, duplicates, position exposure, and daily PnL from the live ledger, with market freshness from a last-seen ticker read that grows stale offline. Daily PnL marks realized fills plus open-position unrealized at live prices; quantities without tracked basis contribute zero rather than invented gains.
 
-Impact: the policy primitive is **deterministic**, and most inputs are now authoritative, but offline market age and unrealized PnL remain uncovered.
+Impact: the policy primitive is **deterministic**, and most inputs are now authoritative. A market never reached stays unknown rather than fresh.
 
 Mitigation: keep resolving context from current market, account, portfolio, and reconciliation state; treat a null market age as unknown rather than fresh.
 

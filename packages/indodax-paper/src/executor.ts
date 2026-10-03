@@ -25,6 +25,8 @@ export interface PaperLedger {
   costBasis: Record<string, CostBasis>;
   /** Realized PnL in quote currency per UTC day (YYYY-MM-DD). */
   realizedByDay: Record<string, string>;
+  /** Idempotent replay log: clientOrderId to first execution result. Bounded at 100. */
+  replays: Record<string, ExecutionResult>;
 }
 
 export function currentUtcDay(at: Date = new Date()): string {
@@ -42,6 +44,7 @@ export function defaultLedger(): PaperLedger {
     initialBalances: { ...balances },
     costBasis: {},
     realizedByDay: {},
+    replays: {},
   };
 }
 
@@ -80,7 +83,26 @@ export class PaperExecutor implements ExecutionBackend {
     const normalized = JSON.parse(JSON.stringify(candidate)) as PaperLedger;
     normalized.costBasis ??= {};
     normalized.realizedByDay ??= {};
+    normalized.replays ??= {};
     this.ledger = normalized;
+  }
+
+  /** Bounded replay log so long-running processes cannot leak memory. */
+  static readonly MAX_REPLAYS = 100;
+
+  replayResult(clientOrderId: string): ExecutionResult | null {
+    const stored = this.ledger.replays[clientOrderId];
+    return stored ? { ...stored } : null;
+  }
+
+  rememberResult(clientOrderId: string, result: ExecutionResult): void {
+    this.ledger.replays[clientOrderId] = { ...result };
+    const keys = Object.keys(this.ledger.replays);
+    while (keys.length > PaperExecutor.MAX_REPLAYS) {
+      const oldest = keys.shift();
+      if (oldest === undefined) break;
+      delete this.ledger.replays[oldest];
+    }
   }
 
   openOrders(): OrderRecord[] {
@@ -212,16 +234,21 @@ export class PaperExecutor implements ExecutionBackend {
   }
 
   private realizePnl(asset: string, qty: Decimal, proceeds: Decimal): void {
+    // Only the fraction covered by tracked basis contributes realized PnL.
+    // Top-ups and opening balances carry no basis, so selling them must not
+    // invent gains: the uncovered fraction contributes exactly zero.
     const basis = this.ledger.costBasis[asset] ?? { qty: "0", total: "0" };
     const basisQty = new Decimal(basis.qty);
+    const covered = Decimal.min(qty, Decimal.max(0, basisQty));
     const consumed = basisQty.gt(0)
-      ? new Decimal(basis.total).mul(Decimal.min(qty, basisQty)).div(basisQty)
+      ? new Decimal(basis.total).mul(covered).div(basisQty)
       : new Decimal(0);
     this.ledger.costBasis[asset] = {
-      qty: Decimal.max(0, basisQty.minus(qty)).toString(),
+      qty: Decimal.max(0, basisQty.minus(covered)).toString(),
       total: Decimal.max(0, new Decimal(basis.total).minus(consumed)).toString(),
     };
-    const realized = proceeds.minus(consumed);
+    const unitProceeds = qty.gt(0) ? proceeds.div(qty) : new Decimal(0);
+    const realized = unitProceeds.mul(covered).minus(consumed);
     const day = currentUtcDay();
     const prior = new Decimal(this.ledger.realizedByDay[day] ?? "0");
     this.ledger.realizedByDay[day] = prior.plus(realized).toString();
