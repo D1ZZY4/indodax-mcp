@@ -13,7 +13,7 @@ killSwitch = false
 circuitBreaker = false
 ~~~
 
-With `APP_ENV=live` the composition uses liveEnabledPolicy:
+With `APP_ENV=live` plus `TRADE_ENABLED=true` the composition uses liveEnabledPolicy:
 
 ~~~text
 allowedModes = ["paper", "live"]

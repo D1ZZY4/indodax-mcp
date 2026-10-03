@@ -61,6 +61,9 @@ The registry validates metadata when a tool is registered.
 - system.ts: status, configuration, authentication state, WebSocket snapshots, and withdrawal denial.
 - funding.ts: authenticated read-only funding information.
 - history.ts and ops.ts: history, operational helpers, and private channel connect.
+- stop.ts and stop-store.ts: server-side emulated stops plus trigger checks.
+- deadman.ts: Deadman safety state tools.
+- order-intent.ts: shared intent drafting plus the live placement path.
 
 ## Response contract
 

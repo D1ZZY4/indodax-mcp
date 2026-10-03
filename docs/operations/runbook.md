@@ -46,7 +46,7 @@ Use indodax_ws_status to inspect managed socket state and subscriptions.
 
 Use indodax_ws_ticker for a one-shot market snapshot.
 
-The managed WebSocket implementation currently supports authentication, subscriptions, offsets, and reconnect helpers, but the private WebSocket lifecycle is not a complete production integration. Do not treat a connected private socket as proof of durable order-state synchronization.
+The private channel connects with a generated 24h token through `indodax_private_connect` and streams order updates over the official dialect. Treat it as a live event mirror, not as durable order-state synchronization. Reconnect with `indodax_ws_reconnect` scope private when the token nears expiry.
 
 ## Credential rotation
 

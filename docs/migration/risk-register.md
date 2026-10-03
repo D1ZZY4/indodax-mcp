@@ -36,7 +36,7 @@ Mitigation: keep client order IDs on every mutating path and test duplicate scen
 
 The official private WebSocket uses a generated private token and a private-channel connection/subscription message shape. A dedicated `PrivateChannelManager` now handles token refresh ahead of the 24h expiry, channel subscribe, and bounded exponential reconnect.
 
-Impact: private order-event synchronization is now covered by unit-tested lifecycle logic, though live socket traffic remains unverified without exchange credentials.
+Impact: private order-event synchronization is covered by unit-tested lifecycle logic plus a verified live connect. Treat the stream as a live mirror, not as durable order-state truth.
 
 Mitigation: keep renewal, reconnect, and order-event reconciliation tests current with the official private-channel contract.
 

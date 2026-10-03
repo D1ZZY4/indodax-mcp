@@ -19,7 +19,9 @@ flowchart LR
 
 The indodax_paper_order flow builds a trade intent, creates an order proposal, runs risk review, and executes through ExecutionService into PaperExecutor.
 
-The indodax_create_order tool routes paper requests into the same paper placement helper. Live requests need acknowledgement, APP_ENV live, credentials, and risk ALLOW, then execute via LiveExecutor.
+The indodax_create_order tool routes paper requests into the same paper placement helper. Live requests need acknowledgement, APP_ENV live, `TRADE_ENABLED=true`, credentials, and risk ALLOW, then execute via LiveExecutor.
+
+Server-side stops trigger through the same gated path when `indodax_stop_check` runs, manually or on the opt-in `STOP_AUTOPOLL_MS` schedule.
 
 ## Live readiness boundary
 

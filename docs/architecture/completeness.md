@@ -47,8 +47,8 @@ Definitions:
 
 1. PostgreSQL is implemented as a database package but is **not the runtime source of truth**.
 2. The MCP reconciliation tools are **not a complete local-versus-exchange reconciliation workflow**.
-3. Some MCP risk callers supply fixed freshness values and null daily PnL, so risk context is **not fully authoritative** at every entrypoint.
-4. The transport retry helper is **not idempotency-aware** for state-changing requests.
-5. Live order placement is gated by `APP_ENV=live` plus credentials, acknowledgement, and risk approval. Withdrawal stays denied.
+3. Risk context resolves from live market reads, account sync state, ledger trade counts, and Deadman state. A market never reached stays unknown rather than fresh.
+4. State-changing requests attempt exactly once by default and opt into retries only with proven idempotency. Paper placement replays repeated client order ids.
+5. Live order placement is gated by `APP_ENV=live` plus `TRADE_ENABLED=true`, credentials, acknowledgement, and risk approval. Withdrawal stays denied.
 
 **Promote a capability to a stronger status only when** its wiring and tests are updated with it.
