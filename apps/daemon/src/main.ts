@@ -65,6 +65,13 @@ async function main(): Promise<void> {
     if (stopped) return;
     stopped = true;
     app.scheduler.stopAll();
+    for (const hook of app.shutdownHooks) {
+      try {
+        await hook();
+      } catch (error) {
+        logger.warn({ error: String(error) }, "daemon shutdown hook failed");
+      }
+    }
     logger.info("daemon shutdown complete");
     process.exit(0);
   };

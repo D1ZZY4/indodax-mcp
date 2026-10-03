@@ -45,6 +45,8 @@ export interface AppServices {
   accountSyncedAt: number | null;
   /** Set by full exchange reconciliation; enforced for live-mode risk evaluation. */
   reconciliationHalted: boolean;
+  /** Async resource cleanup (database pools). Short-lived CLIs must drain these to exit. */
+  shutdownHooks: Array<() => Promise<void>>;
 }
 
 export function createApp(env: AppEnv): AppServices {
@@ -106,5 +108,6 @@ export function createApp(env: AppEnv): AppServices {
     accountId: "local",
     accountSyncedAt: null,
     reconciliationHalted: false,
+    shutdownHooks: [],
   };
 }

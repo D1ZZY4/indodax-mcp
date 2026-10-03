@@ -5,7 +5,7 @@ import { buildHttpApp } from "@indodax-mcp/mcp-runtime";
 
 const env = loadEnv();
 const logger = createLogger({ service: "mcp-http" });
-const { server: mcpServer, registry } = buildIndodaxServer(env);
+const { server: mcpServer, registry, app: services } = buildIndodaxServer(env);
 const port = env.MCP_PORT ?? 8000;
 
 const app = buildHttpApp(() => mcpServer);
@@ -23,8 +23,17 @@ const server = Bun.serve({
 logger.info(`mcp http listening on ${port} with ${registry.listTools().length} tools`);
 
 function shutdown(): void {
-  server.stop(true);
-  process.exit(0);
+  void (async () => {
+    for (const hook of services.shutdownHooks) {
+      try {
+        await hook();
+      } catch (error) {
+        logger.warn({ error: String(error) }, "http shutdown hook failed");
+      }
+    }
+    server.stop(true);
+    process.exit(0);
+  })();
 }
 
 process.on("SIGINT", shutdown);

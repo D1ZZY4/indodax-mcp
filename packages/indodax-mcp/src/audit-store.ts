@@ -12,12 +12,18 @@ export function attachAuditPersistence(app: AppServices): void {
   const url = app.env.DATABASE_URL;
   if (!url) return;
   let repo: DrizzleAuditRepository;
+  let close: () => Promise<void>;
   try {
-    repo = new DrizzleAuditRepository(connectDatabase(url).db);
+    const connection = connectDatabase(url);
+    close = connection.close;
+    repo = new DrizzleAuditRepository(connection.db);
   } catch (error) {
     app.logger.warn({ error: String(error) }, "audit persistence disabled, keeping memory trail");
     return;
   }
+  app.shutdownHooks.push(async () => {
+    await close();
+  });
   const trail: AuditTrail = app.audit;
   const record = trail.record.bind(trail);
   trail.record = (entry) => {

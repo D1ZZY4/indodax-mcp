@@ -113,4 +113,8 @@ const main = defineCommand({
   subCommands: { market, account, paper, risk, system },
 });
 
-runMain(main);
+await runMain(main);
+for (const hook of app.shutdownHooks) {
+  await hook();
+}
+process.exit(0);

@@ -16,8 +16,11 @@ export function attachPaperPersistence(app: AppServices): void {
   void (async () => {
     let repo: DrizzlePaperLedgerRepository;
     let tenantId: string;
+    let close: () => Promise<void>;
     try {
-      repo = new DrizzlePaperLedgerRepository(connectDatabase(url).db);
+      const connection = connectDatabase(url);
+      close = connection.close;
+      repo = new DrizzlePaperLedgerRepository(connection.db);
       tenantId = await repo.ensureTenant("local");
       const stored = await repo.load(tenantId);
       if (stored !== null) {
@@ -35,6 +38,9 @@ export function attachPaperPersistence(app: AppServices): void {
       );
       return;
     }
+    app.shutdownHooks.push(async () => {
+      await close();
+    });
     const persist = (): void => {
       repo.save(tenantId, app.paper.snapshot()).catch((error: unknown) => {
         app.logger.warn(
