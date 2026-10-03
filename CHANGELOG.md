@@ -10,14 +10,17 @@ Current TypeScript/Bun rebuild includes:
 - INDODAX public REST, TAPI v2 signing, authenticated account/history reads, and WebSocket protocol primitives.
 - Explicit order lifecycle and deterministic risk evaluation.
 - Paper execution through the shared execution service.
+- Live execution gated by `APP_ENV=live` plus `TRADE_ENABLED=true`, credentials, acknowledgement, and risk approval.
+- Server-side emulated stops with trigger checks, plus timeInForce and self-trade prevention passthrough.
+- Live private channel over the official WebSocket dialect with token fetch.
 - Strategy evaluation, deterministic backtests, portfolio analytics, alerts, audit, scheduler, events, observability, and operational tooling.
 - PostgreSQL schema, migrations, and repository implementations.
-- CLI, daemon, HTTP gateway, and React workbench.
+- CLI, daemon, HTTP gateway, React workbench, and a standalone price monitor script.
 - Automated test/build tooling plus consumer verification utilities.
 
 ### Current capability boundary
 
-The main application composition defaults to **paper**. Live order and cancel run through the risk-guarded path when `APP_ENV=live` with credentials and acknowledgement. PostgreSQL is **not yet the main runtime source of truth**, and the MCP reconciliation surface is **not yet a full exchange-state reconciliation workflow**.
+The main application composition defaults to **paper**. Live order and cancel run through the risk-guarded path when `APP_ENV=live` plus `TRADE_ENABLED=true` with credentials and acknowledgement. PostgreSQL mirrors paper, audit, alerts, and stops when configured but is **not yet the main runtime source of truth**, and the MCP reconciliation surface is **not yet a full exchange-state reconciliation workflow**.
 
 ## 1.0.1: foundation (Rust)
 

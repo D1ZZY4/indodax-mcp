@@ -21,7 +21,20 @@ The indodax_paper_order flow builds a trade intent, creates an order proposal, r
 
 The indodax_create_order tool routes paper requests into the same paper placement helper. Live requests need acknowledgement, APP_ENV live, `TRADE_ENABLED=true`, credentials, and risk ALLOW, then execute via LiveExecutor.
 
-Server-side stops trigger through the same gated path when `indodax_stop_check` runs, manually or on the opt-in `STOP_AUTOPOLL_MS` schedule.
+Server-side stops trigger through the same gated path when `indodax_stop_check` runs, manually or on the opt-in `STOP_AUTOPOLL_MS` schedule. Live stop creation enforces the full live gate up front, so a stop can never be stored live while placement would be denied.
+
+```mermaid
+flowchart TD
+    Create["stop_create with ack"] --> Gate{"Full live gate?"}
+    Gate -->|"No"| Deny["DENY at creation"]
+    Gate -->|"Yes"| Stored["Stored open"]
+    Stored --> Check["stop_check or autopoll"]
+    Check --> Crossed{"Price crossed?"}
+    Crossed -->|"No"| Stored
+    Crossed -->|"Yes"| Risk2{"Risk ALLOW?"}
+    Risk2 -->|"No"| Failed["Mark failed"]
+    Risk2 -->|"Yes"| Place["Place LIMIT order"]
+```
 
 ## Live readiness boundary
 

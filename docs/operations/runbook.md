@@ -42,6 +42,8 @@ A halted risk or reconciliation condition should be treated as a closed trading 
 
 ## Market and WebSocket checks
 
+Standalone price monitor `scripts/monitor.ts` watches any pair without credentials or orders. Configure through `MONITOR_PAIR`, `MONITOR_REFERENCE` (defaults to the first tick), `MONITOR_UP_PCT`, `MONITOR_DOWN_PCT`, and optional `MONITOR_AMOUNT_HELD` for position valuation. Snapshots land every random 10 to 30 seconds. A trigger sends a desktop notification and exits by default so a supervisor picks up the alert; set `MONITOR_EXIT_ON_TRIGGER=0` to keep looping.
+
 Use indodax_ws_status to inspect managed socket state and subscriptions.
 
 Use indodax_ws_ticker for a one-shot market snapshot.
