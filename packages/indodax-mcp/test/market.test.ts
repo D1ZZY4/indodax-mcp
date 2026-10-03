@@ -21,10 +21,13 @@ function stubbed() {
   return built;
 }
 
-async function dataOf(call: Promise<{ content: unknown; isError?: boolean }>) {
-  const result = await call;
+async function dataOf(call: Promise<unknown>) {
+  const result = (await call) as {
+    content: { type: string; text: string }[];
+    isError?: boolean;
+  };
   expect(result.isError).not.toBe(true);
-  const text = (result.content as { type: string; text: string }[])[0]?.text ?? "{}";
+  const text = result.content[0]?.text ?? "{}";
   return (JSON.parse(text) as { data: Record<string, unknown> }).data;
 }
 
