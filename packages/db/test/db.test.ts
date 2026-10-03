@@ -18,6 +18,9 @@ describe("db on real PostgreSQL", () => {
     // CI provides an ephemeral Postgres service via DATABASE_URL. Local runs
     // without it fall back to embedded Postgres. Either way the tests below
     // run against a real PostgreSQL instance, never a mock.
+    console.log(
+      `db suite using ${process.env.DATABASE_URL ? "DATABASE_URL service" : "embedded postgres"}`,
+    );
     if (process.env.DATABASE_URL) {
       activeUrl = process.env.DATABASE_URL;
     } else {
