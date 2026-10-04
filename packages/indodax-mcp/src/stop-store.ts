@@ -13,6 +13,8 @@ export interface StopOrder {
   clientOrderId?: string | undefined;
   timeInForce?: "GTC" | "MOC" | undefined;
   stpMode?: "EXPIRE_TAKER" | "EXPIRE_MAKER" | "EXPIRE_BOTH" | undefined;
+  /** OCO group: when one stop in the group fires, open siblings auto-cancel. */
+  groupId?: string | undefined;
   status: StopStatus;
   createdAt: string;
   acknowledgedAt?: string | undefined;
@@ -83,6 +85,7 @@ export class StopStore {
           ? { acknowledgedAt: candidate.acknowledgedAt }
           : {}),
         ...(typeof candidate.reason === "string" ? { reason: candidate.reason } : {}),
+        ...(typeof candidate.groupId === "string" ? { groupId: candidate.groupId } : {}),
       });
     }
     this.counter = max + 1;
@@ -104,10 +107,11 @@ export class StopStore {
     return [...this.stops.values()].filter((stop) => includeClosed || stop.status === "open");
   }
 
-  cancel(id: string): boolean {
+  cancel(id: string, reason?: string): boolean {
     const stop = this.stops.get(id);
     if (stop?.status !== "open") return false;
     stop.status = "cancelled";
+    if (reason !== undefined) stop.reason = reason;
     return true;
   }
 

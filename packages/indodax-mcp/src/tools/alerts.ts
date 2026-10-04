@@ -5,7 +5,7 @@ import type { ServerHandlers } from "@indodax-mcp/mcp-core";
 import { getTicker } from "@indodax-mcp/indodax-market";
 import type { PriceAlert } from "@indodax-mcp/indodax-alerts";
 import { fail, ok, parseArgs } from "../respond.js";
-import { pairArg } from "../schemas.js";
+import { canonicalPair, pairArg } from "../schemas.js";
 import type { AppServices } from "../composition.js";
 
 export interface AlertFireResult {
@@ -153,7 +153,7 @@ export function registerAlertTools(
             : { type: "fallPct", percent: String(args.percentDown ?? 0), reference };
       }
       const alert = app.alerts.add({
-        pair: args.pair.toLowerCase().replace(/[-/]/g, "_"),
+        pair: canonicalPair(args.pair),
         condition,
         ...(args.note !== undefined ? { note: args.note } : {}),
       });
@@ -175,9 +175,10 @@ export function registerAlertTools(
   handlers.tools.set("indodax_alert_check", async (raw) => {
     try {
       const args = parseArgs(z.object({ pair: pairArg }), raw);
-      const ticker = await getTicker(app.publicClient, args.pair);
-      const triggered = app.alerts.check(args.pair, Number(ticker.last));
-      return ok({ pair: args.pair, price: ticker.last, triggered });
+      const pair = canonicalPair(args.pair);
+      const ticker = await getTicker(app.publicClient, pair);
+      const triggered = app.alerts.check(pair, Number(ticker.last));
+      return ok({ pair, price: ticker.last, triggered });
     } catch (error) {
       return fail(error);
     }

@@ -83,4 +83,87 @@ describe("stop orders", () => {
     ]);
     expect(app.stops.list()).toHaveLength(1);
   });
+
+  it("stores pairs canonically regardless of input spelling", async () => {
+    const { server, app } = buildIndodaxServer(loadEnv({}));
+    const harness = await withInMemoryServer(server);
+    try {
+      const created = await harness.client.callTool({
+        name: "indodax_stop_create",
+        arguments: { pair: "BTCIDR", side: "SELL", quantity: 10, stopPrice: 1000 },
+      });
+      expect(created.isError).not.toBe(true);
+      expect(app.stops.list()[0]?.pair).toBe("btc_idr");
+    } finally {
+      await harness.close();
+    }
+  });
+
+  it("auto-cancels OCO siblings when one stop fires", async () => {
+    const { server, app } = buildIndodaxServer(loadEnv({}));
+    app.publicClient = stubTicker("100");
+    clearCache();
+    const harness = await withInMemoryServer(server);
+    try {
+      for (const stopPrice of [100, 110]) {
+        const created = await harness.client.callTool({
+          name: "indodax_stop_create",
+          arguments: {
+            pair: "btc_idr",
+            side: "BUY",
+            quantity: 100,
+            stopPrice,
+            groupId: "tp-cut-1",
+          },
+        });
+        expect(created.isError).not.toBe(true);
+      }
+      const checked = await harness.client.callTool({
+        name: "indodax_stop_check",
+        arguments: {},
+      });
+      const text = (checked.content as { type: string; text: string }[])[0]?.text ?? "{}";
+      const body = JSON.parse(text) as {
+        data: { fired: { id: string; status: string; cancelledSiblings?: string[] }[] };
+      };
+      expect(body.data.fired).toHaveLength(1);
+      expect(body.data.fired[0]?.status).toBe("triggered");
+      expect(body.data.fired[0]?.cancelledSiblings).toEqual(["stop-2"]);
+      const history = app.stops.list(true);
+      expect(history.find((stop) => stop.id === "stop-2")?.status).toBe("cancelled");
+      expect(history.find((stop) => stop.id === "stop-2")?.reason).toContain("stop-1");
+    } finally {
+      await harness.close();
+    }
+  });
+
+  it("leaves other groups alone when one group fires", async () => {
+    const { server, app } = buildIndodaxServer(loadEnv({}));
+    app.publicClient = stubTicker("100");
+    clearCache();
+    const harness = await withInMemoryServer(server);
+    try {
+      for (const [groupId, stopPrice] of [
+        ["g1", 100],
+        ["g2", 110],
+      ] as [string, number][]) {
+        const created = await harness.client.callTool({
+          name: "indodax_stop_create",
+          arguments: {
+            pair: "btc_idr",
+            side: "BUY",
+            quantity: 100,
+            stopPrice,
+            groupId,
+          },
+        });
+        expect(created.isError).not.toBe(true);
+      }
+      await harness.client.callTool({ name: "indodax_stop_check", arguments: {} });
+      // g1 (stop 100) fires at 100; g2 (stop 110) does not cross and stays open.
+      expect(app.stops.list().map((stop) => stop.id)).toEqual(["stop-2"]);
+    } finally {
+      await harness.close();
+    }
+  });
 });

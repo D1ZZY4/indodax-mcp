@@ -101,6 +101,30 @@ describe("alert autopoll", () => {
     }
   });
 
+  it("matches alerts across pair spellings", async () => {
+    const { server, app } = buildIndodaxServer(loadEnv({}));
+    const harness = await withInMemoryServer(server);
+    try {
+      const created = await harness.client.callTool({
+        name: "indodax_alert_create",
+        arguments: { pair: "BTCIDR", above: 100 },
+      });
+      expect(created.isError).not.toBe(true);
+      const listed = (await dataOf(
+        harness.client.callTool({ name: "indodax_alerts", arguments: {} }),
+      )) as { pair: string }[];
+      expect(listed[0]?.pair).toBe("btc_idr");
+      app.publicClient = stubTicker("200");
+      clearCache();
+      const checked = (await dataOf(
+        harness.client.callTool({ name: "indodax_alert_check", arguments: { pair: "btc_idr" } }),
+      )) as { triggered: unknown[] };
+      expect(checked.triggered).toHaveLength(1);
+    } finally {
+      await harness.close();
+    }
+  });
+
   it("exposes triggered alerts through the tool surface", async () => {
     const { server, app } = buildIndodaxServer(loadEnv({}));
     app.publicClient = stubTicker("200");

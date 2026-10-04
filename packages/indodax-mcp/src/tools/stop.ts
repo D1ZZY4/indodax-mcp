@@ -5,7 +5,7 @@ import type { ServerHandlers } from "@indodax-mcp/mcp-core";
 import { getTicker } from "@indodax-mcp/indodax-market";
 import { decimalOrNull } from "@indodax-mcp/core";
 import { fail, ok, parseArgs } from "../respond.js";
-import { pairArg, priceArg, quantityArg, sideArg } from "../schemas.js";
+import { canonicalPair, pairArg, priceArg, quantityArg, sideArg } from "../schemas.js";
 import type { AppServices } from "../composition.js";
 import { placeLiveOrder } from "./order-intent.js";
 import { placePaperOrder } from "./paper.js";
@@ -33,6 +33,7 @@ const stopInput = z.object({
   clientOrderId: z.string().min(1).max(36).optional(),
   timeInForce: z.enum(["GTC", "MOC"]).optional(),
   stpMode: z.enum(["EXPIRE_TAKER", "EXPIRE_MAKER", "EXPIRE_BOTH"]).optional(),
+  groupId: z.string().min(1).max(36).optional(),
 });
 
 function crossed(side: "BUY" | "SELL", last: string, stopPrice: number): boolean {
@@ -44,7 +45,27 @@ function crossed(side: "BUY" | "SELL", last: string, stopPrice: number): boolean
 
 export interface StopFireResult {
   checked: number;
-  fired: { id: string; status: string; price?: string; reason?: string }[];
+  fired: {
+    id: string;
+    status: string;
+    price?: string;
+    reason?: string;
+    cancelledSiblings?: string[];
+  }[];
+}
+
+/** Cancel the open siblings of a fired stop (pseudo-OCO within one group). */
+function cancelOcoSiblings(app: AppServices, firedId: string, groupId: string): string[] {
+  const cancelled: string[] = [];
+  for (const sibling of app.stops.list()) {
+    if (sibling.id === firedId || sibling.groupId !== groupId || sibling.status !== "open") {
+      continue;
+    }
+    if (app.stops.cancel(sibling.id, `oco-cancelled by ${firedId}`)) {
+      cancelled.push(sibling.id);
+    }
+  }
+  return cancelled;
 }
 
 /** Shared trigger evaluation used by the tool and the optional autopoll job. */
@@ -82,7 +103,16 @@ export async function evaluateStops(app: AppServices): Promise<StopFireResult> {
               ...(stop.clientOrderId !== undefined ? { clientOrderId: stop.clientOrderId } : {}),
             });
       app.stops.mark(stop.id, "triggered", { result });
-      fired.push({ id: stop.id, status: "triggered", price: last });
+      const entry: StopFireResult["fired"][number] = {
+        id: stop.id,
+        status: "triggered",
+        price: last,
+      };
+      if (stop.groupId !== undefined) {
+        const siblings = cancelOcoSiblings(app, stop.id, stop.groupId);
+        if (siblings.length > 0) entry.cancelledSiblings = siblings;
+      }
+      fired.push(entry);
     } catch (error) {
       const reason = error instanceof Error ? error.message : String(error);
       app.stops.mark(stop.id, "failed", { reason });
@@ -102,7 +132,7 @@ export function registerStopTools(
       name: "indodax_stop_create",
       title: "Create stop",
       description:
-        "Server-side emulated stop, not exchange-native. Stores a trigger after a notional limit pre-check; nothing is placed until indodax_stop_check or the opt-in autopoll sees the stop price crossed. Live needs acknowledged true plus the full live gate, recorded as acknowledgedAt. Args: pair, side, quantity, stopPrice, optional limitPrice defaulting to stopPrice.",
+        "Server-side emulated stop, not exchange-native. Stores a trigger after a notional limit pre-check; nothing is placed until indodax_stop_check or the opt-in autopoll sees the stop price crossed. Stops that share groupId behave as one-cancels-the-other: when one fires, open siblings auto-cancel. Live needs acknowledged true plus the full live gate, recorded as acknowledgedAt. Args: pair, side, quantity, stopPrice, optional limitPrice defaulting to stopPrice, optional groupId for OCO linking.",
       ...STOP,
     },
     inputSchema: stopInput,
@@ -130,7 +160,7 @@ export function registerStopTools(
       name: "indodax_stop_check",
       title: "Check stops",
       description:
-        "Mutating when triggers fire. Evaluate open stops against live prices and execute crossed ones as LIMIT orders through risk. Paper fills nothing by itself; use indodax_paper_fill after.",
+        "Mutating when triggers fire. Evaluate open stops against live prices and execute crossed ones as LIMIT orders through risk. A fired stop auto-cancels open siblings in its OCO group. Paper fills nothing by itself; use indodax_paper_fill after.",
       ...STOP,
     },
     inputSchema: z.object({}),
@@ -166,7 +196,7 @@ export function registerStopTools(
         }
       }
       const stop = app.stops.add({
-        pair: args.pair,
+        pair: canonicalPair(args.pair),
         side: args.side,
         quantity: args.quantity,
         stopPrice: args.stopPrice,
@@ -175,6 +205,7 @@ export function registerStopTools(
         ...(args.clientOrderId !== undefined ? { clientOrderId: args.clientOrderId } : {}),
         ...(args.timeInForce !== undefined ? { timeInForce: args.timeInForce } : {}),
         ...(args.stpMode !== undefined ? { stpMode: args.stpMode } : {}),
+        ...(args.groupId !== undefined ? { groupId: args.groupId } : {}),
         ...(mode === "live" ? { acknowledgedAt: new Date().toISOString() } : {}),
       });
       return ok({ id: stop.id, status: stop.status });

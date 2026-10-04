@@ -1,4 +1,6 @@
 import { z } from "zod";
+import { ValidationError } from "@indodax-mcp/errors";
+import { asPair, parseSymbolFlexible } from "@indodax-mcp/core";
 
 /** Shared MCP input schemas. Validation lives here so every tool parses the same way. */
 
@@ -21,3 +23,14 @@ export const acknowledgedArg = z.boolean().optional();
 export const limitArg = (min: number, max: number) => z.number().int().min(min).max(max).optional();
 
 export const toleranceArg = z.string().optional();
+
+/**
+ * Canonical pair spelling (`base_quote`, lowercase). Every tool accepts any
+ * common spelling on input; stored state, comparisons, and responses use
+ * this form so agents never have to guess between btc_idr, BTCIDR, btcidr.
+ */
+export function canonicalPair(input: string): string {
+  const symbol = parseSymbolFlexible(input);
+  if (!symbol) throw ValidationError(`invalid pair: ${input}`);
+  return asPair(symbol);
+}
