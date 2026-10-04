@@ -57,8 +57,6 @@
     "dev:daemon": "turbo dev:daemon",
     "dev:workbench": "turbo dev:workbench",
     "start": "turbo start",
-    "start:http": "bun apps/mcp-http/src/main.ts",
-    "start:stdio": "bun apps/mcp-stdio/src/main.ts",
     "build": "turbo build",
     "format": "biome format --write .",
     "format:check": "biome format .",
