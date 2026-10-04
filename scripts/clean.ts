@@ -8,6 +8,7 @@ const TARGETS = [
   "packages/*/dist",
   "apps/*/coverage",
   "packages/*/coverage",
+  "apps/*/docs-tools",
   "coverage",
   "test-results",
   "playwright-report",

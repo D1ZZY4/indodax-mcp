@@ -10,7 +10,8 @@
     "test": "vitest run",
     "lint": "biome lint .",
     "format:check": "biome format .",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "prepack": "rm -rf ./docs-tools && cp -r ../../docs/tools ./docs-tools"
   },
   "devDependencies": {
     "@biomejs/biome": "catalog:",
@@ -36,7 +37,8 @@
     "indodax-mcp": "./dist/index.js"
   },
   "files": [
-    "dist/"
+    "dist/",
+    "docs-tools/"
   ],
   "publishConfig": {
     "access": "public"

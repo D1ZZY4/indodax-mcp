@@ -1,5 +1,6 @@
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, join, resolve, sep } from "node:path";
+import { fileURLToPath } from "node:url";
 import { z } from "zod";
 import { ValidationError } from "@indodax-mcp/errors";
 import type { Registry } from "@indodax-mcp/mcp-registry";
@@ -29,12 +30,13 @@ const PAGES = [
 
 type DocsPage = (typeof PAGES)[number];
 
-/** Locate docs/tools from any working directory by walking upward. */
-function docsDir(from = process.cwd()): string | null {
+/** Locate a guide directory by walking upward. Exported for tests. */
+export function findDocsToolsDir(from: string): string | null {
   let dir = from;
   for (let depth = 0; depth < 8; depth += 1) {
-    const candidate = join(dir, "docs", "tools");
-    if (existsSync(candidate)) return candidate;
+    for (const candidate of [join(dir, "docs", "tools"), join(dir, "docs-tools")]) {
+      if (existsSync(candidate)) return candidate;
+    }
     const parent = dirname(dir);
     if (parent === dir) return null;
     dir = parent;
@@ -42,13 +44,27 @@ function docsDir(from = process.cwd()): string | null {
   return null;
 }
 
+function moduleDir(): string | null {
+  try {
+    return dirname(fileURLToPath(import.meta.url));
+  } catch {
+    return null;
+  }
+}
+
 function readPage(page: DocsPage): string | null {
-  const dir = docsDir();
-  if (!dir) return null;
-  // Allowlist-only resolution: user input never becomes a path segment.
-  const file = resolve(dir, `${page}.md`);
-  if (!file.startsWith(`${dir}${sep}`) || !existsSync(file)) return null;
-  return readFileSync(file, "utf8");
+  // Module-relative first so packed installs (docs-tools beside the bundle)
+  // resolve without depending on the caller's working directory.
+  const bases = [moduleDir(), process.cwd()].filter((base): base is string => base !== null);
+  for (const base of bases) {
+    const dir = findDocsToolsDir(base);
+    if (!dir) continue;
+    // Allowlist-only resolution: user input never becomes a path segment.
+    const file = resolve(dir, `${page}.md`);
+    if (!file.startsWith(`${dir}${sep}`) || !existsSync(file)) continue;
+    return readFileSync(file, "utf8");
+  }
+  return null;
 }
 
 export function registerDocsTools(

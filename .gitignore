@@ -38,3 +38,5 @@ Thumbs.db
 *~
 build-inventory.json
 build-inventory.md
+# Generated pack-time copies (recreated by prepack)
+apps/mcp-stdio/docs-tools/
