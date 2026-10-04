@@ -22,6 +22,7 @@ import { registerSystemTools } from "./tools/system.js";
 import { registerFundingTools } from "./tools/funding.js";
 import { registerHistoryTools } from "./tools/history.js";
 import { registerOpsTools } from "./tools/ops.js";
+import { registerQuoteTools } from "./tools/quote.js";
 import { registerDeadmanTools } from "./tools/deadman.js";
 import { registerStopTools } from "./tools/stop.js";
 import { registerDocsTools } from "./tools/docs.js";
@@ -62,6 +63,7 @@ export function buildIndodaxServer(env: AppEnv) {
   registerFundingTools(registry, handlers, app);
   registerHistoryTools(registry, handlers, app);
   registerOpsTools(registry, handlers, app);
+  registerQuoteTools(registry, handlers, app);
   registerDeadmanTools(registry, handlers, app);
   registerStopTools(registry, handlers, app);
   registerDocsTools(registry, handlers, app);

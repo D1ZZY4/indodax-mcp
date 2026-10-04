@@ -15,6 +15,7 @@ exchange wire spelling per endpoint.
 | `indodax_candles` | `symbol` required (any spelling), `timeframe` default `"60"` (`1, 15, 30, 60, 240, 1D, 3D, 1W`), `from`/`to` unix seconds default last 24h | Array of `{ Time, Open, High, Low, Close, Volume }`; money fields are strings, `Time` is unix seconds | Symbol is uppercased to compact form (`BTCIDR`) before the call. |
 | `indodax_price_increments` | none | Raw exchange payload | Shape-level only. |
 | `indodax_summaries` | none | `{ tickers, prices_24h?, prices_7d? }` | 24h/7d overview. |
+| `indodax_quote` | `pair`, `side` BUY/SELL, `quantity` positive base units, `price`? limit | `{ pair, side, quantity, requestedPrice, bestBid, bestAsk, estimatedAvgPrice, fillableQuantity, verdict, note }`, money as strings | Read-only pre-order estimate, never places anything. `verdict` is `instant` (fills around the estimate), `parked` (limit misses the book), or `partial` (depth covers only `fillableQuantity`). |
 
 Errors: `ValidationError` for bad pairs, `ExchangeApiError`/`ExchangeNetworkError` for upstream failures (retryable only for network/rate-limit codes).
 

@@ -5,7 +5,7 @@ shapes, errors, and worked usage. Start here, then open one area file.
 
 | Area | File | Tools |
 | --- | --- | --- |
-| Market | [market.md](market.md) | server_time, pairs, ticker, tickers_all, orderbook, trades, candles, price_increments, summaries |
+| Market | [market.md](market.md) | server_time, pairs, ticker, tickers_all, orderbook, trades, candles, price_increments, summaries, quote |
 | Account | [account.md](account.md) | account, balances, capabilities |
 | Orders | [orders.md](orders.md) | validate_order, propose_order, create_order, cancel_order |
 | Paper | [paper.md](paper.md) | paper_account, paper_status, paper_orders, paper_snapshots, paper_fills, paper_order, paper_fill, paper_cancel, paper_reset |
@@ -27,3 +27,9 @@ Conventions used on every page: money serializes as strings, pair
 spellings are accepted flexibly and normalized per endpoint, errors are
 either the `{status, code, message, retryable}` envelope or a protocol-level
 schema rejection, and paper paths never touch the exchange.
+
+Pair contract: every tool accepts any common spelling (`btc_idr`,
+`BTCIDR`, `BTC/IDR`) on input, while stored state, comparisons, and
+responses always use the canonical lowercase `base_quote` form
+(`btc_idr`). Money arrives as JSON numbers on input and leaves as decimal
+strings on output; never parse output money into floats for accounting.
