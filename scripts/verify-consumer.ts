@@ -1,4 +1,4 @@
-import { mkdtempSync, readFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -18,26 +18,67 @@ function check(name: string, ok: boolean, detail: string): void {
   console.log(`${ok ? "PASS" : "FAIL"} ${name}: ${detail}`);
 }
 
+let stdinCounter = 0;
+
 async function run(
   command: string[],
   cwd: string,
   input?: string,
+  timeoutMs = 30_000,
 ): Promise<{ code: number; out: string }> {
+  // Framed input goes through a temp file whose descriptor EOFs cleanly.
+  // The server is long-lived and may not exit on its own, so every probe
+  // ends with SIGTERM and asserts on captured output, never on liveness.
+  let inputFile: string | null = null;
+  if (input !== undefined) {
+    inputFile = join(tmpdir(), `consumer-stdin-${process.pid}-${stdinCounter++}.txt`);
+    writeFileSync(inputFile, input);
+  }
   const proc = Bun.spawn(command, {
     cwd,
-    stdin: input ? "pipe" : "ignore",
+    stdin: inputFile === null ? "ignore" : Bun.file(inputFile),
     stdout: "pipe",
     stderr: "pipe",
   });
-  if (input && proc.stdin) {
-    proc.stdin.write(input);
-    void proc.stdin.end();
+  try {
+    const collected = Promise.all([
+      new Response(proc.stdout).text(),
+      new Response(proc.stderr).text(),
+    ]);
+    await Promise.race([
+      collected.then(() => true),
+      new Promise((resolve) => setTimeout(resolve, timeoutMs)),
+    ]);
+    try {
+      proc.kill();
+    } catch {
+      // already exited
+    }
+    const [out, err] = await collected;
+    const code = await proc.exited;
+    return { code, out: `${out}\n${err}` };
+  } finally {
+    if (inputFile !== null) unlinkSync(inputFile);
   }
-  const out = await new Response(proc.stdout).text();
-  const err = await new Response(proc.stderr).text();
-  const code = await proc.exited;
-  return { code, out: `${out}\n${err}` };
 }
+
+const mcpInit = JSON.stringify({
+  jsonrpc: "2.0",
+  id: 1,
+  method: "initialize",
+  params: {
+    protocolVersion: "2025-11-25",
+    capabilities: {},
+    clientInfo: { name: "c", version: "0" },
+  },
+});
+const mcpInitialized = JSON.stringify({ jsonrpc: "2.0", method: "notifications/initialized" });
+const mcpDocsCall = JSON.stringify({
+  jsonrpc: "2.0",
+  id: 2,
+  method: "tools/call",
+  params: { name: "indodax_docs", arguments: {} },
+});
 
 for (const dir of PUBLISHABLE) {
   const manifest = JSON.parse(readFileSync(join(ROOT, dir, "package.json"), "utf8")) as {
@@ -74,12 +115,16 @@ for (const dir of PUBLISHABLE) {
 
   const binName = Object.keys(manifest.bin ?? {})[0];
   if (binName) {
+    // The bin is a long-lived MCP server, not a --help CLI: run() ends
+    // each probe with SIGTERM and framed input, so the check asserts on
+    // startup output for the server bin and on exit 0 for the CLI bin.
+    // Either signal proves the packed bin executes.
     const binPath = join(sandbox, "node_modules", ".bin", binName);
-    const direct = Bun.spawnSync([binPath, "--help"], { cwd: sandbox });
+    const started = await run([binPath, "--help"], sandbox, `${mcpInit}\n`);
     check(
       `${manifest.name} bin`,
-      direct.exitCode === 0,
-      `${binName} --help exit ${direct.exitCode}`,
+      started.out.includes("serving indodax-mcp over stdio") || started.code === 0,
+      started.out.slice(0, 120),
     );
   }
 
@@ -100,16 +145,6 @@ for (const dir of PUBLISHABLE) {
   }
 }
 
-const mcpInit = JSON.stringify({
-  jsonrpc: "2.0",
-  id: 1,
-  method: "initialize",
-  params: {
-    protocolVersion: "2025-11-25",
-    capabilities: {},
-    clientInfo: { name: "c", version: "0" },
-  },
-});
 const sandboxBin = mkdtempSync(join(tmpdir(), "consumer-mcp-"));
 const tarballMcp = join(tmpdir(), "indodax-mcp-1.0.0.tgz");
 {
@@ -127,6 +162,16 @@ const tarballMcp = join(tmpdir(), "indodax-mcp-1.0.0.tgz");
       "indodax-mcp stdio startup",
       probe.out.includes("serverInfo") && probe.out.includes("indodax-mcp"),
       probe.out.slice(0, 120),
+    );
+    const docsProbe = await run(
+      [serverBin],
+      sandboxBin,
+      `${mcpInit}\n${mcpInitialized}\n${mcpDocsCall}\n`,
+    );
+    check(
+      "indodax-mcp docs from packed install",
+      docsProbe.out.includes('\\"page\\"') && docsProbe.out.includes("market"),
+      docsProbe.out.slice(0, 120),
     );
   }
 }
