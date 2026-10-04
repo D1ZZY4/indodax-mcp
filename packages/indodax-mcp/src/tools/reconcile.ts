@@ -129,7 +129,10 @@ export function registerReconcileTools(
         );
         rows.push({ asset, state });
       }
-      return ok({ balances: rows });
+      return ok({
+        balances: rows,
+        note: "paper and exchange are separate ledgers that never settle; MISMATCH here means different, not broken",
+      });
     } catch (error) {
       return fail(error);
     }
