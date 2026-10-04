@@ -2,10 +2,13 @@ import { z } from "zod";
 import {
   AuthenticationError,
   AuthorizationError,
+  isAppError,
   RiskDeniedError,
+  UnknownExecutionResultError,
   ValidationError,
 } from "@indodax-mcp/errors";
 import { ExecutionService } from "@indodax-mcp/indodax-execution";
+import { checkQuantityIncrement } from "@indodax-mcp/indodax-market";
 import type { Capability, ExecutionMode } from "@indodax-mcp/core";
 import { parseSymbolFlexible } from "@indodax-mcp/core";
 import type { TradeIntent } from "@indodax-mcp/indodax-trading";
@@ -45,11 +48,6 @@ export function draftIntent(
   const capability = capabilityFor(mode);
   const symbol = parseSymbolFlexible(args.pair);
   if (!symbol) throw ValidationError(`invalid pair: ${args.pair}`);
-  if (mode === "paper" && args.price === undefined) {
-    throw ValidationError(
-      "paper orders require a limit price; MARKET orders are not supported in simulation",
-    );
-  }
   return {
     intent: {
       agentId: "mcp",
@@ -85,6 +83,30 @@ export interface LivePlacement {
 }
 
 /**
+ * A dropped request after a live submission may still have executed on the
+ * exchange, so timeouts and network failures must surface as an explicit
+ * unknown outcome (with the client order id preserved) rather than as a
+ * retryable error that invites a blind duplicate submission. Explicit
+ * rejections pass through unchanged.
+ */
+export function ambiguousToUnknown(
+  error: unknown,
+  correlationId: string,
+  clientOrderId: string,
+): unknown {
+  if (
+    isAppError(error) &&
+    (error.code === "ExchangeTimeoutError" || error.code === "ExchangeNetworkError")
+  ) {
+    return UnknownExecutionResultError(
+      `live result unknown for ${clientOrderId}; reconcile before retry`,
+      { correlationId, safeMetadata: { clientOrderId } },
+    );
+  }
+  return error;
+}
+
+/**
  * Shared live placement used by direct orders and triggered stops.
  * Every gate stays mandatory: acknowledgement, APP_ENV, policy,
  * credentials, and a fresh risk ALLOW. Throws otherwise.
@@ -106,6 +128,7 @@ export async function placeLiveOrder(app: AppServices, placement: LivePlacement)
     throw AuthenticationError("live execution needs API credentials");
   }
   const { intent, capability } = draftIntent(app, placement);
+  await checkQuantityIncrement(app.publicClient, placement.pair, placement.quantity);
   const proposal = app.trading.propose(intent);
   const order = app.trading.toOrder(proposal, {
     tenantId: app.tenantId,
@@ -125,16 +148,20 @@ export async function placeLiveOrder(app: AppServices, placement: LivePlacement)
   );
   if (decision.outcome !== "ALLOW") throw RiskDeniedError(decision.message);
   const execution = new ExecutionService(app.liveExecutor);
-  return execution.execute(
-    {
-      order,
-      mode: "live",
-      capability,
-      correlationId: proposal.correlationId,
-      requestedAt: new Date().toISOString(),
-    },
-    decision,
-  );
+  try {
+    return await execution.execute(
+      {
+        order,
+        mode: "live",
+        capability,
+        correlationId: proposal.correlationId,
+        requestedAt: new Date().toISOString(),
+      },
+      decision,
+    );
+  } catch (error) {
+    throw ambiguousToUnknown(error, proposal.correlationId, order.clientOrderId);
+  }
 }
 
 export async function reviewHypothetical(app: AppServices, args: HypotheticalArgs) {

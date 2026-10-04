@@ -15,6 +15,7 @@ import {
 } from "../schemas.js";
 import type { AppServices } from "../composition.js";
 import {
+  ambiguousToUnknown,
   draftIntent,
   placeLiveOrder,
   reviewHypothetical,
@@ -133,7 +134,9 @@ export function registerOrderTools(
         raw,
       );
       const { proposal, order, decision } = await reviewHypothetical(app, args);
-      return ok({ proposal: proposal.correlationId, order, decision, executed: false });
+      return ok({ proposal: proposal.correlationId, order, decision, executed: false }, [
+        "proposal only: nothing was placed and no funds moved",
+      ]);
     } catch (error) {
       return fail(error);
     }
@@ -155,7 +158,9 @@ export function registerOrderTools(
         raw,
       );
       const { proposal, order, decision } = await reviewHypothetical(app, args);
-      return ok({ proposal: proposal.correlationId, order, decision, executed: false });
+      return ok({ proposal: proposal.correlationId, order, decision, executed: false }, [
+        "proposal only: nothing was placed and no funds moved",
+      ]);
     } catch (error) {
       return fail(error);
     }
@@ -236,15 +241,20 @@ export function registerOrderTools(
         if (!args.symbol) {
           throw ValidationError("live cancel needs symbol plus exchange orderId");
         }
-        const cancelled = await app.liveExecutor.cancelByExchangeId(
-          args.symbol,
-          args.orderId,
-          args.clientOrderId,
-        );
-        return ok({
-          orderId: args.orderId ?? args.clientOrderId,
-          status: cancelled ? "cancelled" : "unknown",
-        });
+        const cancelId = args.orderId ?? args.clientOrderId ?? "unknown";
+        try {
+          const cancelled = await app.liveExecutor.cancelByExchangeId(
+            args.symbol,
+            args.orderId,
+            args.clientOrderId,
+          );
+          return ok({
+            orderId: args.orderId ?? args.clientOrderId,
+            status: cancelled ? "cancelled" : "unknown",
+          });
+        } catch (error) {
+          throw ambiguousToUnknown(error, `cancel-${cancelId}`, cancelId);
+        }
       }
       const target = args.orderId ?? args.clientOrderId;
       if (!target) throw ValidationError("cancel needs orderId or clientOrderId");
