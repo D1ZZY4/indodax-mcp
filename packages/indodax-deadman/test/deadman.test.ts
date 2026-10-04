@@ -24,4 +24,26 @@ describe("deadman switch", () => {
     expect(() => deadman.arm([], 1000)).toThrow();
     expect(() => deadman.arm(["btc_idr"], 0)).toThrow();
   });
+
+  it("restores persisted protection state across restarts", () => {
+    const armed = new DeadmanSwitch();
+    armed.arm(["btc_idr"], 120_000);
+    const fresh = new DeadmanSwitch();
+    expect(fresh.snapshot().state).toBe("DISARMED");
+    const restored = fresh.restore({ state: "ARMED", pairs: ["btc_idr"], countdownMs: 120_000 });
+    expect(restored.state).toBe("ARMED");
+    expect(restored.pairs).toEqual(["btc_idr"]);
+    const stale = new DeadmanSwitch().restore({
+      state: "STALE",
+      pairs: ["btc_idr"],
+      countdownMs: 120_000,
+    });
+    expect(stale.state).toBe("STALE");
+    expect(
+      new DeadmanSwitch().restore({ state: "DISARMED", pairs: [], countdownMs: null }).state,
+    ).toBe("DISARMED");
+    expect(() =>
+      new DeadmanSwitch().restore({ state: "ARMED", pairs: [], countdownMs: null }),
+    ).toThrow();
+  });
 });

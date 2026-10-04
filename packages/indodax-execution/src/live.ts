@@ -10,6 +10,24 @@ import type { ExecutionBackend, ExecutionRequest, ExecutionResult } from "./inde
 
 const V2_BASE = INDODAX_V2_BASE;
 
+/**
+ * Exchange rejections arrive as raw codes plus terse text (for example
+ * code -2010 for insufficient balance). Keep the raw payload for
+ * traceability, but translate the known-terse cases into the next action
+ * so agents do not have to guess which balance or order is short.
+ */
+function rejectionMessage(action: string, raw: Record<string, unknown>): string {
+  const text = JSON.stringify(raw).slice(0, 200);
+  if (/insufficient/i.test(text) && /balance|fund/i.test(text)) {
+    return (
+      `exchange rejected ${action}: insufficient balance (${text}). ` +
+      "next: check indodax_balances for free funds versus amounts locked in open orders, " +
+      "then lower the size or free funds before retrying"
+    );
+  }
+  return `exchange rejected ${action}: ${text}`;
+}
+
 export interface LiveExecutorOptions {
   signer: TapiV2Signer;
   fetchFn?: FetchFn;
@@ -73,7 +91,7 @@ export class LiveExecutor implements ExecutionBackend {
     const raw = await this.signed<Record<string, unknown>>("POST", "/api/v2/order", params);
     const code = (raw as { code?: number }).code;
     if (typeof code === "number" && code !== 0) {
-      throw OrderRejectedError(`exchange rejected order: ${JSON.stringify(raw).slice(0, 200)}`);
+      throw OrderRejectedError(rejectionMessage("order", raw));
     }
     const body = (raw as { data?: Record<string, unknown> }).data ?? raw;
     return {
@@ -104,7 +122,7 @@ export class LiveExecutor implements ExecutionBackend {
     const raw = await this.signed<Record<string, unknown>>("DELETE", "/api/v2/order", params);
     const code = (raw as { code?: number }).code;
     if (typeof code === "number" && code !== 0) {
-      throw OrderRejectedError(`exchange rejected cancel: ${JSON.stringify(raw).slice(0, 200)}`);
+      throw OrderRejectedError(rejectionMessage("cancel", raw));
     }
     return true;
   }

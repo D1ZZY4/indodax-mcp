@@ -5,7 +5,11 @@ import { createApp, type AppServices } from "./composition.js";
 import { buildGuard } from "./guard.js";
 import { attachAuditPersistence } from "./audit-store.js";
 import { attachPaperPersistence } from "./order-store.js";
-import { attachAlertPersistence, attachStopPersistence } from "./state-store.js";
+import {
+  attachAlertPersistence,
+  attachDeadmanPersistence,
+  attachStopPersistence,
+} from "./state-store.js";
 import { evaluateAlerts } from "./tools/alerts.js";
 import { evaluateStops } from "./tools/stop.js";
 import { registerMarketTools } from "./tools/market.js";
@@ -43,6 +47,7 @@ export function buildIndodaxServer(env: AppEnv) {
   void attachPaperPersistence(app);
   void attachAlertPersistence(app);
   void attachStopPersistence(app);
+  void attachDeadmanPersistence(app);
   app.health.set("configuration", { status: "healthy", detail: "environment parsed" });
   app.health.set("runtime", { status: "healthy", detail: "server composed" });
   app.health.set("mcpTransport", { status: "healthy", detail: "registry built" });

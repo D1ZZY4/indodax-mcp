@@ -70,6 +70,39 @@ export class DeadmanSwitch {
     return this.snapshot();
   }
 
+  /**
+   * Restart recovery from a persisted snapshot. Unknown shapes throw
+   * instead of installing corrupt protection state; a countdown that
+   * cannot arm falls back to DISARMED rather than a fake ARMED.
+   */
+  restore(stored: {
+    state: DeadmanState;
+    pairs: string[];
+    countdownMs: number | null;
+  }): DeadmanStatus {
+    if (stored.state === "DISARMED") return this.disarm();
+    if (
+      (stored.state === "ARMED" || stored.state === "STALE" || stored.state === "EXPIRED") &&
+      stored.pairs.length > 0 &&
+      typeof stored.countdownMs === "number" &&
+      Number.isFinite(stored.countdownMs) &&
+      stored.countdownMs > 0
+    ) {
+      this.status = {
+        state: stored.state,
+        pairs: [...stored.pairs],
+        countdownMs: stored.countdownMs,
+        lastRefreshAt: null,
+        // Exact pre-restart failure counts are unknowable; preserve the
+        // ordering invariant instead (STALE below threshold, EXPIRED at it).
+        consecutiveFailures:
+          stored.state === "ARMED" ? 0 : stored.state === "STALE" ? 1 : FAILURE_HALT_THRESHOLD,
+      };
+      return this.snapshot();
+    }
+    throw new Error("stored deadman snapshot has an unexpected shape");
+  }
+
   shouldHaltLiveTrading(): boolean {
     return this.status.state === "EXPIRED" || this.status.state === "STALE";
   }

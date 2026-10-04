@@ -132,6 +132,14 @@ export function registerSystemTools(
       privateChannel: app.privateChannel.connectionState,
       metrics: app.metrics.snapshot(),
       deadman: app.deadman.snapshot(),
+      persistence: {
+        database: app.env.DATABASE_URL !== undefined ? "configured" : "absent",
+        mirrors: ["paper", "audit", "alerts", "stops", "deadman"],
+        note:
+          app.env.DATABASE_URL !== undefined
+            ? "mutations mirror to Postgres when reachable; restarts reload the latest snapshots"
+            : "memory-only: a restart resets paper, audit, alerts, stops, and deadman state",
+      },
     }),
   );
   handlers.tools.set("indodax_auth_status", async () =>
@@ -142,6 +150,7 @@ export function registerSystemTools(
   );
   handlers.tools.set("indodax_ws_status", async () =>
     ok({
+      mode: "on-demand: sockets connect only when a tool needs them; DISCONNECTED is the resting state, not a failure",
       market: {
         state: app.marketSocket.connectionState,
         subscriptions: app.marketSocket.listSubscriptions(),

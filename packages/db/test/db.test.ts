@@ -3,7 +3,11 @@ import EmbeddedPostgres from "embedded-postgres";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { connectDatabase } from "../src/client.js";
-import { DrizzleAuditRepository, DrizzlePaperLedgerRepository } from "../src/repositories.js";
+import {
+  DrizzleAuditRepository,
+  DrizzleDeadmanRepository,
+  DrizzlePaperLedgerRepository,
+} from "../src/repositories.js";
 import { tenants } from "../src/schema.js";
 
 const EMBEDDED_PORT = 18899;
@@ -107,6 +111,21 @@ describe("db on real PostgreSQL", () => {
       const loaded = await repo.load(tenantId);
       expect(loaded?.tradeCount).toBe(2);
       expect(loaded?.balances).toEqual({ idr: "99999000" });
+    } finally {
+      await closeDb();
+    }
+  });
+
+  it("saves and reloads deadman protection state per tenant", async () => {
+    const { db, close: closeDb } = connectDatabase(activeUrl);
+    try {
+      const repo = new DrizzleDeadmanRepository(db);
+      const tenant = await repo.ensureTenant("deadman-tenant");
+      expect(await repo.load(tenant)).toBeNull();
+      await repo.save(tenant, { state: "ARMED", pairs: ["btc_idr"], countdownMs: 120000 });
+      expect(await repo.load(tenant)).toMatchObject({ state: "ARMED", countdownMs: 120000 });
+      await repo.save(tenant, { state: "DISARMED", pairs: [], countdownMs: null });
+      expect((await repo.load(tenant))?.state).toBe("DISARMED");
     } finally {
       await closeDb();
     }

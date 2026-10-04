@@ -13,7 +13,7 @@ Two separate safety layers share one state machine (`DISARMED`, `ARMED`,
 | --- | --- | --- | --- |
 | `indodax_deadman_arm` | `pairs` non-empty, `countdownMs` positive | Status snapshot | Local only. |
 | `indodax_deadman_status` | none | `{ state, pairs, countdownMs, countdownHuman, lastRefreshAt, consecutiveFailures }` | `countdownHuman` renders `24h`/`90s` style alongside ms. |
-| `indodax_deadman_disarm` | `acknowledged: true` required | Status snapshot | Disarming removes heartbeat protection globally; hence the gate. |
+| `indodax_deadman_disarm` | `acknowledged: true` required | Status snapshot | Disarming removes heartbeat protection globally; hence the gate. With `DATABASE_URL` set, arm/disarm/heartbeat mirror to Postgres and survive restarts. |
 | `indodax_deadman_heartbeat` | `countdownMs` non-negative, `pairs`? (default armed pairs), `acknowledged: true` required | `{ pairs, countdownMs, state }` | Live exchange call: needs the full live gate (APP_ENV, TRADE_ENABLED, credentials). Success records a local refresh; failure records a refresh failure (3 consecutive = EXPIRED). |
 
 Heartbeat cadence tip: refresh well inside the window (e.g. every 30s for a

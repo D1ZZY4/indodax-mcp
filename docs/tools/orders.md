@@ -10,14 +10,33 @@ credentials plus risk `ALLOW`. Miss one and the call is denied.
 
 | Tool | Parameters | Response `data` | Notes |
 | --- | --- | --- | --- |
-| `indodax_validate_order` | `pair`, `side` BUY/SELL, `quantity` positive number, `price` positive optional, `mode` paper/live/shadow optional, `timeInForce` GTC/MOC/FOK optional, `stpMode` optional | `{ proposal, order, decision, executed: false }` | Executes nothing. The returned order state is `PROPOSED`, never `ACCEPTED`. Audit entries are still written for traceability. |
+| `indodax_validate_order` | `pair`, `side` BUY/SELL, `quantity` positive number, `price` positive optional, `mode` paper/live/shadow optional, `timeInForce` GTC/MOC/FOK optional, `stpMode` optional | `{ proposal, order, decision, executed: false }` | Executes nothing. The returned order state is `PROPOSED`, never `ACCEPTED`. Audit entries are still written for traceability. Unsure about fillability? Call `indodax_quote` first for an instant-vs-parked estimate. |
 | `indodax_propose_order` | Same as validate plus `reason` optional | Same shape, `executed: false` | A proposal is not an order and creates nothing. |
-| `indodax_create_order` | Same as propose plus `acknowledged` optional, `clientOrderId` 1-36 optional | Paper or live `ExecutionResult` (`accepted`, ids, `executedAt`); acceptance is not a fill | `timeInForce`: GTC/MOC for LIMIT, FOK for MARKET. Repeated `clientOrderId` replays the first paper result instead of placing twice. |
+| `indodax_create_order` | Same as propose plus `acknowledged` optional, `clientOrderId` 1-36 optional | Paper or live `ExecutionResult` (`accepted`, ids, `executedAt`); acceptance is not a fill | `timeInForce`: GTC/MOC for LIMIT, FOK for MARKET. Repeated `clientOrderId` replays the first paper result instead of placing twice. `clientOrderId` must be unique per exchange: a reused live id is rejected opaquely, so generate fresh ids and check status via `indodax_order` before resubmitting. |
 | `indodax_cancel_order` | `orderId` or `clientOrderId` (one required), `mode`?, `acknowledged`?, `symbol`? (live only) | `{ orderId, status: "cancelled" }` or live result | Paper cancels by any id form with refund. Live cancel additionally needs the full live gate plus `symbol`. |
 
 Errors: `ValidationError` (shape, pair, missing live fields), `AuthorizationError`
 (live gate), `RiskDeniedError` (risk verdict), `OrderRejectedError` (paper
-funds or exchange rejection).
+funds or exchange rejection), `UnknownExecutionResultError` (non-retryable;
+live transport timeout or network failure with the client order id preserved.
+Reconcile before any retry).
+
+## timeInForce and self-trade prevention
+
+Both options are **passthrough to the exchange**: the server validates their
+shape and forwards them, it does not implement their matching semantics.
+The enforced shape rules are:
+
+- `GTC` and `MOC`: LIMIT orders only.
+- `FOK`: MARKET orders only.
+- `stpMode` (`EXPIRE_TAKER`, `EXPIRE_MAKER`, `EXPIRE_BOTH`): passed as
+  `selfTradePreventionMode`. The exchange default is `EXPIRE_MAKER` for
+  orders created on or after 14 Jul 2026.
+
+Paper simulation ignores both fields (paper fills are immediate and manual),
+so a paper result proves validation and risk only, never TIF/STP behavior.
+For exact exchange matching semantics, see the official Trade API v2
+document, not this page.
 
 Related: `indodax_paper_order` (simulation shortcut), `indodax_risk_evaluate`,
 `orders://open` resource.

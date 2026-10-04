@@ -45,7 +45,7 @@ Several MCP callers resolve market freshness from a live ticker read and daily P
 
 ## 3. Deadman
 
-The Deadman package implements its own state machine and tool surface. DISARMED means no heartbeat protection and still allows trading. Arm it when heartbeat protection is wanted; a stale or expired heartbeat then halts trading.
+The Deadman package implements its own state machine and tool surface. DISARMED means no heartbeat protection and still allows trading. Arm it when heartbeat protection is wanted; a stale or expired heartbeat then halts trading. With `DATABASE_URL` set, the armed state mirrors to Postgres and survives restarts; without it, a restart disarms silently, so check `indodax_deadman_status` (or `persistence` in `indodax_runtime_status`) after every boot.
 
 ## 4. Daemon
 

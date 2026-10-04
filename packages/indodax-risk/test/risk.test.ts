@@ -142,4 +142,24 @@ describe("risk engine", () => {
       "ALLOW",
     );
   });
+
+  it("teaches the remedy inside denial messages", () => {
+    const engine = createRiskEngine(defaultRiskLimits(), paperOnlyPolicy());
+    const cooldown = engine.evaluate(order("100000"), {
+      ...context(),
+      lastOrderAtMs: Date.now(),
+    });
+    expect(cooldown.message).toContain("COOLDOWN_ACTIVE");
+    expect(cooldown.message).toContain("next:");
+    expect(cooldown.message).toContain("5000ms cooldown");
+    const stale = engine.evaluate(order("100000"), {
+      ...context(),
+      accountAgeMs: 999_999_999,
+    });
+    expect(stale.message).toContain("indodax_account");
+    const small = engine.evaluate(order("1"), context());
+    expect(small.message).toContain("10000");
+    const suspended = engine.evaluate(order("100000"), { ...context(), marketSuspended: true });
+    expect(suspended.message).toContain("halted this market");
+  });
 });

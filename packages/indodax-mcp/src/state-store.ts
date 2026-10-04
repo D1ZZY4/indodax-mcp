@@ -1,4 +1,5 @@
 import {
+  DrizzleDeadmanRepository,
   DrizzleSnapshotRepository,
   alertSnapshots,
   connectDatabase,
@@ -126,4 +127,91 @@ export function attachStopPersistence(app: AppServices): void {
     },
     (stored) => app.stops.restore(stored),
   );
+}
+
+/**
+ * Durable Deadman protection. Without this mirror an armed switch silently
+ * disarms on restart; with DATABASE_URL configured the state survives and
+ * reloads on boot. Mutations mirror to Postgres; failures only log.
+ */
+export function attachDeadmanPersistence(app: AppServices): void {
+  const url = app.env.DATABASE_URL;
+  if (!url) return;
+  void (async () => {
+    let repo: DrizzleDeadmanRepository;
+    let tenantId: string;
+    let close: () => Promise<void>;
+    try {
+      const connection = connectDatabase(url);
+      close = connection.close;
+      repo = new DrizzleDeadmanRepository(connection.db);
+      tenantId = await repo.ensureTenant("local");
+      const stored = await repo.load(tenantId);
+      if (stored !== null) {
+        try {
+          app.deadman.restore({
+            state: stored.state as "DISARMED" | "ARMED" | "STALE" | "EXPIRED",
+            pairs: Array.isArray(stored.pairs) ? stored.pairs.filter(isString) : [],
+            countdownMs: stored.countdownMs,
+          });
+          app.logger.info("deadman restored from database");
+        } catch {
+          app.logger.warn("stored deadman snapshot invalid, starting disarmed");
+        }
+      }
+    } catch (error) {
+      app.logger.warn(
+        { error: String(error), cause: causeOf(error) },
+        "deadman persistence disabled, keeping memory switch",
+      );
+      return;
+    }
+    app.shutdownHooks.push(async () => {
+      await close();
+    });
+    const persist = (): void => {
+      const status = app.deadman.snapshot();
+      repo
+        .save(tenantId, {
+          state: status.state,
+          pairs: status.pairs,
+          countdownMs: status.countdownMs,
+        })
+        .catch((error: unknown) => {
+          app.logger.warn(
+            { error: String(error), cause: causeOf(error) },
+            "deadman persistence failed, keeping memory switch",
+          );
+        });
+    };
+    const deadman = app.deadman;
+    const arm = deadman.arm.bind(deadman);
+    deadman.arm = (pairs, countdownMs) => {
+      const result = arm(pairs, countdownMs);
+      persist();
+      return result;
+    };
+    const disarm = deadman.disarm.bind(deadman);
+    deadman.disarm = () => {
+      const result = disarm();
+      persist();
+      return result;
+    };
+    const refreshOk = deadman.recordRefreshSuccess.bind(deadman);
+    deadman.recordRefreshSuccess = () => {
+      const result = refreshOk();
+      persist();
+      return result;
+    };
+    const refreshFail = deadman.recordRefreshFailure.bind(deadman);
+    deadman.recordRefreshFailure = () => {
+      const result = refreshFail();
+      persist();
+      return result;
+    };
+  })();
+}
+
+function isString(value: unknown): value is string {
+  return typeof value === "string";
 }

@@ -5,6 +5,7 @@ import { ExecutionService } from "@indodax-mcp/indodax-execution";
 import type { RiskDecision } from "@indodax-mcp/core";
 import { PaperExecutor, currentUtcDay } from "@indodax-mcp/indodax-paper";
 import type { PublicClient } from "@indodax-mcp/indodax-client";
+import { clearCache } from "@indodax-mcp/indodax-market";
 import { createApp } from "../src/composition.js";
 import { placePaperOrder } from "../src/tools/paper.js";
 import { resolveRiskContext } from "../src/risk-context.js";
@@ -167,8 +168,33 @@ describe("paper safety", () => {
     }
   });
 
-  it("rejects MARKET paper orders with a clear simulation message", async () => {
+  it("fills MARKET paper orders instantly at the live price", async () => {
+    clearCache();
     const app = createApp(loadEnv({}));
+    app.publicClient = {
+      ticker: async () => ({ high: "1000", low: "1000", last: "1000", buy: "1000", sell: "1000" }),
+      pairs: async () => [],
+    } as unknown as PublicClient;
+    const placed = (await placePaperOrder(app, {
+      pair: "btc_idr",
+      side: "BUY",
+      orderType: "MARKET",
+      quantity: 100,
+    })) as { status?: string; fillPrice?: string; fee?: string };
+    expect(placed.status).toBe("filled");
+    expect(placed.fillPrice).toBe("1000");
+    expect(app.paper.snapshot().balances.btc).toBe("101");
+  });
+
+  it("rejects MARKET paper orders with a clear message when offline", async () => {
+    clearCache();
+    const app = createApp(loadEnv({}));
+    app.publicClient = {
+      ticker: async () => {
+        throw new Error("offline");
+      },
+      pairs: async () => [],
+    } as unknown as PublicClient;
     await expect(
       placePaperOrder(app, {
         pair: "btc_idr",
@@ -176,6 +202,26 @@ describe("paper safety", () => {
         orderType: "MARKET",
         quantity: 1,
       }),
-    ).rejects.toThrow(/MARKET is not supported in simulation/i);
+    ).rejects.toThrow(/live market price/);
+  });
+
+  it("rejects quantities below the pair increment with a suggestion", async () => {
+    const app = createApp(loadEnv({}));
+    app.publicClient = {
+      ticker: async () => ({ high: "1", low: "1", last: "1", buy: "1", sell: "1" }),
+      pairs: async () => [
+        {
+          id: "mubarakidr",
+          symbol: "MUBARAKIDR",
+          base_currency: "idr",
+          traded_currency: "mubarak",
+          ticker_id: "mubarak_idr",
+          quantity_increment: "1",
+        },
+      ],
+    } as unknown as PublicClient;
+    await expect(
+      placePaperOrder(app, { pair: "mubarak_idr", side: "BUY", price: 1000, quantity: 13.4 }),
+    ).rejects.toThrow(/increment 1.*such as 13/);
   });
 });

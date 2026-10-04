@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { PublicClient, type FetchFn } from "@indodax-mcp/indodax-client";
 import {
   cacheSize,
+  checkQuantityIncrement,
   clearCache,
   getTicker,
   isMarketSuspended,
@@ -72,5 +73,33 @@ describe("indodax-market", () => {
     const failing = (async () => new Response("down", { status: 500 })) as FetchFn;
     const client = new PublicClient({ fetchFn: failing });
     expect(await isMarketSuspended(client, "btc_idr")).toBeNull();
+  });
+
+  it("rejects quantities below the pair increment with a suggestion", async () => {
+    const pairsFetch = (async () =>
+      new Response(
+        JSON.stringify([
+          {
+            id: "mubarakidr",
+            symbol: "MUBARAKIDR",
+            base_currency: "idr",
+            traded_currency: "mubarak",
+            ticker_id: "mubarak_idr",
+            quantity_increment: "1",
+          },
+        ]),
+      )) as FetchFn;
+    const client = new PublicClient({ fetchFn: pairsFetch });
+    await expect(checkQuantityIncrement(client, "MUBARAKIDR", 13.4)).rejects.toThrow(
+      /increment 1.*such as 13/,
+    );
+    await expect(checkQuantityIncrement(client, "mubarak_idr", 13)).resolves.toBeUndefined();
+  });
+
+  it("skips the increment check when the pair list is unreachable", async () => {
+    clearCache();
+    const failing = (async () => new Response("down", { status: 500 })) as FetchFn;
+    const client = new PublicClient({ fetchFn: failing });
+    await expect(checkQuantityIncrement(client, "btc_idr", 13.4)).resolves.toBeUndefined();
   });
 });

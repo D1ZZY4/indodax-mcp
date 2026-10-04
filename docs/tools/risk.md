@@ -2,7 +2,9 @@
 
 The engine is deterministic and side-effect free: policy plus limits plus a
 supplied runtime context produce ALLOW, DENY, or HALT with machine-readable
-`RiskReason` codes. Branch on codes, never on message text.
+`RiskReason` codes. Branch on codes, never on message text. Denial messages
+additionally carry a `next:` remedy (which tool to call, how long to wait,
+which limit was hit) so harnesses can act without guessing.
 
 | Tool | Parameters | Response `data` | Notes |
 | --- | --- | --- | --- |

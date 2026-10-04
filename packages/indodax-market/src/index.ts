@@ -2,7 +2,6 @@ import { asCompact, asPair, parseSymbolFlexible, type SymbolParts } from "@indod
 import { ValidationError } from "@indodax-mcp/errors";
 import type { PairInfo, PublicClient, TickerBody } from "@indodax-mcp/indodax-client";
 import { decimalOrNull } from "@indodax-mcp/core";
-
 export interface MarketTicker extends TickerBody {
   symbol: SymbolParts;
   fetchedAt: string;
@@ -87,4 +86,49 @@ function matchSuspended(pairs: PairInfo[], wanted: Set<string>): boolean | null 
   );
   if (!found) return null;
   return flagOn(found.is_market_suspended) || flagOn(found.is_maintenance);
+}
+
+function findPair(pairs: PairInfo[], pair: string): PairInfo | null {
+  const symbol = parseSymbolFlexible(pair);
+  if (!symbol) return null;
+  const wanted = new Set([
+    asPair(symbol),
+    asCompact(symbol),
+    `${symbol.base}${symbol.quote}`.toUpperCase(),
+  ]);
+  return (
+    pairs.find((info) =>
+      [info.ticker_id, info.id, info.symbol].some(
+        (spell) => typeof spell === "string" && wanted.has(spell.toLowerCase()),
+      ),
+    ) ?? null
+  );
+}
+
+/**
+ * Reject quantities the exchange would refuse for precision, with the
+ * offending increment and a rounded suggestion, instead of an opaque
+ * exchange error. Skips silently when the pair list is unreachable or the
+ * pair/increment is unknown, so offline simulation keeps working.
+ */
+export async function checkQuantityIncrement(
+  client: PublicClient,
+  pair: string,
+  quantity: number,
+): Promise<void> {
+  let pairs: PairInfo[];
+  try {
+    pairs = await client.pairs();
+  } catch {
+    return;
+  }
+  const increment = decimalOrNull(findPair(pairs, pair)?.quantity_increment);
+  const qty = decimalOrNull(quantity);
+  if (increment === null || qty === null || increment.lte(0)) return;
+  if (qty.mod(increment).isZero()) return;
+  const rounded = qty.div(increment).round().mul(increment);
+  const suggestion = rounded.gt(0) ? rounded : increment;
+  throw ValidationError(
+    `quantity ${qty.toString()} violates the ${pair} increment ${increment.toString()}; use a multiple such as ${suggestion.toString()}`,
+  );
 }

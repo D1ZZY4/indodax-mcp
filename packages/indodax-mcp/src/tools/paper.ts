@@ -5,6 +5,7 @@ import type { Registry } from "@indodax-mcp/mcp-registry";
 import type { ServerHandlers } from "@indodax-mcp/mcp-core";
 import { parseSymbolFlexible } from "@indodax-mcp/core";
 import { ExecutionService } from "@indodax-mcp/indodax-execution";
+import { checkQuantityIncrement, getTicker } from "@indodax-mcp/indodax-market";
 import { fail, ok, parseArgs } from "../respond.js";
 import { clientOrderIdArg, pairArg, priceArg, quantityArg, sideArg } from "../schemas.js";
 import { resolveRiskContext } from "../risk-context.js";
@@ -41,13 +42,27 @@ export async function placePaperOrder(app: AppServices, placement: PaperPlacemen
   if (app.deadman.shouldHaltLiveTrading()) {
     throw RiskDeniedError(`deadman ${app.deadman.snapshot().state} halts trading`);
   }
-  const orderType = placement.orderType ?? "LIMIT";
-  if (orderType !== "LIMIT") {
-    throw ValidationError(
-      "paper orders require LIMIT with a positive price; MARKET is not supported in simulation",
-    );
+  await checkQuantityIncrement(app.publicClient, placement.pair, placement.quantity);
+  // MARKET mirrors live semantics by filling immediately at the current
+  // price: resolve the price, run the standard LIMIT pipeline for
+  // validation plus risk review, then fill at once. Needs a live ticker;
+  // offline simulation stays LIMIT-only.
+  let marketFillPrice: string | null = null;
+  if ((placement.orderType ?? "LIMIT") === "MARKET") {
+    try {
+      const ticker = await getTicker(app.publicClient, `${symbol.base}_${symbol.quote}`);
+      marketFillPrice = ticker.last;
+    } catch {
+      throw ValidationError("paper MARKET needs a live market price; retry online or use LIMIT");
+    }
   }
-  const price = placement.price === undefined ? null : new Decimal(String(placement.price));
+  const orderType = "LIMIT" as const;
+  const price =
+    marketFillPrice !== null
+      ? new Decimal(marketFillPrice)
+      : placement.price === undefined
+        ? null
+        : new Decimal(String(placement.price));
   const quantity = new Decimal(String(placement.quantity));
   const notional = price === null ? null : price.mul(quantity);
   const ledger = app.paper.snapshot();
@@ -100,6 +115,17 @@ export async function placePaperOrder(app: AppServices, placement: PaperPlacemen
     },
     decision,
   );
+  if (marketFillPrice !== null) {
+    const { fee } = app.paper.fill(
+      result.exchangeOrderId ?? result.internalOrderId,
+      marketFillPrice,
+    );
+    const filled = { ...result, status: "filled", fillPrice: marketFillPrice, fee };
+    if (placement.clientOrderId !== undefined && placement.clientOrderId !== "") {
+      app.paper.rememberResult(placement.clientOrderId, filled);
+    }
+    return filled;
+  }
   if (placement.clientOrderId !== undefined && placement.clientOrderId !== "") {
     app.paper.rememberResult(placement.clientOrderId, result);
   }
@@ -158,15 +184,16 @@ export function registerPaperTools(
       name: "indodax_paper_order",
       title: "Paper order",
       description:
-        "Simulated execution through validation and risk. Args: pair, side, price, quantity, optional clientOrderId for idempotent replay. Returns the open paper order id.",
+        "Simulated execution through validation and risk. Args: pair, side, quantity in base units, optional clientOrderId for idempotent replay, orderType LIMIT (default, needs price) or MARKET (fills instantly at the live price, needs market reachability). Returns the open paper order id, or fill details for MARKET.",
       ...PAPER,
     },
     inputSchema: z.object({
       pair: pairArg,
       side: sideArg,
-      price: priceArg,
+      price: priceArg.optional(),
       quantity: quantityArg,
       clientOrderId: clientOrderIdArg,
+      orderType: z.enum(["LIMIT", "MARKET"]).optional(),
     }),
   });
   registry.registerTool({
@@ -242,9 +269,10 @@ export function registerPaperTools(
         z.object({
           pair: pairArg,
           side: sideArg,
-          price: priceArg,
+          price: priceArg.optional(),
           quantity: quantityArg,
           clientOrderId: clientOrderIdArg,
+          orderType: z.enum(["LIMIT", "MARKET"]).optional(),
         }),
         raw,
       );

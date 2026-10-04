@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm";
 import type { Database } from "./client.js";
-import { auditEvents, orders, paperLedgers, tenants } from "./schema.js";
+import { auditEvents, deadmanState, orders, paperLedgers, tenants } from "./schema.js";
 import type { alertSnapshots, stopSnapshots } from "./schema.js";
 
 export interface AuditRecord {
@@ -140,5 +140,55 @@ export class DrizzleSnapshotRepository {
     const rows = await this.db.select().from(this.table).where(eq(this.table.id, id));
     const snapshot = rows[0]?.snapshot as unknown[] | undefined;
     return Array.isArray(snapshot) ? snapshot : null;
+  }
+}
+
+export interface DeadmanSnapshot {
+  state: string;
+  pairs: unknown;
+  countdownMs: number | null;
+}
+
+export class DrizzleDeadmanRepository {
+  constructor(private readonly db: Database) {}
+
+  async ensureTenant(name: string): Promise<string> {
+    const existing = await this.db.select().from(tenants).where(eq(tenants.name, name));
+    const found = existing[0]?.id;
+    if (found) return found;
+    const created = await this.db.insert(tenants).values({ name }).returning();
+    const id = created[0]?.id;
+    if (!id) throw new Error("deadman tenant creation failed");
+    return id;
+  }
+
+  async save(tenantId: string, snapshot: DeadmanSnapshot): Promise<void> {
+    await this.db
+      .insert(deadmanState)
+      .values({
+        tenantId,
+        state: snapshot.state,
+        pairs: snapshot.pairs,
+        countdownMs: snapshot.countdownMs,
+      })
+      .onConflictDoUpdate({
+        target: deadmanState.tenantId,
+        set: {
+          state: snapshot.state,
+          pairs: snapshot.pairs,
+          countdownMs: snapshot.countdownMs,
+          updatedAt: new Date(),
+        },
+      });
+  }
+
+  async load(tenantId: string): Promise<DeadmanSnapshot | null> {
+    const rows = await this.db
+      .select()
+      .from(deadmanState)
+      .where(eq(deadmanState.tenantId, tenantId));
+    const row = rows[0];
+    if (!row) return null;
+    return { state: row.state, pairs: row.pairs, countdownMs: row.countdownMs };
   }
 }

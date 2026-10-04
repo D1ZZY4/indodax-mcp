@@ -92,8 +92,12 @@ export interface RiskEngine {
   evaluate(order: OrderFacts, context: RiskContext): RiskDecision;
 }
 
-function deny(reason: RiskReason, message: string): RiskDecision {
-  return { outcome: "DENY", reasons: [reason], message };
+function deny(reason: RiskReason, message: string, remedy?: string): RiskDecision {
+  return {
+    outcome: "DENY",
+    reasons: [reason],
+    message: remedy === undefined ? message : `${message}. next: ${remedy}`,
+  };
 }
 
 function halt(reason: RiskReason, message: string): RiskDecision {
@@ -117,10 +121,17 @@ function evaluateInternal(
 ): RiskDecision {
   let outcome: RiskOutcome = "ALLOW";
   const reasons: RiskReason[] = [];
-  const push = (reason: RiskReason) => {
+  const remedies: string[] = [];
+  const push = (reason: RiskReason, remedy?: string) => {
     reasons.push(reason);
     outcome = "DENY";
+    if (remedy !== undefined) remedies.push(remedy);
   };
+  const denied = (): RiskDecision => ({
+    outcome: "DENY",
+    reasons,
+    message: `denied: ${reasons.join(", ")}${remedies.length > 0 ? `. next: ${remedies.join("; ")}` : ""}`,
+  });
 
   if (policy.killSwitch) return halt("KILL_SWITCH", "kill switch engaged");
   if (policy.circuitBreaker) return halt("CIRCUIT_BREAKER", "circuit breaker open");
@@ -128,47 +139,107 @@ function evaluateInternal(
     return halt("RECONCILIATION_FAILURE", "reconciliation halted trading");
   }
   if (!policy.allowedModes.includes(context.mode)) {
-    return deny("LIVE_MODE_DENIED", `execution mode ${context.mode} not allowed`);
+    return deny(
+      "LIVE_MODE_DENIED",
+      `execution mode ${context.mode} not allowed`,
+      "paper is the default; live needs mode live plus APP_ENV, credentials, acknowledgement, and risk ALLOW",
+    );
   }
   if (!policy.allowedCapabilities.includes(context.capability)) {
-    return deny("CAPABILITY_DENIED", `capability ${context.capability} denied`);
+    return deny(
+      "CAPABILITY_DENIED",
+      `capability ${context.capability} denied`,
+      "match the capability to the mode: PAPER for paper, TRADE for live",
+    );
   }
   if (context.deadmanUnknown && context.mode === "live") {
-    return deny("DEADMAN_UNKNOWN", "deadman state unknown for live trading");
+    return deny(
+      "DEADMAN_UNKNOWN",
+      "deadman state unknown for live trading",
+      "arm protection via indodax_deadman_arm or disarm explicitly via indodax_deadman_disarm",
+    );
   }
   if (
     context.mode === "live" &&
     (context.deadmanState === "STALE" || context.deadmanState === "EXPIRED")
   ) {
-    return deny("DEADMAN_UNKNOWN", `deadman ${context.deadmanState} halts live trading`);
+    return deny(
+      "DEADMAN_UNKNOWN",
+      `deadman ${context.deadmanState} halts live trading`,
+      "refresh the heartbeat via indodax_deadman_heartbeat or disarm explicitly",
+    );
   }
-  if (context.duplicate) push("DUPLICATE_ORDER");
-  if (context.marketSuspended === true) push("MARKET_SUSPENDED");
+  if (context.duplicate) {
+    push(
+      "DUPLICATE_ORDER",
+      "this client order id was already submitted; paper replays the original result",
+    );
+  }
+  if (context.marketSuspended === true) {
+    push("MARKET_SUSPENDED", "the exchange halted this market; wait for it to reopen");
+  }
   if (context.marketAgeMs !== null && context.marketAgeMs > limits.maxMarketAgeMs) {
-    push("STALE_MARKET_DATA");
+    push(
+      "STALE_MARKET_DATA",
+      `market data is ${context.marketAgeMs}ms old (max ${limits.maxMarketAgeMs}ms); retry once fresh`,
+    );
   }
   if (context.accountAgeMs !== null && context.accountAgeMs > limits.maxAccountAgeMs) {
-    push("STALE_ACCOUNT_STATE");
+    push(
+      "STALE_ACCOUNT_STATE",
+      `account state is ${context.accountAgeMs}ms old (max ${limits.maxAccountAgeMs}ms); call indodax_account to refresh`,
+    );
   }
   if (order.notional !== null) {
-    if (order.notional.gt(limits.maxOrderNotional)) push("MAX_ORDER_SIZE");
-    if (order.notional.lt(limits.minOrderNotional)) push("MIN_ORDER_SIZE");
+    if (order.notional.gt(limits.maxOrderNotional)) {
+      push(
+        "MAX_ORDER_SIZE",
+        `notional ${order.notional.toString()} exceeds maximum ${limits.maxOrderNotional.toString()}; split the order`,
+      );
+    }
+    if (order.notional.lt(limits.minOrderNotional)) {
+      push(
+        "MIN_ORDER_SIZE",
+        `notional ${order.notional.toString()} is below minimum ${limits.minOrderNotional.toString()}; raise price or quantity`,
+      );
+    }
   } else if (order.isMarket) {
-    push("INVALID_ORDER");
+    push("INVALID_ORDER", "market order without a computable notional");
   }
   if (context.dailyPnl?.lt(limits.maxDailyLoss.neg()) ?? false) {
-    push("DAILY_LOSS_LIMIT");
+    push(
+      "DAILY_LOSS_LIMIT",
+      `daily PnL ${context.dailyPnl?.toString()} breached -${limits.maxDailyLoss.toString()}; stop for today`,
+    );
   }
-  if (context.tradeCount >= limits.maxTradeCount) push("MAX_TRADE_COUNT");
-  if (context.balanceSufficient === false) push("INSUFFICIENT_BALANCE");
+  if (context.tradeCount >= limits.maxTradeCount) {
+    push(
+      "MAX_TRADE_COUNT",
+      `${context.tradeCount} trades reached the ${limits.maxTradeCount} cap; reset or wait for a new window`,
+    );
+  }
+  if (context.balanceSufficient === false) {
+    push(
+      "INSUFFICIENT_BALANCE",
+      `insufficient free balance for ${order.symbol}; check locked funds and open orders`,
+    );
+  }
   if (context.positionNotional?.gt(limits.maxPositionNotional) === true) {
-    push("MAX_POSITION_EXPOSURE");
+    push(
+      "MAX_POSITION_EXPOSURE",
+      `position ${context.positionNotional?.toString()} exceeds maximum ${limits.maxPositionNotional.toString()}; reduce exposure`,
+    );
   }
   if (context.lastOrderAtMs != null) {
     const elapsed = Date.now() - context.lastOrderAtMs;
-    if (elapsed >= 0 && elapsed < limits.orderCooldownMs) push("COOLDOWN_ACTIVE");
+    if (elapsed >= 0 && elapsed < limits.orderCooldownMs) {
+      push(
+        "COOLDOWN_ACTIVE",
+        `retry in ~${limits.orderCooldownMs - elapsed}ms after the ${limits.orderCooldownMs}ms cooldown`,
+      );
+    }
   }
 
   if (outcome === "ALLOW") return { outcome, reasons: [], message: "allowed" };
-  return { outcome: "DENY", reasons, message: `denied: ${reasons.join(", ")}` };
+  return denied();
 }

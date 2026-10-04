@@ -200,6 +200,41 @@ describe("execution service", () => {
     expect(seenBody).not.toContain("selfTradePreventionMode");
   });
 
+  it("translates terse insufficient-balance rejections into next actions", async () => {
+    const fetchFn = (async () =>
+      new Response(
+        JSON.stringify({ code: -2010, msg: "Account has insufficient balance" }),
+      )) as import("@indodax-mcp/transport").FetchFn;
+    const executor = new LiveExecutor({ signer: new TapiV2Signer("k", "s"), fetchFn });
+    const request = {
+      order: {
+        internalOrderId: "o1",
+        clientOrderId: "c1",
+        exchangeOrderId: null,
+        symbol: { base: "btc", quote: "idr" },
+        side: "BUY" as const,
+        orderType: "LIMIT" as const,
+        price: "1000",
+        quantity: "1",
+        remaining: "1",
+        state: "NEW" as const,
+        environment: "live" as const,
+        tenantId: "t",
+        exchangeAccountId: "a",
+        strategyId: null,
+        runId: null,
+        riskDecisionId: null,
+        submittedAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      },
+      mode: "live" as const,
+      capability: "TRADE" as const,
+      correlationId: "corr-1",
+      requestedAt: new Date().toISOString(),
+    };
+    await expect(executor.submit(request)).rejects.toThrow(/indodax_balances/);
+  });
+
   it("cancels by client order id when exchange id is unknown", async () => {
     let seenUrl = "";
     const fetchFn = (async (input: string) => {
