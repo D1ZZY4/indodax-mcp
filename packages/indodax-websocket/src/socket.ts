@@ -50,20 +50,9 @@ export class ManagedSocket {
   async connect(options: SocketOptions): Promise<void> {
     this.disconnect();
     this.state = "RECONNECTING";
-    const timeoutMs = options.timeoutMs ?? 10_000;
     const socket = new WebSocket(options.url);
     this.socket = socket;
-    await new Promise<void>((resolve, reject) => {
-      const timer = setTimeout(() => reject(WebSocketError("connect timed out")), timeoutMs);
-      socket.onopen = () => {
-        clearTimeout(timer);
-        resolve();
-      };
-      socket.onerror = () => {
-        clearTimeout(timer);
-        reject(WebSocketError("connect failed"));
-      };
-    });
+    await this.awaitOpen(socket, options.timeoutMs ?? 10_000);
     socket.onmessage = (message) => this.handleMessage(String(message.data));
     socket.onclose = () => {
       if (this.socket === socket) {
@@ -93,20 +82,9 @@ export class ManagedSocket {
   async connectPrivate(options: SocketOptions & { channel: string }): Promise<void> {
     this.disconnect();
     this.state = "RECONNECTING";
-    const timeoutMs = options.timeoutMs ?? 10_000;
     const socket = new WebSocket(options.url);
     this.socket = socket;
-    await new Promise<void>((resolve, reject) => {
-      const timer = setTimeout(() => reject(WebSocketError("connect timed out")), timeoutMs);
-      socket.onopen = () => {
-        clearTimeout(timer);
-        resolve();
-      };
-      socket.onerror = () => {
-        clearTimeout(timer);
-        reject(WebSocketError("connect failed"));
-      };
-    });
+    await this.awaitOpen(socket, options.timeoutMs ?? 10_000);
     socket.onmessage = (message) => this.handleMessage(String(message.data));
     socket.onclose = () => {
       if (this.socket === socket) {
@@ -140,6 +118,44 @@ export class ManagedSocket {
     }
     this.socket = null;
     this.state = "DISCONNECTED";
+  }
+
+  /**
+   * Wait for the socket handshake. A refused connection resets state to
+   * DISCONNECTED instead of sticking at RECONNECTING, and drops the dead
+   * socket reference while keeping registry subscriptions intact.
+   */
+  private async awaitOpen(socket: WebSocket, timeoutMs: number): Promise<void> {
+    try {
+      await new Promise<void>((resolve, reject) => {
+        const timer = setTimeout(() => reject(WebSocketError("connect timed out")), timeoutMs);
+        socket.onopen = () => {
+          clearTimeout(timer);
+          resolve();
+        };
+        socket.onerror = () => {
+          clearTimeout(timer);
+          reject(WebSocketError("connect failed"));
+        };
+      });
+    } catch (error) {
+      if (this.socket === socket) {
+        this.socket = null;
+        this.state = "DISCONNECTED";
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Drop the current connection and establish a fresh one. Subscriptions
+   * survive in the registry, so connect() re-sends them with offsets.
+   * A refused connection propagates, leaving subscriptions intact.
+   */
+  async reconnectWithResubscribe(options: SocketOptions): Promise<ChannelSubscription[]> {
+    this.disconnect();
+    await this.connect(options);
+    return this.listSubscriptions();
   }
 
   private handleMessage(text: string): void {

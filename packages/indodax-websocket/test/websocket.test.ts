@@ -185,3 +185,19 @@ describe("summary snapshot", () => {
     expect(extractPrivateUpdates({})).toEqual([]);
   });
 });
+
+describe("reconnect with resubscribe", () => {
+  it("keeps subscriptions when the fresh connection is refused", async () => {
+    const socket = new ManagedSocket(() => {});
+    socket.subscribe("market:summary-24h");
+    await expect(
+      socket.reconnectWithResubscribe({
+        url: "ws://127.0.0.1:9",
+        token: "t",
+        timeoutMs: 2_000,
+      }),
+    ).rejects.toThrow();
+    expect(socket.connectionState).toBe("DISCONNECTED");
+    expect(socket.listSubscriptions().map((sub) => sub.channel)).toEqual(["market:summary-24h"]);
+  });
+});

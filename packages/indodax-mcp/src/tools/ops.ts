@@ -4,6 +4,7 @@ import { ValidationError } from "@indodax-mcp/errors";
 import type { Registry } from "@indodax-mcp/mcp-registry";
 import type { ServerHandlers } from "@indodax-mcp/mcp-core";
 import { getTicker } from "@indodax-mcp/indodax-market";
+import { DEFAULT_PUBLIC_TOKEN, PUBLIC_WS_URL } from "@indodax-mcp/indodax-websocket";
 import { reconcileFills } from "@indodax-mcp/indodax-reconciliation";
 import type { BacktestReport } from "@indodax-mcp/indodax-backtest";
 import { fail, ok, parseArgs } from "../respond.js";
@@ -301,11 +302,16 @@ export function registerOpsTools(
       );
       const scope = args.scope ?? "all";
       const restored: string[] = [];
+      const reasons: string[] = [];
       if (scope === "market" || scope === "all") {
-        app.marketSocket.disconnect();
-        for (const sub of app.marketSocket.listSubscriptions()) {
-          app.marketSocket.subscribe(sub.channel);
-          restored.push(sub.channel);
+        try {
+          const subs = await app.marketSocket.reconnectWithResubscribe({
+            url: PUBLIC_WS_URL,
+            token: app.env.INDODAX_WS_TOKEN ?? DEFAULT_PUBLIC_TOKEN,
+          });
+          for (const sub of subs) restored.push(sub.channel);
+        } catch (error) {
+          reasons.push(`market: ${error instanceof Error ? error.message : String(error)}`);
         }
       }
       if (scope === "private" || scope === "all") {
@@ -316,7 +322,13 @@ export function registerOpsTools(
         await app.privateChannel.connect(app.privateTokenFetcher);
         restored.push(app.privateChannel.channel ?? "private");
       }
-      return ok({ scope, reconnected: restored.length > 0, restored });
+      return ok({
+        scope,
+        reconnected: restored.length > 0,
+        restored,
+        marketState: app.marketSocket.connectionState,
+        ...(reasons.length > 0 ? { reasons } : {}),
+      });
     } catch (error) {
       return fail(error);
     }
