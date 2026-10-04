@@ -3,9 +3,35 @@ import { ValidationError } from "@indodax-mcp/errors";
 import type { Registry } from "@indodax-mcp/mcp-registry";
 import type { ServerHandlers } from "@indodax-mcp/mcp-core";
 import { getTicker } from "@indodax-mcp/indodax-market";
+import type { PriceAlert } from "@indodax-mcp/indodax-alerts";
 import { fail, ok, parseArgs } from "../respond.js";
 import { pairArg } from "../schemas.js";
 import type { AppServices } from "../composition.js";
+
+export interface AlertFireResult {
+  checked: number;
+  triggered: PriceAlert[];
+}
+
+/** Shared alert evaluation used by the tool and the optional autopoll job. */
+export async function evaluateAlerts(app: AppServices): Promise<AlertFireResult> {
+  const active = app.alerts.list();
+  const pairs = [...new Set(active.map((alert) => alert.pair))];
+  const triggered: PriceAlert[] = [];
+  for (const pair of pairs) {
+    let last: number | null = null;
+    try {
+      const ticker = await getTicker(app.publicClient, pair);
+      const parsed = Number(ticker.last);
+      last = Number.isFinite(parsed) ? parsed : null;
+    } catch {
+      last = null;
+    }
+    if (last === null) continue;
+    triggered.push(...app.alerts.check(pair, last));
+  }
+  return { checked: active.length, triggered };
+}
 
 export function registerAlertTools(
   registry: Registry,
@@ -32,7 +58,7 @@ export function registerAlertTools(
       name: "indodax_alert_create",
       title: "Create alert",
       description:
-        "Persist a price alert for one pair. Exactly one of above, below, percentUp, percentDown. Returns the alert id.",
+        "Persist a price alert for one pair. Exactly one of above, below, percentUp, percentDown. Percent modes anchor to the live price at creation time. Returns the alert id.",
       capability: "READ",
       riskClass: "mutation",
       environmentRequirement: "any",

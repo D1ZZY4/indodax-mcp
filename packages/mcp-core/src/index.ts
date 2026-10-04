@@ -68,6 +68,15 @@ function toErrorPayload(error: unknown): { text: string; isError: true } {
 
 export function buildServer(options: BuildServerOptions): McpServer {
   const server = new McpServer({ name: options.name, version: options.version });
+  // The logging capability lets the server push notifications/message to
+  // connected clients (e.g. alert triggers). Clients that do not listen
+  // simply ignore them; nothing is polled on their side.
+  const protocol = (
+    server as unknown as {
+      server?: { registerCapabilities?: (capabilities: unknown) => void };
+    }
+  ).server;
+  protocol?.registerCapabilities?.({ logging: {} });
 
   for (const entry of options.registry.listTools()) {
     const handler = options.handlers.tools.get(entry.metadata.name);
@@ -136,4 +145,19 @@ export function buildServer(options: BuildServerOptions): McpServer {
   }
 
   return server;
+}
+
+/**
+ * Push a `notifications/resources/updated` for one URI. The high-level
+ * SDK wrapper does not type this method, so the single version-pinned
+ * reach-through below keeps application code typed. Best-effort: a
+ * disconnected server resolves without sending.
+ */
+export async function sendResourceUpdated(server: McpServer, uri: string): Promise<void> {
+  const protocol = (
+    server as unknown as {
+      server?: { sendResourceUpdated?: (params: { uri: string }) => Promise<void> };
+    }
+  ).server;
+  await protocol?.sendResourceUpdated?.({ uri });
 }

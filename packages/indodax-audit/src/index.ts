@@ -16,7 +16,8 @@ export type AuditKind =
   | "LiveModeEnabled"
   | "DeadmanChanged"
   | "StrategyRun"
-  | "BacktestRun";
+  | "BacktestRun"
+  | "PaperReset";
 
 export interface AuditEntry {
   eventId: string;

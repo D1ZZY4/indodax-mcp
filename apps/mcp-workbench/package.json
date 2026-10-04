@@ -6,6 +6,7 @@
   "scripts": {
     "build": "vite build",
     "dev:workbench": "vite --port 5173",
+    "start": "vite --port 5173 --strictPort --host 127.0.0.1",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
     "lint": "biome lint .",

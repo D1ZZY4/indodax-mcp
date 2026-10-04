@@ -18,7 +18,10 @@ export function attachAuditPersistence(app: AppServices): void {
     close = connection.close;
     repo = new DrizzleAuditRepository(connection.db);
   } catch (error) {
-    app.logger.warn({ error: String(error) }, "audit persistence disabled, keeping memory trail");
+    app.logger.warn(
+      { error: String(error), cause: causeOf(error) },
+      "audit persistence disabled, keeping memory trail",
+    );
     return;
   }
   app.shutdownHooks.push(async () => {
@@ -40,7 +43,17 @@ export function attachAuditPersistence(app: AppServices): void {
         reason: stored.reason,
       })
       .catch((error: unknown) => {
-        app.logger.warn({ error: String(error) }, "audit persistence failed, keeping memory trail");
+        app.logger.warn(
+          { error: String(error), cause: causeOf(error) },
+          "audit persistence failed, keeping memory trail",
+        );
       });
   };
+}
+
+/** Underlying driver cause (e.g. connection refused) without connection secrets. */
+function causeOf(error: unknown): string {
+  if (typeof error !== "object" || error === null) return String(error).slice(0, 200);
+  const cause = (error as { cause?: unknown }).cause;
+  return String(cause ?? error).slice(0, 200);
 }

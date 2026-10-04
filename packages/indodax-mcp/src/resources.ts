@@ -58,6 +58,12 @@ export function registerResources(
       description: "Latest audit entries without secrets.",
     },
     {
+      uri: "alerts://active",
+      name: "active-alerts",
+      title: "Active alerts",
+      description: "Active price alerts with conditions and trigger state.",
+    },
+    {
       uri: "system://health",
       name: "system-health",
       title: "System health",
@@ -110,6 +116,7 @@ export function registerResources(
     });
   });
   handlers.resources.set("audit://recent", async () => JSON.stringify(app.audit.list().slice(-20)));
+  handlers.resources.set("alerts://active", async () => JSON.stringify(app.alerts.list()));
   handlers.resources.set("system://health", async () =>
     JSON.stringify({ status: app.health.overall(), components: app.health.snapshot() }),
   );
@@ -125,6 +132,7 @@ export function registerResources(
       "account.read": app.accountClient !== null,
       "trade.place":
         app.env.APP_ENV === "live" &&
+        app.env.TRADE_ENABLED === true &&
         app.policy.allowedModes.includes("live") &&
         app.accountClient !== null,
       "funding.withdraw": false,

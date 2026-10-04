@@ -28,7 +28,7 @@ The current official Trade API v2 documentation specifies HMAC-SHA256 signatures
 
 | Endpoint | Implementation | MCP surface | Status |
 | --- | --- | --- | --- |
-| POST /api/v2/order | LiveExecutor.submit with timeInForce GTC/MOC and STP passthrough | indodax_create_order | adapter implemented, live gated |
+| POST /api/v2/order | LiveExecutor.submit with timeInForce GTC/MOC for LIMIT, FOK for MARKET, and STP passthrough | indodax_create_order | adapter implemented, live gated |
 | DELETE /api/v2/order | LiveExecutor.cancelByExchangeId by orderId or origClientOrderId | indodax_cancel_order | adapter implemented, live gated |
 | GET /api/v2/openOrders | AccountClient.openOrders | indodax_open_orders | implemented |
 | GET /api/v2/order | AccountClient.getOrder | indodax_order | implemented |
@@ -45,6 +45,16 @@ The current official Trade API v2 documentation specifies HMAC-SHA256 signatures
 ## Private WebSocket
 
 Token endpoint `POST https://indodax.com/api/private_ws/v1/generate_token` (HMAC-SHA512 over `client=tapi&tapi_key=KEY`) is implemented in `requestPrivateToken` with the official `connect`/`subscribe` dialect and push parsing. Live channel connect runs through `indodax_private_connect`, which returns channel and state but never the token. No auto-connect on boot.
+
+## Official contract notes
+
+Verified against the official docs repo (Public/Private REST, Trade API v2, both WebSockets, Deadman, STP, enums):
+
+- `GET /api/v2/order/histories` returns `oriQty` (not `origQty`) plus `submitTime`/`finishTime`, with `cancelReason: SELF_TRADE_PREVENTION` only on STP-cancelled orders.
+- `GET /api/v2/myTrades` returns the **full** order id (`aaveidr-limit-3568`) in `orderId`, while `GET /api/v2/order` uses the **numeric** id (`6423`). Never assume both spellings match; the reconciliation helpers treat them as opaque strings.
+- Legacy v1 `tradeHistory` and `orderHistory` were decommissioned on 7 Apr 2026; the v2 history endpoints are the only supported path.
+- STP parameters apply to orders created on or after 14 Jul 2026 with exchange default `EXPIRE_MAKER` (legacy `MAKER`).
+- The STP doc table lists `https://tapi.indodax.com` while the Trade API v2 doc specifies `https://api.indodax.com`; the implementation follows the Trade API v2 doc.
 
 ## Legacy v1
 

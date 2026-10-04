@@ -39,7 +39,10 @@ function attachSnapshot(
         }
       }
     } catch (error) {
-      app.logger.warn({ error: String(error) }, `${kind} persistence disabled`);
+      app.logger.warn(
+        { error: String(error), cause: causeOf(error) },
+        `${kind} persistence disabled`,
+      );
       return;
     }
     app.shutdownHooks.push(async () => {
@@ -48,10 +51,20 @@ function attachSnapshot(
     save(() => {
       const snapshot = kind === "alerts" ? app.alerts.list(true) : app.stops.list(true);
       repo.save("local", snapshot).catch((error: unknown) => {
-        app.logger.warn({ error: String(error) }, `${kind} persistence failed`);
+        app.logger.warn(
+          { error: String(error), cause: causeOf(error) },
+          `${kind} persistence failed`,
+        );
       });
     });
   })();
+}
+
+/** Underlying driver cause (e.g. connection refused) without connection secrets. */
+function causeOf(error: unknown): string {
+  if (typeof error !== "object" || error === null) return String(error).slice(0, 200);
+  const cause = (error as { cause?: unknown }).cause;
+  return String(cause ?? error).slice(0, 200);
 }
 
 export function attachAlertPersistence(app: AppServices): void {

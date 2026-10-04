@@ -1,4 +1,5 @@
 import { z } from "zod";
+import Decimal from "decimal.js";
 import type { Registry } from "@indodax-mcp/mcp-registry";
 import type { ServerHandlers } from "@indodax-mcp/mcp-core";
 import { getTicker, toCompactPair } from "@indodax-mcp/indodax-market";
@@ -51,7 +52,7 @@ export function registerMarketTools(
     {
       metadata: meta(
         "indodax_tickers_all",
-        "Read-only. All tickers in one call for scans. Args: optional quote filter like IDR, optional limit 1 to 500 default all. Large output without filters.",
+        "Read-only. All tickers in one call for scans. Args: optional quote filter like IDR, optional limit 1 to 500 default 100 when neither quote nor limit is given. Large output without filters is capped by the default.",
       ),
       inputSchema: z.object({
         quote: z.string().min(1).max(10).optional(),
@@ -81,7 +82,7 @@ export function registerMarketTools(
     {
       metadata: meta(
         "indodax_candles",
-        "Read-only. OHLCV candles for one pair. Args: symbol, timeframe minutes default 60, from and to unix seconds default last 24h.",
+        "Read-only. OHLCV candles for one pair, money fields as strings. Args: symbol accepts any spelling like btc_idr or BTCIDR, timeframe minutes default 60 (60, 240, 1D, 3D, 1W also valid), from and to unix seconds default last 24h.",
       ),
       inputSchema: z.object({
         symbol: z.string().min(1),
@@ -144,7 +145,10 @@ export function registerMarketTools(
         const wanted = args.quote.toLowerCase();
         entries = entries.filter(([pair]) => pair.toLowerCase().endsWith(`_${wanted}`));
       }
-      if (args.limit !== undefined) entries = entries.slice(0, args.limit);
+      // Unfiltered scans default to 100 rows so one call cannot dump the
+      // whole board into a harness context by accident.
+      const limit = args.limit ?? (args.quote === undefined ? 100 : undefined);
+      if (limit !== undefined) entries = entries.slice(0, limit);
       return ok(Object.fromEntries(entries));
     } catch (error) {
       return fail(error);
@@ -155,11 +159,14 @@ export function registerMarketTools(
       const args = parseArgs(z.object({ pair: pairArg, levels: z.number().optional() }), raw);
       const book = await app.publicClient.depth(toCompactPair(args.pair));
       const levels = Math.min(100, Math.max(1, Math.floor(args.levels ?? 20)));
-      return ok({ buy: book.buy.slice(0, levels), sell: book.sell.slice(0, levels) });
+      const buy = book.buy.slice(0, levels);
+      const sell = book.sell.slice(0, levels);
+      return ok({ buy, sell, spread: spreadOf(buy, sell), mid: midOf(buy, sell) });
     } catch (error) {
       return fail(error);
     }
   });
+
   handlers.tools.set("indodax_trades", async (raw) => {
     try {
       const args = parseArgs(
@@ -193,7 +200,17 @@ export function registerMarketTools(
         args.from ?? now - 86_400,
         args.to ?? now,
       );
-      return ok(bars);
+      // Money always serializes as strings; the exchange sends OHLC numbers.
+      return ok(
+        bars.map((bar) => ({
+          Time: bar.Time,
+          Open: String(bar.Open),
+          High: String(bar.High),
+          Low: String(bar.Low),
+          Close: String(bar.Close),
+          Volume: String(bar.Volume),
+        })),
+      );
     } catch (error) {
       return fail(error);
     }
@@ -213,4 +230,35 @@ export function registerMarketTools(
       return fail(error);
     }
   });
+}
+
+type DepthLevel = [string | number, string];
+
+function bestPrice(levels: DepthLevel[], side: "buy" | "sell"): Decimal | null {
+  let best: Decimal | null = null;
+  for (const [price] of levels) {
+    let value: Decimal;
+    try {
+      value = new Decimal(String(price));
+    } catch {
+      continue;
+    }
+    if (!value.isFinite()) continue;
+    if (best === null || (side === "buy" ? value.gt(best) : value.lt(best))) best = value;
+  }
+  return best;
+}
+
+function spreadOf(buy: DepthLevel[], sell: DepthLevel[]): string | null {
+  const bestBid = bestPrice(buy, "buy");
+  const bestAsk = bestPrice(sell, "sell");
+  if (bestBid === null || bestAsk === null) return null;
+  return bestAsk.minus(bestBid).toString();
+}
+
+function midOf(buy: DepthLevel[], sell: DepthLevel[]): string | null {
+  const bestBid = bestPrice(buy, "buy");
+  const bestAsk = bestPrice(sell, "sell");
+  if (bestBid === null || bestAsk === null) return null;
+  return bestAsk.plus(bestBid).div(2).toString();
 }

@@ -71,7 +71,7 @@ export function registerReconcileTools(
       name: "indodax_reconcile_balances",
       title: "Reconcile balances",
       description:
-        "Read-only. Compare paper ledger balances against live account balances within tolerance. Needs credentials.",
+        "Read-only. Compare paper ledger balances against live account balances within tolerance. Tolerance is a decimal string in quote-asset units, default 0.01. A MISMATCH between paper and exchange ledgers is expected (they never settle); it is observational, not a bug. Needs credentials.",
       ...READ,
       authRequirement: "credentials" as const,
     },

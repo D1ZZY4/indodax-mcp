@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { AuthorizationError } from "@indodax-mcp/errors";
+import { AuthorizationError, ValidationError } from "@indodax-mcp/errors";
 import { oneShotPairSnapshot } from "@indodax-mcp/indodax-websocket";
 import type { Registry } from "@indodax-mcp/mcp-registry";
 import type { ServerHandlers } from "@indodax-mcp/mcp-core";
@@ -24,11 +24,16 @@ export function registerSystemTools(
 ): void {
   const defs: { name: string; description: string }[] = [
     { name: "indodax_health", description: "Read-only. Service health rollup with checks." },
-    { name: "indodax_readiness", description: "Read-only. Whether the server can serve traffic." },
+    {
+      name: "indodax_readiness",
+      description:
+        "Read-only. Whether the server can serve traffic: ready only when overall health is healthy, with degradedReasons otherwise.",
+    },
     { name: "indodax_version", description: "Read-only. Server name, version, and mode." },
     {
       name: "indodax_system_capabilities",
-      description: "Read-only. Capability matrix with kill switch and modes.",
+      description:
+        "Read-only. Capability matrix with kill switch and modes. Policy-level view; for the live gate checklist per boolean use indodax_capabilities.",
     },
     {
       name: "indodax_config_status",
@@ -80,7 +85,7 @@ export function registerSystemTools(
       name: "indodax_ws_ticker",
       title: "WebSocket ticker",
       description:
-        "Read-only. One-shot live market summary snapshot over WebSocket with the requested pair row when present, 15s timeout. Args: pair default btc_idr.",
+        "Read-only. One-shot live market summary snapshot over WebSocket with the requested pair row when present, 15s timeout. Returns an explicit error naming the pair when it is missing from the snapshot instead of unrelated rows. Args: pair default btc_idr.",
       ...SYSTEM,
     },
     inputSchema: z.object({ pair: pairArg.optional() }),
@@ -89,9 +94,14 @@ export function registerSystemTools(
   handlers.tools.set("indodax_health", async () =>
     ok({ status: app.health.overall(), components: app.health.snapshot() }),
   );
-  handlers.tools.set("indodax_readiness", async () =>
-    ok({ ready: app.health.overall() !== "halted", status: app.health.overall() }),
-  );
+  handlers.tools.set("indodax_readiness", async () => {
+    const status = app.health.overall();
+    const snapshot = app.health.snapshot();
+    const degradedReasons = Object.entries(snapshot)
+      .filter(([, component]) => component.status !== "healthy")
+      .map(([name, component]) => `${name}:${component.status}`);
+    return ok({ ready: status === "healthy", status, degradedReasons });
+  });
   handlers.tools.set("indodax_version", async () =>
     ok({ server: "indodax-mcp", version: "1.0.0", mode: app.env.APP_ENV }),
   );
@@ -147,6 +157,12 @@ export function registerSystemTools(
       const args = parseArgs(z.object({ pair: pairArg.optional() }), raw);
       const token = app.env.INDODAX_WS_TOKEN;
       const event = await oneShotPairSnapshot(args.pair ?? "btc_idr", token);
+      const row = (event.data as { row?: unknown }).row ?? null;
+      if (row === null) {
+        throw ValidationError(
+          `pair ${args.pair ?? "btc_idr"} missing from the live summary snapshot; use indodax_ticker (REST) for this pair`,
+        );
+      }
       return ok(event);
     } catch (error) {
       return fail(error);

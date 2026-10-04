@@ -24,8 +24,11 @@ This repository is a Bun monorepo. Resolve the installed toolchain from the repo
 
 ### Safety boundaries
 
-- **Paper execution** is the current supported trading mode.
-- Live execution is implemented but **disabled by the current server policy**.
+- **Paper execution** is the default trading mode.
+- Live execution is implemented behind an explicit multi-part gate
+  (`APP_ENV=live` plus `TRADE_ENABLED=true`, credentials, per-call
+  acknowledgement, and risk ALLOW). The server reports the live gate
+  per requirement through `indodax_capabilities`.
 - Withdrawal is **denied by design**.
 - **Never place real orders** for validation, tests, examples, or verification.
 - Use mocks, paper state, and read-only exchange calls for verification.

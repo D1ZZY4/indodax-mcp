@@ -32,8 +32,8 @@ Definitions:
 | Event bus | yes | daemon | yes | daemon path |
 | Scheduler | yes | daemon plus opt-in server autopoll | yes | daemon lifecycle |
 | Observability | yes | yes | yes | health/runtime path |
-| MCP tools | 79 | yes | yes | protocol harness |
-| MCP resources | 11 | yes | protocol | protocol path |
+| MCP tools | 82 | yes | yes | protocol harness |
+| MCP resources | 12 | yes | protocol | protocol path |
 | MCP prompts | 5 | yes | protocol | protocol path |
 | MCP metadata contracts | yes | guard for auth/environment | schema tests | handler plus risk checks stay downstream |
 | HTTP gateway | yes | yes | yes | Playwright path |

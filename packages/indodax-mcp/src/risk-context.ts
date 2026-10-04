@@ -1,7 +1,7 @@
 import Decimal from "decimal.js";
 import type { Capability, ExecutionMode } from "@indodax-mcp/core";
 import { decimalOrNull } from "@indodax-mcp/core";
-import { getTicker } from "@indodax-mcp/indodax-market";
+import { getTicker, isMarketSuspended } from "@indodax-mcp/indodax-market";
 import { currentUtcDay } from "@indodax-mcp/indodax-paper";
 import type { RiskContext } from "@indodax-mcp/indodax-risk";
 import type { AppServices } from "./composition.js";
@@ -58,10 +58,17 @@ export async function resolveRiskContext(
   request: RiskContextRequest,
 ): Promise<RiskContext> {
   let marketAgeMs: number | null = null;
+  let marketSuspended: boolean | null = null;
   if (request.pair !== undefined) {
     marketAgeMs = (await readMarket(app, request.pair)).ageMs;
+    try {
+      marketSuspended = await isMarketSuspended(app.publicClient, request.pair);
+    } catch {
+      marketSuspended = null;
+    }
   }
   const ledger = app.paper.snapshot();
+
   const lastSubmitted = ledger.orders
     .map((order) => Date.parse(order.submittedAt))
     .filter((value) => Number.isFinite(value));
@@ -88,6 +95,7 @@ export async function resolveRiskContext(
     deadmanUnknown: false,
     deadmanState: app.deadman.snapshot().state,
     balanceSufficient: request.balanceSufficient ?? null,
+    marketSuspended,
     positionNotional: openExposure(ledger.orders),
     lastOrderAtMs: lastSubmitted.length > 0 ? Math.max(...lastSubmitted) : null,
   };

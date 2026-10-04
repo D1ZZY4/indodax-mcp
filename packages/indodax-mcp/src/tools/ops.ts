@@ -164,6 +164,22 @@ export function registerOpsTools(
     },
     inputSchema: z.object({}),
   });
+  registry.registerTool({
+    metadata: {
+      name: "indodax_private_disconnect",
+      title: "Disconnect private channel",
+      description:
+        "Mutating connection state. Drop the private order-event channel without touching credentials or tokens. Use after indodax_private_connect when live mirroring is no longer needed.",
+      capability: "READ",
+      riskClass: "mutation",
+      environmentRequirement: "any",
+      authRequirement: "none",
+      destructive: false,
+      idempotencyClass: "none",
+      auditClass: "mutation",
+    },
+    inputSchema: z.object({}),
+  });
 
   handlers.tools.set("indodax_backtest_get", async (raw) => {
     try {
@@ -254,23 +270,25 @@ export function registerOpsTools(
     try {
       const balances = app.paper.snapshot().balances;
       const rows = [];
+      let totalIdr = new Decimal(0);
+      const incomplete: string[] = [];
       for (const [asset, amount] of Object.entries(balances)) {
         if (asset === "idr") {
           rows.push({ asset, amount, valueIdr: amount });
+          totalIdr = totalIdr.plus(new Decimal(amount));
           continue;
         }
         try {
           const ticker = await getTicker(app.publicClient, `${asset}_idr`);
-          rows.push({
-            asset,
-            amount,
-            valueIdr: new Decimal(amount).mul(new Decimal(ticker.last)).toString(),
-          });
+          const valueIdr = new Decimal(amount).mul(new Decimal(ticker.last)).toString();
+          rows.push({ asset, amount, valueIdr });
+          totalIdr = totalIdr.plus(new Decimal(valueIdr));
         } catch {
           rows.push({ asset, amount, valueIdr: null });
+          incomplete.push(asset);
         }
       }
-      return ok({ exposure: rows });
+      return ok({ exposure: rows, totalIdr: totalIdr.toString(), incomplete });
     } catch (error) {
       return fail(error);
     }
@@ -316,5 +334,9 @@ export function registerOpsTools(
     } catch (error) {
       return fail(error);
     }
+  });
+  handlers.tools.set("indodax_private_disconnect", async () => {
+    app.privateChannel.disconnect();
+    return ok({ state: app.privateChannel.connectionState });
   });
 }

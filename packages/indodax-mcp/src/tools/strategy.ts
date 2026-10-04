@@ -140,17 +140,22 @@ export function registerStrategyTools(
         raw,
       );
       if (args.closes.length < 2) throw ValidationError("need at least two closes");
+      const feeRate = new Decimal(String(args.feeRate ?? 0.0026));
+      const threshold = new Decimal(String(args.threshold ?? 0.05));
+      const notional = new Decimal(String(args.notional ?? 1000));
       const report = runBacktest(
-        args.closes.map((close) => new Decimal(close)),
-        {
-          feeRate: new Decimal(args.feeRate ?? 0.0026),
-          threshold: new Decimal(args.threshold ?? 0.05),
-          notional: new Decimal(args.notional ?? 1000),
-        },
+        args.closes.map((close) => new Decimal(String(close))),
+        { feeRate, threshold, notional },
       );
       const stored = storeBacktest(report);
       return ok({
         id: stored.id,
+        note: "hypothetical replay with assumed fees and no slippage; not evidence of real profit",
+        inputs: {
+          feeRate: feeRate.toString(),
+          threshold: threshold.toString(),
+          notional: notional.toString(),
+        },
         signalsEvaluated: report.signalsEvaluated,
         hypotheticalFills: report.hypotheticalFills,
         totalFees: report.totalFees.toString(),

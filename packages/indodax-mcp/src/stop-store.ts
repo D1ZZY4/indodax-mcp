@@ -15,6 +15,7 @@ export interface StopOrder {
   stpMode?: "EXPIRE_TAKER" | "EXPIRE_MAKER" | "EXPIRE_BOTH" | undefined;
   status: StopStatus;
   createdAt: string;
+  acknowledgedAt?: string | undefined;
   triggeredAt?: string | undefined;
   result?: unknown | undefined;
   reason?: string | undefined;
@@ -77,6 +78,9 @@ export class StopStore {
           : {}),
         ...(typeof candidate.triggeredAt === "string"
           ? { triggeredAt: candidate.triggeredAt }
+          : {}),
+        ...(typeof candidate.acknowledgedAt === "string"
+          ? { acknowledgedAt: candidate.acknowledgedAt }
           : {}),
         ...(typeof candidate.reason === "string" ? { reason: candidate.reason } : {}),
       });

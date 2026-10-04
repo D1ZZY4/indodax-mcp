@@ -12,7 +12,7 @@ The current SDK environment negotiates MCP protocol 2025-11-25.
 
 ## Surface
 
-The registry currently contains **79 tools**, **11 resources**, and **5 prompts**.
+The registry currently contains **82 tools**, **12 resources**, and **5 prompts**.
 
 | Area | Current role |
 | --- | --- |
@@ -32,10 +32,11 @@ The registry currently contains **79 tools**, **11 resources**, and **5 prompts*
 | Funding | Authenticated read-only funding information |
 | History | Exchange history and paper-fill helpers |
 | Operations | Exposure, WebSocket state/reconnect helpers, private channel connect, Deadman state, and stop trigger checks |
+| Docs | Agent-harness guide pages with full parameters, served by indodax_docs |
 
 ## Resources
 
-The 11 resources cover market, pair metadata, account, open orders, portfolio, risk, reconciliation, audit, system health, WebSocket state, and capabilities.
+The 12 resources cover market, pair metadata, account, open orders, portfolio, risk, reconciliation, audit, alerts, system health, WebSocket state, and capabilities.
 
 Resource handlers mostly expose application-local state. They are not durable database views because the current main composition does not use PostgreSQL as its runtime source of truth.
 

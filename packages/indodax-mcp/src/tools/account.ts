@@ -48,7 +48,7 @@ export function registerAccountTools(
       name: "indodax_capabilities",
       title: "Capabilities",
       description:
-        "Read-only. Which capabilities this server unlocks from its configuration. Booleans only, never secrets.",
+        "Read-only. Which capabilities this server unlocks from its configuration. Booleans only, never secrets. For the per-gate breakdown see the liveGate object in the response; for policy detail use indodax_system_capabilities.",
       capability: "SYSTEM",
       riskClass: "read",
       environmentRequirement: "any",
@@ -83,6 +83,7 @@ export function registerAccountTools(
   handlers.tools.set("indodax_capabilities", async () => {
     const liveAllowed =
       app.env.APP_ENV === "live" &&
+      app.env.TRADE_ENABLED === true &&
       app.policy.allowedModes.includes("live") &&
       app.policy.allowedCapabilities.includes("TRADE") &&
       app.accountClient !== null;
@@ -94,6 +95,14 @@ export function registerAccountTools(
       "funding.withdraw": false,
       "paper.*": true,
       mode: app.env.APP_ENV,
+      liveGate: {
+        satisfied: liveAllowed,
+        needsAppEnvLive: app.env.APP_ENV === "live",
+        needsTradeEnabled: app.env.TRADE_ENABLED === true,
+        needsCredentials: app.accountClient !== null,
+        needsAcknowledged: "per live call (acknowledged: true)",
+        needsRiskAllow: "per live call (risk ALLOW)",
+      },
     });
   });
 }

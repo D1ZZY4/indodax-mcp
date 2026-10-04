@@ -109,8 +109,15 @@ export class TradingService {
   ): OrderRecord {
     const { price, quantity } = intentToOrderShape(proposal.intent);
     if (quantity === null) throw ValidationError("invalid quantity");
-    if (proposal.intent.timeInForce !== undefined && proposal.intent.orderType !== "LIMIT") {
-      throw ValidationError("timeInForce only applies to LIMIT orders");
+    if (proposal.intent.timeInForce !== undefined) {
+      const tif = proposal.intent.timeInForce;
+      // GTC/MOC are LIMIT-only; FOK is MARKET-only per the official enums.
+      if (tif === "FOK" && proposal.intent.orderType !== "MARKET") {
+        throw ValidationError("timeInForce FOK only applies to MARKET orders");
+      }
+      if (tif !== "FOK" && proposal.intent.orderType !== "LIMIT") {
+        throw ValidationError("timeInForce only applies to LIMIT orders");
+      }
     }
     const now = new Date().toISOString();
     return {

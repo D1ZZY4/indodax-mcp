@@ -23,6 +23,11 @@ describe("core money", () => {
     expect(decimalOrNull("abc")).toBeNull();
   });
 
+  it("preserves decimal text for numeric inputs", () => {
+    expect(decimalOrNull(0.0754)?.toString()).toBe("0.0754");
+    expect(decimalOrNull(1000)?.toString()).toBe("1000");
+  });
+
   it("holds decimal invariants under arbitrary inputs", () => {
     fc.assert(
       fc.property(fc.double({ noNaN: true }), (value) => {

@@ -1,6 +1,6 @@
 import { z } from "zod";
 import Decimal from "decimal.js";
-import { RiskDeniedError, ValidationError } from "@indodax-mcp/errors";
+import { AuthorizationError, RiskDeniedError, ValidationError } from "@indodax-mcp/errors";
 import type { Registry } from "@indodax-mcp/mcp-registry";
 import type { ServerHandlers } from "@indodax-mcp/mcp-core";
 import { parseSymbolFlexible } from "@indodax-mcp/core";
@@ -47,8 +47,8 @@ export async function placePaperOrder(app: AppServices, placement: PaperPlacemen
       "paper orders require LIMIT with a positive price; MARKET is not supported in simulation",
     );
   }
-  const price = placement.price === undefined ? null : new Decimal(placement.price);
-  const quantity = new Decimal(placement.quantity);
+  const price = placement.price === undefined ? null : new Decimal(String(placement.price));
+  const quantity = new Decimal(String(placement.quantity));
   const notional = price === null ? null : price.mul(quantity);
   const ledger = app.paper.snapshot();
   const intent = {
@@ -193,11 +193,11 @@ export function registerPaperTools(
       name: "indodax_paper_reset",
       title: "Paper reset",
       description:
-        "Simulated, destructive to simulation only. Reset balances and clear orders. Never touches real money.",
+        "Simulated, destructive to simulation only. Reset balances and clear orders after acknowledged:true. Never touches real money. Args: acknowledged required.",
       ...PAPER,
       destructive: true,
     },
-    inputSchema: z.object({}),
+    inputSchema: z.object({ acknowledged: z.boolean() }),
   });
 
   handlers.tools.set("indodax_paper_account", async () => ok(app.paper.snapshot().balances));
@@ -211,9 +211,29 @@ export function registerPaperTools(
   });
   handlers.tools.set("indodax_paper_orders", async () => ok(app.paper.openOrders()));
   handlers.tools.set("indodax_paper_snapshots", async () => ok(app.paper.snapshot()));
-  handlers.tools.set("indodax_paper_reset", async () => {
-    app.paper.reset();
-    return ok({ status: "reset" });
+  handlers.tools.set("indodax_paper_reset", async (raw) => {
+    try {
+      const args = parseArgs(z.object({ acknowledged: z.boolean() }), raw);
+      if (args.acknowledged !== true) {
+        throw AuthorizationError("paper reset needs acknowledged true");
+      }
+      const before = app.paper.snapshot();
+      const cleared = {
+        tradeCount: before.tradeCount,
+        openOrders: before.orders.filter((order) => order.state === "ACCEPTED").length,
+        totalFees: before.totalFees,
+      };
+      app.paper.reset();
+      app.audit.record({
+        correlationId: `paper-reset-${Date.now().toString(36)}`,
+        kind: "PaperReset",
+        result: "reset",
+        reason: `cleared ${cleared.tradeCount} trades, ${cleared.openOrders} open orders`,
+      });
+      return ok({ status: "reset", cleared });
+    } catch (error) {
+      return fail(error);
+    }
   });
 
   handlers.tools.set("indodax_paper_order", async (raw) => {
@@ -240,7 +260,7 @@ export function registerPaperTools(
         z.object({ orderId: z.string().min(1), price: z.number().positive() }),
         raw,
       );
-      const { fee } = app.paper.fill(args.orderId, new Decimal(args.price).toString());
+      const { fee } = app.paper.fill(args.orderId, String(args.price));
       return ok({ orderId: args.orderId, status: "filled", fee });
     } catch (error) {
       return fail(error);

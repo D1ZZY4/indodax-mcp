@@ -35,24 +35,27 @@ const stopInput = z.object({
   stpMode: z.enum(["EXPIRE_TAKER", "EXPIRE_MAKER", "EXPIRE_BOTH"]).optional(),
 });
 
-function crossed(side: "BUY" | "SELL", last: number, stopPrice: number): boolean {
-  return side === "SELL" ? last <= stopPrice : last >= stopPrice;
+function crossed(side: "BUY" | "SELL", last: string, stopPrice: number): boolean {
+  const current = decimalOrNull(last);
+  const trigger = decimalOrNull(String(stopPrice));
+  if (current === null || trigger === null) return false;
+  return side === "SELL" ? current.lte(trigger) : current.gte(trigger);
 }
 
 export interface StopFireResult {
   checked: number;
-  fired: { id: string; status: string; price?: number; reason?: string }[];
+  fired: { id: string; status: string; price?: string; reason?: string }[];
 }
 
 /** Shared trigger evaluation used by the tool and the optional autopoll job. */
 export async function evaluateStops(app: AppServices): Promise<StopFireResult> {
   const fired: StopFireResult["fired"] = [];
   for (const stop of app.stops.list()) {
-    let last: number | null = null;
+    let last: string | null = null;
     try {
       const ticker = await getTicker(app.publicClient, stop.pair);
       const parsed = decimalOrNull(ticker.last);
-      last = parsed ? parsed.toNumber() : null;
+      last = parsed ? parsed.toString() : null;
     } catch {
       last = null;
     }
@@ -99,7 +102,7 @@ export function registerStopTools(
       name: "indodax_stop_create",
       title: "Create stop",
       description:
-        "Server-side emulated stop, not exchange-native. Stores a trigger; nothing is placed until indodax_stop_check sees the stop price crossed. Live needs acknowledged true plus the full live gate. Args: pair, side, quantity, stopPrice, optional limitPrice defaulting to stopPrice.",
+        "Server-side emulated stop, not exchange-native. Stores a trigger after a notional limit pre-check; nothing is placed until indodax_stop_check or the opt-in autopoll sees the stop price crossed. Live needs acknowledged true plus the full live gate, recorded as acknowledgedAt. Args: pair, side, quantity, stopPrice, optional limitPrice defaulting to stopPrice.",
       ...STOP,
     },
     inputSchema: stopInput,
@@ -148,16 +151,31 @@ export function registerStopTools(
           throw ValidationError("live stops need API credentials");
         }
       }
+      const limitPrice = args.limitPrice ?? args.stopPrice;
+      const notional = decimalOrNull(limitPrice)?.mul(decimalOrNull(args.quantity) ?? 0);
+      if (notional !== null && notional !== undefined) {
+        if (notional.lt(app.limits.minOrderNotional)) {
+          throw ValidationError(
+            `stop notional ${notional.toString()} is below minimum ${app.limits.minOrderNotional.toString()}`,
+          );
+        }
+        if (notional.gt(app.limits.maxOrderNotional)) {
+          throw ValidationError(
+            `stop notional ${notional.toString()} exceeds maximum ${app.limits.maxOrderNotional.toString()}`,
+          );
+        }
+      }
       const stop = app.stops.add({
         pair: args.pair,
         side: args.side,
         quantity: args.quantity,
         stopPrice: args.stopPrice,
-        limitPrice: args.limitPrice ?? args.stopPrice,
+        limitPrice,
         mode,
         ...(args.clientOrderId !== undefined ? { clientOrderId: args.clientOrderId } : {}),
         ...(args.timeInForce !== undefined ? { timeInForce: args.timeInForce } : {}),
         ...(args.stpMode !== undefined ? { stpMode: args.stpMode } : {}),
+        ...(mode === "live" ? { acknowledgedAt: new Date().toISOString() } : {}),
       });
       return ok({ id: stop.id, status: stop.status });
     } catch (error) {

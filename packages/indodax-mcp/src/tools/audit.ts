@@ -23,10 +23,15 @@ export function registerAuditTools(
     metadata: {
       name: "indodax_audit_events",
       title: "Audit events",
-      description: "Read-only. Recent audit entries, newest last. Args: limit default 20 max 100.",
+      description:
+        "Read-only. Recent audit entries, newest last. Args: limit default 20 max 100, optional kind and correlationId filters.",
       ...READ,
     },
-    inputSchema: z.object({ limit: z.number().int().min(1).max(100).optional() }),
+    inputSchema: z.object({
+      limit: z.number().int().min(1).max(100).optional(),
+      kind: z.string().min(1).optional(),
+      correlationId: z.string().min(1).optional(),
+    }),
   });
   registry.registerTool({
     metadata: {
@@ -41,8 +46,19 @@ export function registerAuditTools(
 
   handlers.tools.set("indodax_audit_events", async (raw) => {
     try {
-      const args = parseArgs(z.object({ limit: z.number().int().min(1).max(100).optional() }), raw);
-      const entries = app.audit.list();
+      const args = parseArgs(
+        z.object({
+          limit: z.number().int().min(1).max(100).optional(),
+          kind: z.string().min(1).optional(),
+          correlationId: z.string().min(1).optional(),
+        }),
+        raw,
+      );
+      let entries = app.audit.list();
+      if (args.kind !== undefined) entries = entries.filter((entry) => entry.kind === args.kind);
+      if (args.correlationId !== undefined) {
+        entries = entries.filter((entry) => entry.correlationId === args.correlationId);
+      }
       return ok(entries.slice(-(args.limit ?? 20)));
     } catch (error) {
       return fail(error);

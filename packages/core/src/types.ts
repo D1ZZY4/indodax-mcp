@@ -1,6 +1,6 @@
 export type OrderSide = "BUY" | "SELL";
 export type OrderType = "LIMIT" | "MARKET";
-export type TimeInForce = "GTC" | "MOC";
+export type TimeInForce = "GTC" | "MOC" | "FOK";
 export type StpMode = "EXPIRE_TAKER" | "EXPIRE_MAKER" | "EXPIRE_BOTH";
 export type LegacyStpMode = "MAKER" | "TAKER" | "BOTH";
 
@@ -15,7 +15,8 @@ export type ExecutionState =
   | "REJECTED"
   | "UNKNOWN"
   | "RECONCILING"
-  | "RECONCILED";
+  | "RECONCILED"
+  | "PROPOSED";
 
 const TERMINAL: ReadonlySet<ExecutionState> = new Set([
   "FILLED",

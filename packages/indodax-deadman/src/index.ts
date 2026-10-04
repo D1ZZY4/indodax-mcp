@@ -1,9 +1,12 @@
 export type DeadmanState = "DISARMED" | "ARMED" | "STALE" | "EXPIRED";
 
+export * from "./exchange.js";
+
 export interface DeadmanStatus {
   state: DeadmanState;
   pairs: string[];
   countdownMs: number | null;
+  countdownHuman: string | null;
   lastRefreshAt: string | null;
   consecutiveFailures: number;
 }
@@ -11,7 +14,7 @@ export interface DeadmanStatus {
 const FAILURE_HALT_THRESHOLD = 3;
 
 export class DeadmanSwitch {
-  private status: DeadmanStatus = {
+  private status: Omit<DeadmanStatus, "countdownHuman"> = {
     state: "DISARMED",
     pairs: [],
     countdownMs: null,
@@ -72,6 +75,15 @@ export class DeadmanSwitch {
   }
 
   snapshot(): DeadmanStatus {
-    return { ...this.status, pairs: [...this.status.pairs] };
+    const base = { ...this.status, pairs: [...this.status.pairs] };
+    return { ...base, countdownHuman: formatDuration(base.countdownMs) };
   }
+}
+
+function formatDuration(ms: number | null): string | null {
+  if (ms === null) return null;
+  if (ms >= 3_600_000 && ms % 3_600_000 === 0) return `${ms / 3_600_000}h`;
+  if (ms >= 60_000 && ms % 60_000 === 0) return `${ms / 60_000}m`;
+  if (ms >= 1_000 && ms % 1_000 === 0) return `${ms / 1_000}s`;
+  return `${ms}ms`;
 }

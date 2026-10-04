@@ -1,11 +1,12 @@
 import { Registry } from "@indodax-mcp/mcp-registry";
-import { buildServer } from "@indodax-mcp/mcp-core";
+import { buildServer, sendResourceUpdated } from "@indodax-mcp/mcp-core";
 import type { ServerHandlers } from "@indodax-mcp/mcp-core";
 import { createApp, type AppServices } from "./composition.js";
 import { buildGuard } from "./guard.js";
 import { attachAuditPersistence } from "./audit-store.js";
 import { attachPaperPersistence } from "./order-store.js";
 import { attachAlertPersistence, attachStopPersistence } from "./state-store.js";
+import { evaluateAlerts } from "./tools/alerts.js";
 import { evaluateStops } from "./tools/stop.js";
 import { registerMarketTools } from "./tools/market.js";
 import { registerAccountTools } from "./tools/account.js";
@@ -23,6 +24,7 @@ import { registerHistoryTools } from "./tools/history.js";
 import { registerOpsTools } from "./tools/ops.js";
 import { registerDeadmanTools } from "./tools/deadman.js";
 import { registerStopTools } from "./tools/stop.js";
+import { registerDocsTools } from "./tools/docs.js";
 import { registerResources } from "./resources.js";
 import { registerPrompts } from "./prompts.js";
 import type { AppEnv } from "@indodax-mcp/config";
@@ -40,26 +42,9 @@ export function buildIndodaxServer(env: AppEnv) {
   void attachPaperPersistence(app);
   void attachAlertPersistence(app);
   void attachStopPersistence(app);
-  if (app.env.STOP_AUTOPOLL_MS !== undefined) {
-    app.scheduler.start({
-      name: "stop-autopoll",
-      intervalMs: app.env.STOP_AUTOPOLL_MS,
-      task: async () => {
-        const { fired } = await evaluateStops(app);
-        if (fired.length > 0) {
-          app.logger.info({ fired: fired.length }, "stop autopoll fired");
-        }
-      },
-    });
-  }
   app.health.set("configuration", { status: "healthy", detail: "environment parsed" });
   app.health.set("runtime", { status: "healthy", detail: "server composed" });
   app.health.set("mcpTransport", { status: "healthy", detail: "registry built" });
-  app.health.set("scheduler", {
-    status: "healthy",
-    detail:
-      app.env.STOP_AUTOPOLL_MS !== undefined ? "stop-autopoll scheduled" : "no jobs scheduled",
-  });
   app.health.set("deadman", { status: "healthy", detail: "disarmed" });
   const registry = new Registry();
   const handlers = emptyHandlers();
@@ -79,6 +64,7 @@ export function buildIndodaxServer(env: AppEnv) {
   registerOpsTools(registry, handlers, app);
   registerDeadmanTools(registry, handlers, app);
   registerStopTools(registry, handlers, app);
+  registerDocsTools(registry, handlers, app);
   registerResources(registry, handlers, app);
   registerPrompts(registry, handlers, app);
   const server = buildServer({
@@ -88,7 +74,62 @@ export function buildIndodaxServer(env: AppEnv) {
     handlers,
     guard: buildGuard(app),
   });
+  startAutopoll(app, server);
   return { server, app, registry };
+}
+
+function startAutopoll(app: AppServices, server: ReturnType<typeof buildServer>): void {
+  if (app.env.STOP_AUTOPOLL_MS !== undefined) {
+    app.scheduler.start({
+      name: "stop-autopoll",
+      intervalMs: app.env.STOP_AUTOPOLL_MS,
+      task: async () => {
+        const { fired } = await evaluateStops(app);
+        if (fired.length > 0) {
+          app.logger.info({ fired: fired.length }, "stop autopoll fired");
+        }
+      },
+    });
+  }
+  if (app.env.ALERT_AUTOPOLL_MS !== undefined) {
+    app.scheduler.start({
+      name: "alert-autopoll",
+      intervalMs: app.env.ALERT_AUTOPOLL_MS,
+      task: async () => {
+        const { triggered } = await evaluateAlerts(app);
+        for (const alert of triggered) {
+          app.logger.info({ alert: alert.id, pair: alert.pair }, "alert autopoll triggered");
+          await notifyAlert(server, alert.id, alert.pair);
+        }
+      },
+    });
+  }
+  const jobs = app.scheduler.running;
+  app.health.set("scheduler", {
+    status: "healthy",
+    detail: jobs.length > 0 ? `${jobs.join(",")} scheduled` : "no jobs scheduled",
+  });
+}
+
+/**
+ * Push an alert trigger to connected MCP clients. Best-effort: clients
+ * that do not listen simply never see it, and a disconnected server
+ * must never break the autopoll loop.
+ */
+async function notifyAlert(
+  server: ReturnType<typeof buildServer>,
+  id: string,
+  pair: string,
+): Promise<void> {
+  try {
+    await server.sendLoggingMessage({
+      level: "notice",
+      data: { alert: id, pair, event: "triggered" },
+    });
+    await sendResourceUpdated(server, "alerts://active");
+  } catch {
+    // notification transport unavailable; the trigger itself already applied
+  }
 }
 
 export type { AppServices };

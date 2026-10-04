@@ -12,7 +12,7 @@ import type { TradeIntent } from "@indodax-mcp/indodax-trading";
 import { resolveRiskContext } from "../risk-context.js";
 import type { AppServices } from "../composition.js";
 
-export const timeInForceArg = z.enum(["GTC", "MOC"]).optional();
+export const timeInForceArg = z.enum(["GTC", "MOC", "FOK"]).optional();
 export const stpModeArg = z.enum(["EXPIRE_TAKER", "EXPIRE_MAKER", "EXPIRE_BOTH"]).optional();
 
 export function executionMode(raw: string | undefined): ExecutionMode {
@@ -33,7 +33,7 @@ export interface DraftArgs {
   mode?: string | undefined;
   reason?: string | undefined;
   clientOrderId?: string | undefined;
-  timeInForce?: "GTC" | "MOC" | undefined;
+  timeInForce?: "GTC" | "MOC" | "FOK" | undefined;
   stpMode?: "EXPIRE_TAKER" | "EXPIRE_MAKER" | "EXPIRE_BOTH" | undefined;
 }
 
@@ -79,7 +79,7 @@ export interface LivePlacement {
   quantity: number;
   price?: number | undefined;
   clientOrderId?: string | undefined;
-  timeInForce?: "GTC" | "MOC" | undefined;
+  timeInForce?: "GTC" | "MOC" | "FOK" | undefined;
   stpMode?: "EXPIRE_TAKER" | "EXPIRE_MAKER" | "EXPIRE_BOTH" | undefined;
   acknowledged?: boolean | undefined;
 }
@@ -156,5 +156,10 @@ export async function reviewHypothetical(app: AppServices, args: HypotheticalArg
       clientOrderId: order.clientOrderId,
     }),
   );
+  // Hypothetical orders never reach a backend. Mark them PROPOSED (not
+  // ACCEPTED) so no consumer mistakes validation output for execution.
+  // PROPOSED has no machine edges by design; it is display-only.
+  order.state = "PROPOSED";
+  order.updatedAt = new Date().toISOString();
   return { proposal, order, decision };
 }

@@ -104,7 +104,7 @@ export function registerFundingTools(
       name: "indodax_deposit_address",
       title: "Deposit address",
       description:
-        "Read-only, needs credentials. Deposit address for one coin and network. Args: coin and network required.",
+        "Read-only, needs credentials. Deposit address for one coin and network; coin and network are uppercased automatically. Returns an empty list with no address when none was generated yet. Args: coin and network required.",
       ...READ_AUTH,
     },
     inputSchema: z.object({ coin: z.string().min(1), network: z.string().min(1) }),

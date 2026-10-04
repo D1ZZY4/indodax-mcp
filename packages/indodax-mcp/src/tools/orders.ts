@@ -41,7 +41,7 @@ export function registerOrderTools(
       name: "indodax_validate_order",
       title: "Validate order",
       description:
-        "No side effects. Validate shape plus risk for a hypothetical order. Returns the risk decision with reasons.",
+        "Executes nothing. Validate shape plus risk for a hypothetical order. Returns the risk decision with reasons and executed:false. Writes audit entries for traceability.",
       ...base,
       riskClass: "read",
       auditClass: "read",
@@ -59,7 +59,7 @@ export function registerOrderTools(
       name: "indodax_propose_order",
       title: "Propose order",
       description:
-        "No side effects and no execution. Build a validated proposal through risk. A proposal is not an order.",
+        "Executes nothing and creates no order. Build a validated proposal through risk with executed:false. A proposal is not an order. Writes audit entries for traceability.",
       ...base,
       riskClass: "read",
       auditClass: "read",
@@ -80,7 +80,7 @@ export function registerOrderTools(
       name: "indodax_create_order",
       title: "Create order",
       description:
-        "Places through risk into the paper backend by default. Live needs acknowledged true, APP_ENV=live, credentials, and risk ALLOW. Returns acceptance, never a fill. Accepts optional clientOrderId, timeInForce GTC/MOC for LIMIT, and self-trade prevention mode.",
+        "Places through risk into the paper backend by default. Live needs ALL of: mode live, acknowledged true, APP_ENV=live, TRADE_ENABLED=true, credentials, and risk ALLOW. Returns acceptance, never a fill. Accepts optional clientOrderId, timeInForce GTC/MOC for LIMIT or FOK for MARKET, and self-trade prevention mode.",
       ...base,
       destructive: true,
     },
@@ -101,7 +101,7 @@ export function registerOrderTools(
       name: "indodax_cancel_order",
       title: "Cancel order",
       description:
-        "MUTATING a paper order by default with refund. Live cancel needs credentials, APP_ENV=live, acknowledged true, plus symbol and exchange orderId or clientOrderId.",
+        "MUTATING a paper order by default with refund (orderId or clientOrderId). Live cancel needs ALL of: mode live, acknowledged true, APP_ENV=live, TRADE_ENABLED=true, credentials, plus symbol and exchange orderId or clientOrderId.",
       ...base,
       destructive: true,
     },
@@ -133,7 +133,7 @@ export function registerOrderTools(
         raw,
       );
       const { proposal, order, decision } = await reviewHypothetical(app, args);
-      return ok({ proposal: proposal.correlationId, order, decision });
+      return ok({ proposal: proposal.correlationId, order, decision, executed: false });
     } catch (error) {
       return fail(error);
     }
@@ -155,7 +155,7 @@ export function registerOrderTools(
         raw,
       );
       const { proposal, order, decision } = await reviewHypothetical(app, args);
-      return ok({ proposal: proposal.correlationId, order, decision });
+      return ok({ proposal: proposal.correlationId, order, decision, executed: false });
     } catch (error) {
       return fail(error);
     }

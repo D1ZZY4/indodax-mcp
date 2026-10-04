@@ -75,6 +75,8 @@ export interface RiskContext {
   reconciliationHalted: boolean;
   deadmanUnknown: boolean;
   balanceSufficient: boolean | null;
+  /** True when the exchange suspended this market. Null skips the check. */
+  marketSuspended?: boolean | null | undefined;
   /** Current position notional in quote currency. Null skips the max-position check. */
   positionNotional?: Decimal | null | undefined;
   /** Epoch ms of the most recent order. Null skips the cooldown check. */
@@ -141,6 +143,7 @@ function evaluateInternal(
     return deny("DEADMAN_UNKNOWN", `deadman ${context.deadmanState} halts live trading`);
   }
   if (context.duplicate) push("DUPLICATE_ORDER");
+  if (context.marketSuspended === true) push("MARKET_SUSPENDED");
   if (context.marketAgeMs !== null && context.marketAgeMs > limits.maxMarketAgeMs) {
     push("STALE_MARKET_DATA");
   }

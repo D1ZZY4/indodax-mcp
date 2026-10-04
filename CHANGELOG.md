@@ -6,7 +6,7 @@ Current TypeScript/Bun rebuild includes:
 
 - Bun workspaces with Turborepo, Biome, strict TypeScript, and Vitest.
 - Official MCP SDK v2 infrastructure with shared registry, stdio, Streamable HTTP, contracts, and test harnesses.
-- **79 MCP tools**, **11 resources**, and **5 prompts**.
+- **82 MCP tools**, **12 resources**, and **5 prompts**.
 - INDODAX public REST, TAPI v2 signing, authenticated account/history reads, and WebSocket protocol primitives.
 - Explicit order lifecycle and deterministic risk evaluation.
 - Paper execution through the shared execution service.
@@ -15,7 +15,7 @@ Current TypeScript/Bun rebuild includes:
 - Live private channel over the official WebSocket dialect with token fetch.
 - Strategy evaluation, deterministic backtests, portfolio analytics, alerts, audit, scheduler, events, observability, and operational tooling.
 - PostgreSQL schema, migrations, and repository implementations.
-- CLI, daemon, HTTP gateway, React workbench, and a standalone price monitor script.
+- CLI, daemon, HTTP gateway, and React workbench.
 - Automated test/build tooling plus consumer verification utilities.
 
 ### Current capability boundary

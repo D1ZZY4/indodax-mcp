@@ -333,4 +333,28 @@ describe("indodax-mcp surface", () => {
       await harness.close();
     }
   });
+
+  it("serves guide pages and rejects traversal", async () => {
+    const { server } = build();
+    const harness = await withInMemoryServer(server);
+    try {
+      const index = await harness.client.callTool({ name: "indodax_docs", arguments: {} });
+      expect(index.isError).not.toBe(true);
+      const text = (index.content as { type: string; text: string }[])[0]?.text ?? "{}";
+      const data = JSON.parse(text) as { data: { pages: string[] } };
+      expect(data.data.pages).toContain("market");
+      const page = await harness.client.callTool({
+        name: "indodax_docs",
+        arguments: { page: "risk" },
+      });
+      expect(page.isError).not.toBe(true);
+      const evil = await harness.client.callTool({
+        name: "indodax_docs",
+        arguments: { page: "../../package" },
+      });
+      expect(evil.isError).toBe(true);
+    } finally {
+      await harness.close();
+    }
+  });
 });

@@ -42,8 +42,6 @@ A halted risk or reconciliation condition should be treated as a closed trading 
 
 ## Market and WebSocket checks
 
-Standalone price monitor `scripts/monitor.ts` watches any pair without credentials or orders. Configure through `MONITOR_PAIR`, `MONITOR_REFERENCE` (defaults to the first tick), `MONITOR_UP_PCT`, `MONITOR_DOWN_PCT`, and optional `MONITOR_AMOUNT_HELD` for position valuation. Snapshots land every random 10 to 30 seconds. A trigger sends a desktop notification and exits by default so a supervisor picks up the alert; set `MONITOR_EXIT_ON_TRIGGER=0` to keep looping.
-
 Use indodax_ws_status to inspect managed socket state and subscriptions.
 
 Use indodax_ws_ticker for a one-shot market snapshot.
@@ -80,7 +78,7 @@ Then point `DATABASE_URL` at it and migrate from `packages/db`:
 cd packages/db && DATABASE_URL=postgresql://dizzy@127.0.0.1:5433/indodax bun ./src/migrate.ts
 ~~~
 
-Environment is per server process. A stdio server inherits its harness working directory, so it only sees `.env` when started from the repository root. If stops or alerts vanish after a restart while the database holds rows, the server process is missing `DATABASE_URL`, not the code. Set it in the harness `env` or start from the repository root.
+Environment is per server process. The config package falls back to the repository `.env` (found by walking up from the package itself), so every entrypoint resolves the same file regardless of its working directory; explicit process env still wins over file values. If stops or alerts vanish after a restart while the database holds rows, the server process is missing `DATABASE_URL`, not the code. Set it in the harness `env` or keep the repository `.env` in place.
 
 The current main application composition does not use PostgreSQL as its source of truth. Database health must therefore be evaluated separately from MCP application health until runtime wiring is completed.
 

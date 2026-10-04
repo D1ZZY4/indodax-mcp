@@ -52,6 +52,47 @@ describe("trading service", () => {
     expect(() => service.propose({ ...intent(), quantityOrIdr: "0" })).toThrow();
   });
 
+  it("binds timeInForce to order type (GTC/MOC LIMIT-only, FOK MARKET-only)", () => {
+    const service = new TradingService(createRiskEngine(defaultRiskLimits(), paperOnlyPolicy()), {
+      record: () => {},
+    });
+    const market = {
+      ...intent(),
+      side: "SELL" as const,
+      orderType: "MARKET" as const,
+      price: null,
+    };
+    const fok = service.propose(market);
+    expect(() =>
+      service.toOrder(
+        { ...fok, intent: { ...fok.intent, timeInForce: "FOK" } },
+        {
+          tenantId: "t",
+          exchangeAccountId: "a",
+        },
+      ),
+    ).not.toThrow();
+    const limit = service.propose(intent());
+    expect(() =>
+      service.toOrder(
+        { ...limit, intent: { ...limit.intent, timeInForce: "FOK" } },
+        {
+          tenantId: "t",
+          exchangeAccountId: "a",
+        },
+      ),
+    ).toThrow(/FOK/);
+    expect(() =>
+      service.toOrder(
+        { ...fok, intent: { ...fok.intent, timeInForce: "GTC" } },
+        {
+          tenantId: "t",
+          exchangeAccountId: "a",
+        },
+      ),
+    ).toThrow(/LIMIT/);
+  });
+
   it("issues unique correlation ids across service instances", () => {
     const make = () =>
       new TradingService(createRiskEngine(defaultRiskLimits(), paperOnlyPolicy()), {

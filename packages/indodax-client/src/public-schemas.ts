@@ -23,6 +23,8 @@ export const pairSchema = z.object({
   trade_fee_percent: z.union([z.string(), z.number()]).optional(),
   trade_fee_percent_taker: z.union([z.string(), z.number()]).optional(),
   trade_fee_percent_maker: z.union([z.string(), z.number()]).optional(),
+  is_maintenance: z.union([z.boolean(), z.number(), z.string()]).optional(),
+  is_market_suspended: z.union([z.boolean(), z.number(), z.string()]).optional(),
 });
 export type PairInfo = z.infer<typeof pairSchema>;
 export const pairsSchema = z.array(pairSchema);

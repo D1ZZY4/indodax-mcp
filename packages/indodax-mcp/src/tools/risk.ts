@@ -17,7 +17,8 @@ export function registerRiskTools(
     metadata: {
       name: "indodax_risk_limits",
       title: "Risk limits",
-      description: "Read-only. Deterministic risk limits and thresholds. Takes no arguments.",
+      description:
+        "Read-only. Deterministic risk limits and thresholds. Notionals in quote-asset units (IDR for _idr pairs), durations in ms. Takes no arguments.",
       capability: "SYSTEM",
       riskClass: "read",
       environmentRequirement: "any",
@@ -111,6 +112,11 @@ export function registerRiskTools(
         outcome: decision.outcome,
         reasons: decision.reasons,
         message: decision.message,
+        notional: price.mul(quantity).toString(),
+        limits: {
+          minOrderNotional: app.limits.minOrderNotional.toString(),
+          maxOrderNotional: app.limits.maxOrderNotional.toString(),
+        },
       });
     } catch (error) {
       return fail(error);

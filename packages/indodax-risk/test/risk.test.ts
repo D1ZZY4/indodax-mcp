@@ -131,4 +131,15 @@ describe("risk engine", () => {
     });
     expect(decision.outcome).toBe("ALLOW");
   });
+
+  it("denies suspended markets and skips unknown suspension", () => {
+    const engine = createRiskEngine(defaultRiskLimits(), paperOnlyPolicy());
+    const halted = engine.evaluate(order("100000"), { ...context(), marketSuspended: true });
+    expect(halted.outcome).toBe("DENY");
+    expect(halted.reasons).toContain("MARKET_SUSPENDED");
+    expect(engine.evaluate(order("100000"), context()).outcome).toBe("ALLOW");
+    expect(engine.evaluate(order("100000"), { ...context(), marketSuspended: null }).outcome).toBe(
+      "ALLOW",
+    );
+  });
 });

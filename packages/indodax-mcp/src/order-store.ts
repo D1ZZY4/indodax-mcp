@@ -33,7 +33,7 @@ export function attachPaperPersistence(app: AppServices): void {
       }
     } catch (error) {
       app.logger.warn(
-        { error: String(error) },
+        { error: String(error), cause: causeOf(error) },
         "paper persistence disabled, keeping memory ledger",
       );
       return;
@@ -44,7 +44,7 @@ export function attachPaperPersistence(app: AppServices): void {
     const persist = (): void => {
       repo.save(tenantId, app.paper.snapshot()).catch((error: unknown) => {
         app.logger.warn(
-          { error: String(error) },
+          { error: String(error), cause: causeOf(error) },
           "paper persistence failed, keeping memory ledger",
         );
       });
@@ -74,4 +74,11 @@ export function attachPaperPersistence(app: AppServices): void {
       persist();
     };
   })();
+}
+
+/** Underlying driver cause (e.g. connection refused) without connection secrets. */
+function causeOf(error: unknown): string {
+  if (typeof error !== "object" || error === null) return String(error).slice(0, 200);
+  const cause = (error as { cause?: unknown }).cause;
+  return String(cause ?? error).slice(0, 200);
 }

@@ -82,9 +82,16 @@ Failure:
 
 MCP failures also set isError=true. Agents should branch on stable error codes, not message text. Some harnesses surface an isError result as a thrown Error whose message is the JSON payload, so parse the message body instead of expecting a thrown object.
 
+Two error paths exist by transport design and both must be handled:
+
+1. Handler errors arrive as the envelope above with a stable `code`.
+2. Schema violations are rejected by the MCP protocol layer before any handler runs, surfacing as harness text such as `Invalid arguments for tool "..."`. The input schemas stay strict on purpose so discovery lists exact parameters; agents must treat a protocol-level rejection as a validation failure and retry with corrected arguments.
+
 Money, price, and quantity values serialize as strings to preserve Decimal precision. Never parse them into floats for accounting. A `fetchedAt` inside data is the domain read time; the envelope `fetchedAt` is the response time.
 
-Pair spellings follow the exchange per endpoint: canonical `btc_idr` for tickers and balances, compact `btcidr` for depth, trades, and candles, uppercase `BTCIDR` for authenticated order calls. The market package normalizes user input into each form.
+Pair spellings follow the exchange per endpoint: canonical `btc_idr` for tickers and balances, compact `btcidr` for depth, trades, and candles, uppercase `BTCIDR` for authenticated order calls. The market package normalizes user input into each form, so every tool accepts any common spelling (`btc_idr`, `BTCIDR`, `BTC/IDR`) and only the exchange wire format differs.
+
+Component health `unknown` means that check is not wired (database, exchange REST/WS probes, queue), not that it failed. `indodax_readiness` reports `ready` only for an overall `healthy` rollup and lists every non-healthy component in `degradedReasons`.
 
 ## Mutation rules
 

@@ -1,6 +1,6 @@
 <h1 align="center">Dependency compatibility</h1>
 
-Verified snapshot: 2026-10-02, Bun 1.4.2.
+Verified snapshot: 2026-10-05, Bun 1.4.2, TypeScript 7.0.2.
 
 This document records the dependency versions and compatibility decisions used by the current repository. It is a snapshot, not a promise that these versions remain latest forever.
 
@@ -23,15 +23,13 @@ The repository uses MCP SDK v2 APIs and negotiates protocol 2025-11-25 in the cu
 
 ## Language and tooling
 
-- TypeScript 5.9 line
+- TypeScript 7.0 line
 - Biome 2.5.15
 - Turborepo 2.11.7
 - Vitest 5.0.3
 - fast-check 4.10.2
 - msw 3.0.1
 - Playwright 1.63.0
-
-TypeScript 7.x was treated as a preview/native-preview line during this snapshot, so the repository remains on 5.9 for ecosystem compatibility.
 
 ## Application libraries
 

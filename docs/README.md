@@ -20,6 +20,7 @@ This documentation describes the **current implementation** of Indodax MCP. Stat
 
 - [MCP surface](mcp/surface.md): tools, resources, prompts, transports, and safety boundaries.
 - [MCP tool implementation](mcp/tools.md): handler design and response contracts.
+- [Tool guides](tools/README.md): per-area agent-harness pages with full parameters, also served at runtime via `indodax_docs`.
 
 ## Exchange and risk
 
