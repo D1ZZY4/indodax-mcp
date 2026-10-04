@@ -30,6 +30,17 @@ describe("cli", () => {
     expect(out).toContain("trades=");
   });
 
+  it("refuses paper reset without acknowledgement", async () => {
+    const { code } = await runCli(["paper", "reset"]);
+    expect(code).not.toBe(0);
+  });
+
+  it("resets paper state with acknowledgement", async () => {
+    const { code, out } = await runCli(["paper", "reset", "--acknowledged"]);
+    expect(code).toBe(0);
+    expect(out).toContain("paper state reset");
+  });
+
   // Runs only when DATABASE_URL is configured (CI service). Catches the
   // process hanging on an open database pool instead of exiting.
   it.runIf(process.env.DATABASE_URL)(

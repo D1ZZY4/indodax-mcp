@@ -68,6 +68,11 @@ const paper = defineCommand({
       description: "balances|status|reset",
       required: true,
     },
+    acknowledged: {
+      type: "boolean",
+      description: "Required opt-in for reset",
+      default: false,
+    },
   },
   async run({ args }) {
     if (args.action === "balances") {
@@ -80,6 +85,10 @@ const paper = defineCommand({
         `trades=${snapshot.tradeCount} open=${snapshot.orders.filter((o) => o.state === "ACCEPTED").length} fees=${snapshot.totalFees}`,
       );
       return;
+    }
+    if (args.acknowledged !== true) {
+      console.error("paper reset needs --acknowledged");
+      process.exit(2);
     }
     app.paper.reset();
     console.log("paper state reset");
