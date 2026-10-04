@@ -42,7 +42,7 @@ This page maps the original Rust responsibilities to the current Bun/TypeScript 
 - The current repository is a **Bun monorepo**; the Rust crate layout is historical.
 - There is **no standalone `indodax-agent` package**. Agent intent and proposal types live in the trading/MCP contract boundary.
 - PostgreSQL replaces the Rust file-store direction at the package level, but database state is **not yet the source of truth** for the main application composition.
-- The current server policy supports **paper execution only**.
+- Paper execution is the default. Live execution stays gated behind environment, credentials, acknowledgement, and risk approval.
 - The old browser OAuth flow is **not ported** to the current HTTP gateway.
 - TAPI v2 uses `HMAC-SHA256`; legacy v1 compatibility uses `HMAC-SHA512`.
 - The current order lifecycle is implemented in the TypeScript order package and should be treated as the **canonical current state model**.

@@ -59,7 +59,13 @@ export function registerAuditTools(
       if (args.correlationId !== undefined) {
         entries = entries.filter((entry) => entry.correlationId === args.correlationId);
       }
-      return ok(entries.slice(-(args.limit ?? 20)));
+      const recent = entries.slice(-(args.limit ?? 20));
+      return ok(
+        recent,
+        recent.length === 0
+          ? ["audit trail is empty: no activity recorded yet in this session, not a failure"]
+          : [],
+      );
     } catch (error) {
       return fail(error);
     }
@@ -67,7 +73,13 @@ export function registerAuditTools(
   handlers.tools.set("indodax_execution_trace", async (raw) => {
     try {
       const args = parseArgs(z.object({ correlationId: z.string().min(1) }), raw);
-      return ok(app.audit.trace(args.correlationId));
+      const trace = app.audit.trace(args.correlationId);
+      return ok(
+        trace,
+        trace.length === 0
+          ? [`no audit entries for correlation id ${args.correlationId} in this session`]
+          : [],
+      );
     } catch (error) {
       return fail(error);
     }

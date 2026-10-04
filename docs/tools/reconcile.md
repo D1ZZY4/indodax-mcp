@@ -1,8 +1,10 @@
 <h1 align="center">Reconciliation tools</h1>
 
 Paper and exchange are separate ledgers; paper fills never settle on the
-exchange. A `MISMATCH` between them is observational truth, not a bug. Every
-tool here is read-only.
+exchange. A `MISMATCH` between them means **different, not broken** — it is
+the expected steady state, not an incident. Only the paper-local
+`indodax_reconciliation_state` can halt trading, and it reports `MATCH` on an
+empty ledger too. Every tool here is read-only.
 
 | Tool | Parameters | Response `data` | Notes |
 | --- | --- | --- | --- |

@@ -1,6 +1,15 @@
 <h1 align="center">Trading modes</h1>
 
-The repository models paper, live, and shadow execution modes. Paper is default. Live is gated by `APP_ENV=live` plus credentials, acknowledgement, and risk ALLOW.
+The repository models paper, live, and shadow execution modes. Paper is default. Live is gated by `APP_ENV=live` plus credentials, acknowledgement, and risk ALLOW. Shadow and development spellings are accepted by input schemas for forward compatibility but are **denied by server policy**: no policy enables them and no backend serves them, so any shadow or development request is denied rather than executed.
+
+## What each mode is for
+
+| Mode | Purpose | Executes anything? | State changes? | Requires |
+| --- | --- | --- | --- | --- |
+| `paper` | Simulation on a virtual ledger (100,000,000 IDR + 1 BTC). The default; use it for learning, testing, and automation dry runs | No exchange contact | Virtual ledger only | Nothing |
+| `live` | Real orders on INDODAX through the same validation and risk pipeline | Yes, via `LiveExecutor` | Real exchange state | `APP_ENV=live` + `TRADE_ENABLED=true` + credentials + `acknowledged: true` + risk ALLOW, every call |
+| `shadow` | Reserved for future shadow-trading (evaluate live signals without executing). Accepted by schemas so harnesses can pass it through, but no policy enables it today | No | Nothing | Always denied with `LIVE_MODE_DENIED` |
+| `development` | Reserved for local development harnesses | No | Nothing | Always denied with `LIVE_MODE_DENIED` |
 
 ## Current behavior
 
@@ -53,7 +62,7 @@ The intended policy is:
 3. reconcile with the exchange;
 4. only then determine whether another submission is safe.
 
-The current transport helper still applies generic retries, so this policy is an architectural requirement that is not yet fully enforced across the complete live path.
+State-changing requests attempt exactly once by default and opt into retries only with proven idempotency. A timeout or network failure after a live submission therefore surfaces as an explicit non-retryable unknown outcome (with the client order id preserved) instead of a blind duplicate. Reconciling with the exchange before any resubmission is still an operator responsibility.
 
 ## Withdrawal
 

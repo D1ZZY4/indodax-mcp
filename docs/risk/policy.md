@@ -54,9 +54,9 @@ Financial limits use `Decimal`.
 
 ## Runtime limitation
 
-The engine can evaluate all fields above, but **not every MCP entrypoint supplies authoritative runtime context**.
+The engine can evaluate all fields above, but **not every MCP entrypoint supplies every input**.
 
-Some MCP paths use fixed freshness values and null daily PnL. Position exposure is optional and is **not populated by the current order tool context**.
+Most callers resolve context from current application state through the shared resolver: market age from the last successful ticker read (unknown when never reached, never fresh by default), account age from the last authenticated read, and trade count, cooldown, duplicates, position exposure, and daily PnL from the live paper ledger. Balance sufficiency is supplied only by callers that compute it (paper placement); other paths leave it null and skip the check.
 
 Treat the risk engine as a **correct policy primitive**, not as proof that every caller supplies complete market, account, PnL, and position state.
 

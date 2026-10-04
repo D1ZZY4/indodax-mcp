@@ -15,7 +15,7 @@ The security boundary includes:
 - logs, audit records, and diagnostics
 - packaged release artifacts
 
-The current application policy does not permit live order placement. That reduces exposure, but it does not remove the live adapter from security review.
+Live execution stays gated behind environment, credentials, acknowledgement, and risk approval. That reduces exposure, but it does not remove the live adapter from security review.
 
 ## Secrets
 
@@ -48,7 +48,7 @@ Use the smallest exchange permission set needed for the task.
 
 - Public market reads need no API credentials.
 - Authenticated account and history reads require TAPI v2 credentials.
-- Spot trading permission does not make this server place live orders because the current application policy is paper-only.
+- Spot trading permission alone does not make this server place live orders, because live placement additionally needs the full gate (environment, acknowledgement, and risk approval).
 - Withdrawals are disabled by this server and have no supported grant path.
 
 TAPI v2 transaction permissions require exchange-side IP restrictions. Keep the server network identity aligned with the key configuration.

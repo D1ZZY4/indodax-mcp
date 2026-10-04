@@ -18,7 +18,7 @@ How an AI agent should operate the current Indodax MCP surface without treating 
 
 Start with indodax_health, indodax_system_capabilities, and indodax_config_status.
 
-The current capability response should be treated as the **active server policy**. Live order placement remains disabled.
+The current capability response should be treated as the **active server policy**. Live order placement stays gated; treat a `trade.place: false` capability as a closed gate, not a missing tool.
 
 ## 2. Read before mutation
 

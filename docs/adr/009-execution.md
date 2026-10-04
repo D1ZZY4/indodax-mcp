@@ -13,7 +13,7 @@ A state-changing retry must be preceded by reconciliation when the prior request
 
 ExecutionService enforces an ALLOW risk decision before backend submission.
 
-The current generic transport helper still retries state-changing HTTP requests without operation-aware idempotency. The live application path is disabled, but this must be corrected before live enablement.
+State-changing requests attempt exactly once by default and opt into retries only with proven idempotency. A timeout or network failure on live submission surfaces as an explicit non-retryable unknown outcome with the client order id preserved, instead of a blind duplicate.
 
 ## Consequence
 

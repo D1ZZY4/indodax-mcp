@@ -15,4 +15,4 @@ Paper execution exercises the same request and risk contracts without routing pa
 
 LiveExecutor remains isolated behind the same contract. The current application policy keeps it disabled.
 
-Unknown live outcomes require reconciliation before another state-changing request. The generic transport layer still needs idempotency-aware integration before this invariant can be considered fully enforced.
+Unknown live outcomes require reconciliation before another state-changing request. State-changing requests attempt exactly once by default and opt into retries only with proven idempotency; ambiguous outcomes surface as explicit unknown results with the client order id preserved.

@@ -78,7 +78,7 @@ export function registerStrategyTools(
       name: "indodax_backtest_run",
       title: "Run backtest",
       description:
-        "No side effects. Replay closes with threshold crossings as hypothetical fills. Separate from paper trading. Never uses real money.",
+        "No side effects. Replay closes with threshold crossings as hypothetical fills. Threshold is a fraction: 0.05 means a 5% move between closes. Separate from paper trading. Never uses real money.",
       capability: "READ",
       riskClass: "read",
       environmentRequirement: "any",
