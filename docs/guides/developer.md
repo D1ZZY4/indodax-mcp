@@ -46,6 +46,42 @@ service code.
 
 Do not introduce a generic dependency on an INDODAX-specific package just to bypass a boundary.
 
+### Import style
+
+**Every** module is imported through its package name. Relative imports are not used
+anywhere in `packages/*` or `apps/*`:
+
+```ts
+import type { ToolMetadata } from "@indodax-mcp/mcp-contracts";
+import { parseSymbolFlexible } from "@indodax-mcp/core";
+import { checkPaperConsistency } from "@indodax-mcp/indodax-mcp/paper-consistency";
+```
+
+The bare name is the package entry point; a trailing path is one module inside that
+package. Two consequences worth knowing:
+
+- **Do not add a `.js` extension.** A package-name specifier resolves through the
+  `exports` map, so the extension is unnecessary. This is the reason the tree no longer
+  needs a hand-written extension: `tsc` never rewrites a specifier, so a relative
+  import had to carry its own extension to survive into `dist/` and load in Node.
+- **Keeping imports package-shaped makes the layering visible.** A reader can see that
+  `core` does not know about `indodax-market` without tracing a file path, and a wrong
+  dependency shows up as an undeclared entry rather than a silent path.
+
+Resolution is wired up in three places, and they must stay in step:
+
+| Layer | Mechanism | Purpose |
+| --- | --- | --- |
+| `tsconfig.base.json` | `paths` per workspace package | typecheck straight to source, no build needed |
+| `packages/*/tsconfig.build.json` | `paths` narrowed to the own package | keep `rootDir` at `src` while emitting declarations |
+| `packages/*/package.json` | `exports` with a `./*` subpath | keep emitted subpath declarations resolvable |
+
+`apps/mcp-workbench` needs an explicit `resolve.alias` because Vite does not read
+TypeScript `paths`. Its Vitest config merges the Vite config so the two cannot drift.
+
+`packages/indodax-mcp/test/audit-import-style.test.ts` fails the build if a relative
+import reappears, so this rule is enforced rather than merely documented.
+
 ## 4. Database changes
 
 Schema changes belong in packages/db/src/schema.ts.
