@@ -1,11 +1,11 @@
-import { loadEnv } from "@indodax-mcp/config";
+import { loadConfig } from "@indodax-mcp/config";
 import { serveStdioTransport } from "@indodax-mcp/mcp-runtime";
 import { createLogger } from "@indodax-mcp/logging";
 import { buildIndodaxServer } from "@indodax-mcp/indodax-mcp";
 
-const env = loadEnv();
+const { env, diagnostic } = loadConfig();
 const logger = createLogger({ service: "mcp-stdio" });
-const { server: mcpServer, registry, app } = buildIndodaxServer(env);
+const { server: mcpServer, registry, app } = buildIndodaxServer(env, diagnostic);
 
 async function shutdown(): Promise<void> {
   for (const hook of app.shutdownHooks) {

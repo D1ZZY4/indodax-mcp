@@ -1,4 +1,5 @@
-import type { AppEnv } from "@indodax-mcp/config";
+import type { AppEnv, ConfigDiagnostic } from "@indodax-mcp/config";
+import { diagnoseEnv } from "@indodax-mcp/config";
 import { AuditTrail } from "@indodax-mcp/indodax-audit";
 import { AccountClient } from "@indodax-mcp/indodax-account";
 import { AlertStore } from "@indodax-mcp/indodax-alerts";
@@ -30,6 +31,13 @@ import { StopStore } from "./stop-store.js";
 
 export interface AppServices {
   env: AppEnv;
+  /**
+   * Provenance of the loaded configuration, captured from the same source that
+   * produced `env`. Recorded here so `indodax_config_status` can explain a
+   * credential that never reached this process instead of only reporting
+   * "absent".
+   */
+  configDiagnostic: ConfigDiagnostic;
   logger: ReturnType<typeof createLogger>;
   publicClient: PublicClient;
   signer: TapiV2Signer | null;
@@ -56,13 +64,18 @@ export interface AppServices {
   accountId: string;
   /** Epoch ms of the last successful authenticated account read. Null when never synced. */
   accountSyncedAt: number | null;
-  /** Set by full exchange reconciliation; enforced for live-mode risk evaluation. */
+  /**
+   * Paper-ledger consistency halt, re-derived on every risk evaluation in
+   * resolveRiskContext. Kept on the services object so risk_state and the
+   * runtime status surface the same value the engine used, and so no read-only
+   * tool needs to write it.
+   */
   reconciliationHalted: boolean;
   /** Async resource cleanup (database pools). Short-lived CLIs must drain these to exit. */
   shutdownHooks: Array<() => Promise<void>>;
 }
 
-export function createApp(env: AppEnv): AppServices {
+export function createApp(env: AppEnv, diagnostic?: ConfigDiagnostic): AppServices {
   const logger = createLogger({ service: "indodax-mcp" });
   const publicClient = new PublicClient({
     rateLimitRps: env.INDODAX_RATE_LIMIT,
@@ -111,6 +124,7 @@ export function createApp(env: AppEnv): AppServices {
     : null;
   return {
     env,
+    configDiagnostic: diagnostic ?? diagnoseEnv(),
     logger,
     publicClient,
     signer,

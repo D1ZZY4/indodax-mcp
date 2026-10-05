@@ -13,6 +13,8 @@ const serverSchema = {
   MCP_PORT: z.coerce.number().int().positive().optional(),
   APP_ENV: z.enum(["development", "paper", "live"]).default("paper"),
   TRADE_ENABLED: z.stringbool().optional(),
+  // Parsed for compatibility only. Withdrawal stays denied in application
+  // code regardless of this flag, so setting it true never enables it.
   WITHDRAW_ENABLED: z.stringbool().optional(),
   STOP_AUTOPOLL_MS: z.coerce.number().int().positive().optional(),
   ALERT_AUTOPOLL_MS: z.coerce.number().int().positive().optional(),
@@ -32,16 +34,101 @@ export interface AppEnv {
   ALERT_AUTOPOLL_MS?: number | undefined;
 }
 
-export function loadEnv(source: Record<string, string | undefined> = process.env): AppEnv {
+/** Which configuration channel supplied a value. Reported as a name, never a value. */
+export type ConfigSource = "process-env" | "repo-env-file" | "absent";
+
+export interface ConfigDiagnostic {
+  /** True when the caller passed its own source (tests) instead of process.env. */
+  explicitSource: boolean;
+  /** True when a repository .env file was found and merged. */
+  repoEnvFileFound: boolean;
+  /** Per-variable origin for the exchange credential contract. */
+  credentials: Record<"INDODAX_API_KEY" | "INDODAX_API_SECRET", ConfigSource>;
+  /** Names of other server variables the process actually received. */
+  otherVariablesPresent: string[];
+}
+
+export interface LoadedConfig {
+  env: AppEnv;
+  diagnostic: ConfigDiagnostic;
+}
+
+/**
+ * Explain where configuration came from.
+ *
+ * The most common support failure is an operator exporting credentials for an
+ * MCP entry that never received them, for example a harness entry that starts
+ * the server as a separate process. `indodax_config_status` then reports
+ * "credentials absent" with no clue why. This records the origin per variable
+ * so that gap is visible from the tool output itself.
+ *
+ * Values are never included: only presence and origin. The diagnostic is
+ * computed from the same source that produced `env`, so the two can never
+ * describe different environments.
+ */
+function diagnoseSource(
+  source: Record<string, string | undefined>,
+  fileValues: Record<string, string>,
+  explicitSource: boolean,
+): ConfigDiagnostic {
+  const resolve = (key: string): ConfigSource => {
+    const fromProcess = source[key];
+    if (fromProcess !== undefined && fromProcess !== "") return "process-env";
+    if (fileValues[key] !== undefined && fileValues[key] !== "") return "repo-env-file";
+    return "absent";
+  };
+  return {
+    explicitSource,
+    repoEnvFileFound: !explicitSource && Object.keys(fileValues).length > 0,
+    credentials: {
+      INDODAX_API_KEY: resolve("INDODAX_API_KEY"),
+      INDODAX_API_SECRET: resolve("INDODAX_API_SECRET"),
+    },
+    otherVariablesPresent: [
+      "DATABASE_URL",
+      "MCP_PORT",
+      "APP_ENV",
+      "TRADE_ENABLED",
+      "WITHDRAW_ENABLED",
+      "STOP_AUTOPOLL_MS",
+      "ALERT_AUTOPOLL_MS",
+      "INDODAX_RATE_LIMIT",
+      "INDODAX_WS_TOKEN",
+    ].filter((key) => source[key] !== undefined && source[key] !== ""),
+  };
+}
+
+/**
+ * Load configuration together with the provenance of every credential.
+ *
+ * Prefer this over `loadEnv` in an entrypoint so the diagnostic and the parsed
+ * environment are guaranteed to describe the same input.
+ */
+export function loadConfig(source: Record<string, string | undefined> = process.env): LoadedConfig {
   // Explicit test sources stay exactly as given. Only the default path
   // (real process env) falls back to the repository .env, so any
   // entrypoint finds the same config regardless of its working directory.
-  const runtimeEnv = source === process.env ? { ...loadRepoEnvFile(), ...source } : source;
-  return createEnv({
+  const explicitSource = source !== process.env;
+  const fileValues = explicitSource ? {} : loadRepoEnvFile();
+  const env = createEnv({
     server: serverSchema,
-    runtimeEnv,
+    runtimeEnv: { ...fileValues, ...source },
     emptyStringAsUndefined: true,
   });
+  return { env, diagnostic: diagnoseSource(source, fileValues, explicitSource) };
+}
+
+export function loadEnv(source: Record<string, string | undefined> = process.env): AppEnv {
+  return loadConfig(source).env;
+}
+
+/** Standalone diagnosis of an arbitrary source. Used by tests and tooling. */
+export function diagnoseEnv(
+  source: Record<string, string | undefined> = process.env,
+): ConfigDiagnostic {
+  const explicitSource = source !== process.env;
+  const fileValues = explicitSource ? {} : loadRepoEnvFile();
+  return diagnoseSource(source, fileValues, explicitSource);
 }
 
 /**

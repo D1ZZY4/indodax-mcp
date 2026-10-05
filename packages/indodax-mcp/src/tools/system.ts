@@ -116,14 +116,41 @@ export function registerSystemTools(
       allowedModes: app.policy.allowedModes,
     }),
   );
-  handlers.tools.set("indodax_config_status", async () =>
-    ok({
-      credentialsConfigured: app.accountClient !== null,
+  handlers.tools.set("indodax_config_status", async () => {
+    const configured = app.accountClient !== null;
+    const diagnostic = app.configDiagnostic;
+    const keySource = diagnostic.credentials.INDODAX_API_KEY;
+    const secretSource = diagnostic.credentials.INDODAX_API_SECRET;
+    // The actionable case: the operator believes credentials are configured but
+    // this process never received them. Name the channel instead of just
+    // reporting "absent".
+    const remedy = configured
+      ? `credentials reached this process from ${keySource}`
+      : keySource === "absent" && secretSource === "absent"
+        ? "this process received no INDODAX_API_KEY or INDODAX_API_SECRET; export them in the environment of the process that starts this server, or add a repository .env beside the workspace"
+        : `partial credentials: INDODAX_API_KEY from ${keySource}, INDODAX_API_SECRET from ${secretSource}; both are required`;
+    return ok({
+      credentialsConfigured: configured,
       mode: app.env.APP_ENV,
       tradeEnabled: app.env.TRADE_ENABLED ?? false,
       withdrawEnabled: false,
-    }),
-  );
+      mcpPort: app.env.MCP_PORT ?? 8000,
+      rateLimitRps: app.env.INDODAX_RATE_LIMIT ?? null,
+      stopAutopollMs: app.env.STOP_AUTOPOLL_MS ?? null,
+      alertAutopollMs: app.env.ALERT_AUTOPOLL_MS ?? null,
+      database: app.env.DATABASE_URL !== undefined ? "configured" : "absent",
+      configSource: {
+        credentials: diagnostic.credentials,
+        repoEnvFileFound: diagnostic.repoEnvFileFound,
+        otherVariablesPresent: diagnostic.otherVariablesPresent,
+        note: "origin names only, never values; a remote MCP client cannot inject environment into a server it does not start",
+      },
+      summary: `mode ${app.env.APP_ENV}, credentials ${
+        configured ? `present from ${keySource}` : "absent"
+      }, withdraw always disabled`,
+      remedy,
+    });
+  });
   handlers.tools.set("indodax_runtime_status", async () =>
     ok({
       scheduler: app.scheduler.running,

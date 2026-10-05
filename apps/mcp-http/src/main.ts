@@ -1,14 +1,19 @@
-import { loadEnv } from "@indodax-mcp/config";
+import { loadConfig } from "@indodax-mcp/config";
 import { createLogger } from "@indodax-mcp/logging";
 import { buildIndodaxServer } from "@indodax-mcp/indodax-mcp";
 import { buildHttpApp } from "@indodax-mcp/mcp-runtime";
 
-const env = loadEnv();
+// loadConfig keeps the parsed environment and its provenance together, so
+// indodax_config_status can explain which channel supplied each credential.
+const { env, diagnostic } = loadConfig();
 const logger = createLogger({ service: "mcp-http" });
-const { server: mcpServer, registry, app: services } = buildIndodaxServer(env);
+const { registry, app: services, createServer } = buildIndodaxServer(env, diagnostic);
 const port = env.MCP_PORT ?? 8000;
 
-const app = buildHttpApp(() => mcpServer);
+// Each Streamable HTTP request needs a fresh MCP server instance sharing
+// the same application services. Reusing one instance fails the SDK guard
+// with "still serving another request".
+const app = buildHttpApp(() => createServer());
 
 app.get("/health", (c) =>
   c.json({ status: "ok", server: "indodax-mcp", version: "1.0.0", mode: env.APP_ENV }),

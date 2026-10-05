@@ -62,6 +62,35 @@ After rotating an INDODAX key:
 
 **Never place an order as a credential test.**
 
+### When credentials are configured but the server cannot see them
+
+This is the most common configuration failure: the operator exports the
+variables, but the process serving MCP never inherited them. It happens
+whenever the MCP client starts the server itself, and also whenever the client
+connects to a server someone else started, because **an MCP client cannot
+inject environment into a process it does not launch**.
+
+Diagnose it with `indodax_config_status`, not by guessing:
+
+~~~json
+{
+  "credentialsConfigured": false,
+  "configSource": {
+    "credentials": {
+      "INDODAX_API_KEY": "absent",
+      "INDODAX_API_SECRET": "absent"
+    },
+    "repoEnvFileFound": false
+  },
+  "remedy": "this process received no INDODAX_API_KEY or INDODAX_API_SECRET; export them in the environment of the process that starts this server, or add a repository .env beside the workspace"
+}
+~~~
+
+Each credential resolves to `process-env`, `repo-env-file`, or `absent`, and no
+value is ever included. A `repo-env-file` origin means the repository `.env`
+supplied it; `absent` means this process received nothing at all, so the
+variables must be exported into whatever launches the server.
+
 ## Database
 
 The database package provides PostgreSQL schema, migrations, and repository implementations. Paper ledgers, audit trails, alerts, and stops mirror to Postgres when configured and reload on boot. Runtime state without a database row stays in memory.

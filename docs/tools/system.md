@@ -5,11 +5,11 @@ All responses are booleans and statuses, never secrets.
 
 | Tool | Parameters | Response `data` | Notes |
 | --- | --- | --- | --- |
-| `indodax_health` | none | `{ status, components }` (database, exchangeRest, exchangeWs, mcpTransport, scheduler, queue, deadman, configuration, runtime) | `unknown` means the check is not wired, not that it failed. |
-| `indodax_readiness` | none | `{ ready, status, degradedReasons }` | `ready` is true only for overall `healthy`; every non-healthy component is named. |
-| `indodax_version` | none | `{ server, version, mode }` | — |
-| `indodax_system_capabilities` | none | Policy view (`market.read`, `account.read`, killSwitch, allowedModes) | Policy-level; for the per-requirement live checklist use `indodax_capabilities`. |
-| `indodax_config_status` | none | `{ credentialsConfigured, mode, tradeEnabled, withdrawEnabled: false }` | — |
+| `indodax_health` | none | `{ status, components (each with status, detail, wired, action, checkedAt), healthy, total, summary, note }` | Complete per-component detail with wiring and next action; unwired checks explain, never bare codes. |
+| `indodax_readiness` | none | `{ ready, status, degradedCount, degradedReasons, degradedDetail (component, status, detail, action), summary }` | Complete with counts and per-component actions. |
+| `indodax_version` | none | `{ server, version, mode, protocol, transports, summary }` | Complete with protocol and transports. |
+| `indodax_system_capabilities` | none | Policy view plus `circuitBreaker, allowedCapabilities, liveGate { appEnvLive, tradeEnabled, credentials, policyAllowsLive }, summary` | Complete policy plus live-gate breakdown. |
+| `indodax_config_status` | none | `{ credentialsConfigured, mode, tradeEnabled, withdrawEnabled: false, mcpPort, rateLimitRps, stopAutopollMs, alertAutopollMs, database, configSource, summary, remedy }` | Complete server configuration. `configSource` records where each credential actually came from (`process-env`, `repo-env-file`, `absent`) plus `repoEnvFileFound` and the names of other variables the process received; it never contains a value. `remedy` states the actionable next step, for example that the process received no credentials at all. |
 | `indodax_runtime_status` | none | `{ scheduler, schedulerFailures, marketSocket, privateChannel, metrics, deadman, persistence }` | `persistence` reports `database: configured/absent` plus which stores mirror; memory-only mode loses paper, audit, alerts, stops, and deadman on restart. |
 | `indodax_auth_status` | none | `{ credentialsConfigured, mode }` | Credential presence only. |
 | `indodax_funding_withdraw` | `currency`, `amount`, `address` (shape validation only) | Always `AuthorizationError` | Withdrawal has no server-side grant path by design. |

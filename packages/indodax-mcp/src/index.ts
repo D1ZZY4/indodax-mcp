@@ -32,7 +32,7 @@ import { registerStopTools } from "./tools/stop.js";
 import { registerDocsTools } from "./tools/docs.js";
 import { registerResources } from "./resources.js";
 import { registerPrompts } from "./prompts.js";
-import type { AppEnv } from "@indodax-mcp/config";
+import type { AppEnv, ConfigDiagnostic } from "@indodax-mcp/config";
 
 export const SERVER_NAME = "indodax-mcp";
 export const SERVER_VERSION = "1.0.0";
@@ -41,8 +41,8 @@ export function emptyHandlers(): ServerHandlers {
   return { tools: new Map(), resources: new Map(), prompts: new Map() };
 }
 
-export function buildIndodaxServer(env: AppEnv) {
-  const app: AppServices = createApp(env);
+export function buildIndodaxServer(env: AppEnv, diagnostic?: ConfigDiagnostic) {
+  const app: AppServices = createApp(env, diagnostic);
   void attachAuditPersistence(app);
   void attachPaperPersistence(app);
   void attachAlertPersistence(app);
@@ -74,15 +74,18 @@ export function buildIndodaxServer(env: AppEnv) {
   registerDocsTools(registry, handlers, app);
   registerResources(registry, handlers, app);
   registerPrompts(registry, handlers, app);
-  const server = buildServer({
-    name: SERVER_NAME,
-    version: SERVER_VERSION,
-    registry,
-    handlers,
-    guard: buildGuard(app),
-  });
+  const guard = buildGuard(app);
+  const createServer = () =>
+    buildServer({
+      name: SERVER_NAME,
+      version: SERVER_VERSION,
+      registry,
+      handlers,
+      guard,
+    });
+  const server = createServer();
   startAutopoll(app, server);
-  return { server, app, registry };
+  return { server, app, registry, createServer };
 }
 
 function startAutopoll(app: AppServices, server: ReturnType<typeof buildServer>): void {

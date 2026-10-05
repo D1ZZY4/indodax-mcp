@@ -1,11 +1,13 @@
 import { defineCommand, runMain } from "citty";
-import { loadEnv } from "@indodax-mcp/config";
+import { loadConfig } from "@indodax-mcp/config";
 import { createLogger } from "@indodax-mcp/logging";
 import { buildIndodaxServer } from "@indodax-mcp/indodax-mcp";
 
-const env = loadEnv();
+// loadConfig keeps the parsed environment and its provenance together, so
+// indodax_config_status can explain which channel supplied each credential.
+const { env, diagnostic } = loadConfig();
 const logger = createLogger({ service: "cli" });
-const { app } = buildIndodaxServer(env);
+const { app } = buildIndodaxServer(env, diagnostic);
 
 const market = defineCommand({
   meta: { name: "market", description: "Market reads" },

@@ -1,12 +1,12 @@
-import { loadEnv } from "@indodax-mcp/config";
+import { loadConfig } from "@indodax-mcp/config";
 import { createLogger } from "@indodax-mcp/logging";
 import { buildIndodaxServer } from "@indodax-mcp/indodax-mcp";
 import { decimalOrNull } from "@indodax-mcp/core";
 import { getTicker } from "@indodax-mcp/indodax-market";
 
-const env = loadEnv();
+const { diagnostic, env } = loadConfig();
 const logger = createLogger({ service: "daemon" });
-const { app } = buildIndodaxServer(env);
+const { app } = buildIndodaxServer(env, diagnostic);
 
 let stopped = false;
 
