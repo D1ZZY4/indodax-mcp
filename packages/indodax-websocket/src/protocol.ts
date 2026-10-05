@@ -1,9 +1,5 @@
 export type ConnectionState = "CONNECTED" | "DISCONNECTED" | "RECONNECTING" | "RECOVERING" | "LIVE";
 
-export interface WsMessage {
-  raw: unknown;
-}
-
 export interface ChannelSubscription {
   channel: string;
   lastOffset: number | null;

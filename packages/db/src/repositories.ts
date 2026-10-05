@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm";
 import type { Database } from "./client.js";
-import { auditEvents, deadmanState, orders, paperLedgers, tenants } from "./schema.js";
+import { auditEvents, deadmanState, paperLedgers, tenants } from "./schema.js";
 import type { alertSnapshots, stopSnapshots } from "./schema.js";
 
 export interface AuditRecord {
@@ -55,27 +55,6 @@ export interface OrderRow {
   environment: string;
   price?: string;
   clientOrderId?: string;
-}
-
-export class DrizzleOrderRepository {
-  constructor(private readonly db: Database) {}
-
-  async insert(row: OrderRow): Promise<void> {
-    await this.db.insert(orders).values({
-      internalOrderId: row.internalOrderId,
-      tenantId: row.tenantId,
-      accountId: row.accountId,
-      symbol: row.symbol,
-      side: row.side,
-      orderType: row.orderType,
-      quantity: row.quantity,
-      remaining: row.remaining,
-      state: row.state,
-      environment: row.environment,
-      price: row.price ?? null,
-      clientOrderId: row.clientOrderId ?? null,
-    });
-  }
 }
 
 export interface PaperLedgerSnapshot {

@@ -1,5 +1,3 @@
-export type RateLimitDimension = "ip" | "account" | "endpointClass" | "pair" | "operation";
-
 export interface BucketSpec {
   key: string;
   capacity: number;

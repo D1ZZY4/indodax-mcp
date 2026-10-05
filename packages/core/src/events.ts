@@ -16,7 +16,3 @@ export type DomainEvent =
   | { kind: "deadman.expired"; pairs: string[]; at: string }
   | { kind: "account.synced"; accountId: string; at: string }
   | { kind: "portfolio.updated"; accountId: string; equity: string; at: string };
-
-export function eventKind(event: DomainEvent): DomainEvent["kind"] {
-  return event.kind;
-}

@@ -2,7 +2,6 @@ export type OrderSide = "BUY" | "SELL";
 export type OrderType = "LIMIT" | "MARKET";
 export type TimeInForce = "GTC" | "MOC" | "FOK";
 export type StpMode = "EXPIRE_TAKER" | "EXPIRE_MAKER" | "EXPIRE_BOTH";
-export type LegacyStpMode = "MAKER" | "TAKER" | "BOTH";
 
 export type ExecutionState =
   | "NEW"
@@ -17,17 +16,6 @@ export type ExecutionState =
   | "RECONCILING"
   | "RECONCILED"
   | "PROPOSED";
-
-const TERMINAL: ReadonlySet<ExecutionState> = new Set([
-  "FILLED",
-  "CANCELLED",
-  "REJECTED",
-  "RECONCILED",
-]);
-
-export function isTerminalState(state: ExecutionState): boolean {
-  return TERMINAL.has(state);
-}
 
 export type CancelState = "CANCELLED" | "CANCEL_UNKNOWN";
 

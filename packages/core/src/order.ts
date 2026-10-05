@@ -1,5 +1,4 @@
 import type Decimal from "decimal.js";
-import { decimalOrNull } from "./money.js";
 import type { SymbolParts } from "./asset.js";
 
 export interface OrderInput {
@@ -49,8 +48,4 @@ export function validateOrderInput(input: OrderInput): OrderValidation {
     errors.push("quantity must be positive");
   }
   return { ok: errors.length === 0, errors };
-}
-
-export function parseDecimalField(value: unknown): Decimal | null {
-  return decimalOrNull(value);
 }
