@@ -5,7 +5,7 @@ import type { ToolMetadata } from "@indodax-mcp/mcp-contracts";
 import type { Registry } from "@indodax-mcp/mcp-registry";
 
 export interface ToolContext {
-  // Intentionally empty: SDK 2.2.0 exposes no per-call abort signal to
+  // Intentionally empty: SDK 2.3.0 exposes no per-call abort signal to
   // tool callbacks (cancellation only tears down the transport), so no
   // fake signal is provided here.
   signal?: never;
@@ -15,6 +15,39 @@ export type ToolHandler = (
   args: Record<string, unknown>,
   ctx: ToolContext,
 ) => Promise<ToolResult> | ToolResult;
+
+/**
+ * MCP tool annotations projected from repository tool metadata.
+ *
+ * The repository already classifies every tool with capability, risk class,
+ * destructiveness, and idempotency class. Emitting them as protocol
+ * annotations lets an agent harness decide whether to auto-approve a call
+ * before invoking it, instead of parsing prose descriptions to guess.
+ */
+export interface ToolAnnotations {
+  readOnlyHint: boolean;
+  destructiveHint: boolean;
+  idempotentHint: boolean;
+  openWorldHint: boolean;
+  title?: string;
+}
+
+/**
+ * READ and TRADE reach the exchange; PAPER and SYSTEM stay inside this
+ * process. This is the protocol's openWorldHint contract: "may interact with
+ * an open world of external entities", not a claim about network egress.
+ */
+const OPEN_WORLD_CAPABILITIES: ReadonlySet<ToolMetadata["capability"]> = new Set(["READ", "TRADE"]);
+
+export function toolAnnotationsFor(metadata: ToolMetadata): ToolAnnotations {
+  return {
+    title: metadata.title,
+    readOnlyHint: metadata.riskClass === "read",
+    destructiveHint: metadata.destructive,
+    idempotentHint: metadata.idempotencyClass !== "none",
+    openWorldHint: OPEN_WORLD_CAPABILITIES.has(metadata.capability),
+  };
+}
 
 export interface ToolResult {
   content: { type: "text"; text: string }[];
@@ -84,7 +117,11 @@ export function buildServer(options: BuildServerOptions): McpServer {
     const inputSchema = entry.inputSchema as z.ZodType<Record<string, unknown>>;
     server.registerTool(
       entry.metadata.name,
-      { description: entry.metadata.description, inputSchema },
+      {
+        description: entry.metadata.description,
+        inputSchema,
+        annotations: toolAnnotationsFor(entry.metadata),
+      },
       async (args) => {
         try {
           await options.guard?.(entry.metadata, args as Record<string, unknown>);

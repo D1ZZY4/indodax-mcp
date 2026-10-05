@@ -28,6 +28,15 @@ spellings are accepted flexibly and normalized per endpoint, errors are
 either the `{status, code, message, retryable}` envelope or a protocol-level
 schema rejection, and paper paths never touch the exchange.
 
+Tool annotations: every tool exposes MCP `annotations` derived from its
+repository metadata, so a harness can gate a call before invoking it.
+`readOnlyHint` is true for `riskClass: read`, `destructiveHint` mirrors the
+declared `destructive` flag, `idempotentHint` is true when the tool declares
+a non-`none` idempotency class, and `openWorldHint` is true for READ and
+TRADE tools that reach the exchange. Metadata is a hint for the client, not
+an authorization control: the central guard and the risk engine remain the
+enforced boundary.
+
 Pair contract: every tool accepts any common spelling (`btc_idr`,
 `BTCIDR`, `BTC/IDR`) on input, while stored state, comparisons, and
 responses always use the canonical lowercase `base_quote` form

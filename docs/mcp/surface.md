@@ -46,8 +46,8 @@ Five prompts guide market, portfolio, order, strategy, and incident review. Prom
 
 ## Safety boundary
 
-Tool metadata declares capability, risk class, environment, authentication, destructiveness, idempotency class, and audit class.
+Tool metadata declares capability, risk class, environment, authentication, destructiveness, idempotency class, and audit class. That metadata is projected into standard MCP tool annotations on every tool, so a client can inspect `readOnlyHint`, `destructiveHint`, `idempotentHint`, and `openWorldHint` before deciding to call.
 
-A central guard enforces authentication and environment for every tool. Capability, risk, and audit enforcement stays in handlers and services.
+A central guard enforces environment and authentication for every tool, checking the environment requirement first so a live-only tool reports the real blocker. Capability, risk, and audit enforcement stays in handlers and services.
 
-For new mutation tools, metadata and executable guards are **both required**. **Never treat metadata alone as a security control.**
+For new mutation tools, metadata and executable guards are **both required**. **Never treat metadata or annotations alone as a security control.**
