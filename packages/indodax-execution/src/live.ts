@@ -1,4 +1,5 @@
 import { OrderRejectedError, ValidationError } from "@indodax-mcp/errors";
+import { asCompact, parseSymbolFlexible } from "@indodax-mcp/core";
 import { INDODAX_V2_BASE, type TapiV2Signer } from "@indodax-mcp/indodax-auth";
 import {
   OFFICIAL_V2_BUCKET,
@@ -48,20 +49,27 @@ export class LiveExecutor implements ExecutionBackend {
     params: Record<string, string>,
   ): Promise<T> {
     await this.limiter.acquire("v2-rest");
-    const query = this.options.signer.buildTimestampParams(params);
-    const signature = this.options.signer.signQuery(query);
-    const headers = {
-      "X-APIKEY": this.options.signer.key,
-      Sign: signature,
-      "Content-Type": "application/x-www-form-urlencoded",
-    };
-    const url = `${V2_BASE}${path}`;
-    const init: RequestInit =
-      method === "GET" || method === "DELETE"
-        ? { method, headers }
-        : { method, headers, body: query };
-    const target = method === "GET" || method === "DELETE" ? `${url}?${query}` : url;
-    const response = await fetchWithRetry(target, init, undefined, this.options.fetchFn);
+    // Sign per attempt so a retry carries a timestamp inside recvWindow
+    // instead of replaying an expired signature.
+    const response = await fetchWithRetry(
+      `${V2_BASE}${path}`,
+      { method },
+      undefined,
+      this.options.fetchFn,
+      () => {
+        const query = this.options.signer.buildTimestampParams(params);
+        const headers = {
+          "X-APIKEY": this.options.signer.key,
+          Sign: this.options.signer.signQuery(query),
+          "Content-Type": "application/x-www-form-urlencoded",
+        };
+        // GET and DELETE carry parameters in the query string; POST sends a
+        // form-encoded body, matching the documented v2 contract.
+        return method === "GET" || method === "DELETE"
+          ? { url: `${V2_BASE}${path}?${query}`, init: { method, headers } }
+          : { url: `${V2_BASE}${path}`, init: { method, headers, body: query } };
+      },
+    );
     const json: unknown = await response.json();
     return json as T;
   }
@@ -116,7 +124,11 @@ export class LiveExecutor implements ExecutionBackend {
     if (!orderId && !clientOrderId) {
       throw ValidationError("cancel needs exchange orderId or clientOrderId plus symbol");
     }
-    const params: Record<string, string> = { symbol };
+    // Exchange symbols are uppercase compact (BTCIDR). Submit and account
+    // reads normalize; cancel must match so any common spelling cancels.
+    const parsed = parseSymbolFlexible(symbol);
+    if (!parsed) throw ValidationError(`invalid symbol: ${symbol}`);
+    const params: Record<string, string> = { symbol: asCompact(parsed).toUpperCase() };
     if (orderId) params.orderId = orderId;
     else if (clientOrderId) params.origClientOrderId = clientOrderId;
     const raw = await this.signed<Record<string, unknown>>("DELETE", "/api/v2/order", params);

@@ -29,6 +29,17 @@ export const DEFAULT_RETRY_POLICY: RetryPolicy = {
 
 export type FetchFn = (input: string, init?: RequestInit) => Promise<Response>;
 
+/**
+ * Builds the request for one attempt.
+ *
+ * Signed exchange requests must re-sign per attempt: the signature covers a
+ * timestamp that the exchange validates inside `recvWindow`, so reusing one
+ * signature across retries silently produces timestamp failures once the
+ * window has passed. The signed payload can live in the URL, the body, or the
+ * headers, so the hook returns both and callers rebuild whichever they signed.
+ */
+export type BuildRequest = (attempt: number) => { url: string; init: RequestInit };
+
 function backoffDelay(attempt: number, baseDelayMs: number): number {
   return baseDelayMs * 2 ** (attempt - 1);
 }
@@ -46,11 +57,19 @@ function isStateChanging(method: string): boolean {
   return method !== "GET" && method !== "HEAD" && method !== "OPTIONS";
 }
 
+/** Release an unread body so the socket can be reused instead of pinned open. */
+function discardBody(response: Response): void {
+  void response.body?.cancel().catch(() => {
+    // Body already consumed or unsupported; nothing further to release.
+  });
+}
+
 export async function fetchWithRetry(
   url: string,
   init: RequestInit = {},
   policy: RetryPolicy = DEFAULT_RETRY_POLICY,
   fetchFn: FetchFn = fetch,
+  buildRequest?: BuildRequest,
 ): Promise<Response> {
   let lastError: Error | null = null;
   const stateChanging = isStateChanging(requestMethod(init));
@@ -64,13 +83,19 @@ export async function fetchWithRetry(
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), policy.timeoutMs);
     try {
-      const response = await fetchFn(url, { ...init, signal: controller.signal });
+      const built = buildRequest ? buildRequest(attempt) : { url, init };
+      const response = await fetchFn(built.url, {
+        ...built.init,
+        signal: controller.signal,
+      });
       if (response.ok) return response;
       if (response.status === 429) {
+        discardBody(response);
         lastError = new Error(`rate limited (HTTP ${response.status})`);
         continue;
       }
       if (isRetryableStatus(response.status)) {
+        discardBody(response);
         lastError = new Error(`server error (HTTP ${response.status})`);
         continue;
       }

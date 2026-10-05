@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { type FetchFn, fetchWithRetry } from "../src/fetch.js";
-import { RateLimiter } from "../src/rate-limit.js";
+import {
+  OFFICIAL_PUBLIC_BUCKET,
+  OFFICIAL_V2_BUCKET,
+  RateLimiter,
+  appThrottleBucket,
+} from "../src/rate-limit.js";
 import { isAppError } from "@indodax-mcp/errors";
 
 describe("fetchWithRetry", () => {
@@ -89,6 +94,54 @@ describe("fetchWithRetry", () => {
     expect(await response.text()).toBe("ok");
     expect(calls).toBe(2);
   });
+
+  it("lets a signed caller rebuild url and headers per attempt", async () => {
+    const seen: { url: string; sign: string }[] = [];
+    let calls = 0;
+    const fetchFn = (async (input: string, init?: RequestInit) => {
+      calls += 1;
+      const headers = (init?.headers ?? {}) as Record<string, string>;
+      seen.push({ url: String(input), sign: String(headers.Sign) });
+      return calls === 1 ? new Response("slow", { status: 503 }) : new Response("ok");
+    }) as FetchFn;
+    const response = await fetchWithRetry(
+      "https://example.com/placeholder",
+      {},
+      { maxAttempts: 3, baseDelayMs: 1, timeoutMs: 5000 },
+      fetchFn,
+      (attempt) => {
+        const query = `timestamp=${1000 + attempt * 1000}`;
+        return {
+          url: `https://example.com/x?${query}`,
+          init: { headers: { Sign: `sig-${query}` } },
+        };
+      },
+    );
+    expect(await response.text()).toBe("ok");
+    expect(calls).toBe(2);
+    // Each attempt must carry its own signature, otherwise a retry replays an
+    // expired one and the exchange rejects it as a timestamp error.
+    expect(seen[0]?.sign).not.toBe(seen[1]?.sign);
+    expect(seen[1]?.url).toContain("timestamp=3000");
+  });
+
+  it("does not reuse a placeholder signature when no builder is supplied", async () => {
+    const seen: string[] = [];
+    let calls = 0;
+    const fetchFn = (async (_input: string, init?: RequestInit) => {
+      calls += 1;
+      const headers = (init?.headers ?? {}) as Record<string, string>;
+      seen.push(String(headers.Sign));
+      return calls === 1 ? new Response("slow", { status: 503 }) : new Response("ok");
+    }) as FetchFn;
+    await fetchWithRetry(
+      "https://example.com/x",
+      { headers: { Sign: "static" } },
+      { maxAttempts: 2, baseDelayMs: 1, timeoutMs: 5000 },
+      fetchFn,
+    );
+    expect(seen).toEqual(["static", "static"]);
+  });
 });
 
 describe("RateLimiter", () => {
@@ -106,5 +159,24 @@ describe("RateLimiter", () => {
     const limiter = new RateLimiter([{ key: "k", capacity: 1, refillPerSecond: 1 }]);
     expect(limiter.tryAcquire("k", 0).allowed).toBe(true);
     expect(limiter.tryAcquire("k", 2000).allowed).toBe(true);
+  });
+});
+
+describe("officially bounded buckets", () => {
+  it("keeps shared TAPI v2 traffic under the documented per-user order rule", () => {
+    // The public create-order rule is 20/s per user per pair. The bucket is a
+    // single conservative ceiling below that, so all private traffic stays
+    // under known limits by default.
+    expect(OFFICIAL_V2_BUCKET.refillPerSecond).toBeLessThan(20);
+    expect(OFFICIAL_V2_BUCKET.capacity).toBeLessThanOrEqual(OFFICIAL_V2_BUCKET.refillPerSecond);
+  });
+
+  it("keeps public traffic within the published 180 per minute quota", () => {
+    expect(OFFICIAL_PUBLIC_BUCKET.refillPerSecond * 60).toBeLessThanOrEqual(180);
+  });
+
+  it("never throttles below one request per second", () => {
+    expect(appThrottleBucket(0).refillPerSecond).toBe(1);
+    expect(appThrottleBucket(-5).capacity).toBe(1);
   });
 });

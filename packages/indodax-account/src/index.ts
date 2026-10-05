@@ -76,17 +76,22 @@ export class AccountClient {
   private async signedGet<T>(path: string, params: Record<string, string>): Promise<T> {
     await this.limiter.acquire("v2-rest");
     const signer = this.options.signer;
-    // Timestamp is built once per call. Retries reuse the same query so the
-    // signature stays valid; total backoff stays within recvWindow 5000ms.
-    // Rebuilding per attempt would change the signed payload mid-retry.
-    const query = signer.buildTimestampParams(params);
-    const signature = signer.signQuery(query);
-    const url = `${V2_BASE}${path}?${query}`;
+    // Sign per attempt. The signature covers a timestamp the exchange
+    // validates inside recvWindow (5000ms), so a single signature reused
+    // across a retry burst would expire and turn a transient failure into a
+    // permanent timestamp rejection.
     const response = await fetchWithRetry(
-      url,
-      { headers: { "X-APIKEY": signer.key, Sign: signature } },
+      `${V2_BASE}${path}`,
+      { headers: { "X-APIKEY": signer.key, Sign: signer.signQuery("") } },
       undefined,
       this.options.fetchFn,
+      () => {
+        const query = signer.buildTimestampParams(params);
+        return {
+          url: `${V2_BASE}${path}?${query}`,
+          init: { headers: { "X-APIKEY": signer.key, Sign: signer.signQuery(query) } },
+        };
+      },
     );
     return (await response.json()) as T;
   }
