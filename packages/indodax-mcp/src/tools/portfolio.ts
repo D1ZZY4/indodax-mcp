@@ -70,10 +70,16 @@ export function registerPortfolioTools(
       const { equity, positions } = equityIdr(holdings, priceMap);
       return ok({
         balances: state.balances,
+        initialBalances: state.initialBalances,
         equityIdr: equity.toString(),
         positions,
+        positionCount: Object.keys(state.balances).length,
         prices,
         incomplete,
+        tradeCount: state.tradeCount,
+        totalFees: state.totalFees,
+        checkedAt: new Date().toISOString(),
+        summary: `equity ${equity.toString()} IDR across ${Object.keys(state.balances).length} asset(s)`,
       });
     } catch (error) {
       return fail(error);
@@ -97,9 +103,15 @@ export function registerPortfolioTools(
           initial: start.toString(),
           pnl: pnl(current, start).toString(),
           valueIdr: price === null ? null : current.mul(price).toString(),
+          price: price?.toString() ?? null,
         };
       });
-      return ok({ positions: rows, incomplete });
+      return ok({
+        count: rows.length,
+        positions: rows,
+        incomplete,
+        summary: `${rows.length} position row(s) against initial balances`,
+      });
     } catch (error) {
       return fail(error);
     }
@@ -132,7 +144,10 @@ export function registerPortfolioTools(
         totalFees: state.totalFees,
         pnlIdr: total.toString(),
         valuedAssets: valued,
+        totalAssets: Object.keys(state.balances).length,
         incomplete,
+        prices,
+        summary: `PnL ${total.toString()} IDR across ${valued} valued asset(s), fees ${state.totalFees}`,
       });
     } catch (error) {
       return fail(error);

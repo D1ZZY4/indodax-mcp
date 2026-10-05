@@ -35,12 +35,22 @@ Tool definitions live under packages/indodax-mcp/src/tools.
 
 A normal tool has:
 
-1. metadata,
-2. a Zod input schema,
-3. a handler registration,
+1. metadata and a Zod input shape, declared once through `defineTool`,
+2. a registration that consumes that definition,
+3. a handler that parses with the same schema object,
 4. conversion into the common response envelope.
 
 The registry validates metadata when a tool is registered.
+
+Declaring the shape once is a correctness requirement, not a style preference. The MCP SDK validates incoming arguments against the registered `inputSchema` and strips anything it does not declare. A handler that re-declared a wider schema would parse those keys as absent, so `indodax_validate_order` silently discarded `timeInForce` and `stpMode` before this constraint existed.
+
+Every tool group uses `defineTool`, so this is now a repository invariant rather than a convention. A test asserts that no module builds a schema literal inside `parseArgs`, and that any module parsing arguments declares a definition. Adding a new tool group therefore fails the build unless it follows the pattern. `refineTool` wraps a definition when a rule spans fields, for example a cancel that needs either `orderId` or `clientOrderId`.
+
+## Annotations
+
+Every tool is registered with MCP annotations derived from its metadata: `readOnlyHint` from the risk class, `destructiveHint` from the declared flag, `idempotentHint` from the idempotency class, and `openWorldHint` for the READ and TRADE capabilities that reach the exchange. Harnesses can gate a call before invoking it.
+
+Annotations are advisory. The central guard and risk review remain the enforced boundary.
 
 ## Current groups
 

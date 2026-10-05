@@ -1,4 +1,3 @@
-import { z } from "zod";
 import Decimal from "decimal.js";
 import { ValidationError } from "@indodax-mcp/errors";
 import type { Registry } from "@indodax-mcp/mcp-registry";
@@ -6,6 +5,7 @@ import type { ServerHandlers } from "@indodax-mcp/mcp-core";
 import { toCompactPair } from "@indodax-mcp/indodax-market";
 import { fail, ok, parseArgs } from "../respond.js";
 import { canonicalPair, pairArg, priceArg, quantityArg, sideArg } from "../schemas.js";
+import { defineTool } from "./define.js";
 import type { AppServices } from "../composition.js";
 
 export type QuoteVerdict = "instant" | "parked" | "partial";
@@ -103,44 +103,38 @@ export async function estimateFill(app: AppServices, request: QuoteRequest) {
   };
 }
 
+const quoteTool = defineTool(
+  {
+    name: "indodax_quote",
+    title: "Quote fill",
+    description:
+      "Read-only, never places orders. Estimate a fill against the live order book before committing: instant with an average-price estimate, parked when the limit misses the book, or partial when depth is short. Args: pair, side BUY/SELL, quantity base units, optional price limit; omit price for a market-style estimate.",
+    capability: "READ",
+    riskClass: "read",
+    environmentRequirement: "any",
+    authRequirement: "none",
+    destructive: false,
+    idempotencyClass: "none",
+    auditClass: "read",
+  },
+  {
+    pair: pairArg,
+    side: sideArg,
+    quantity: quantityArg,
+    price: priceArg.optional(),
+  },
+);
+
 export function registerQuoteTools(
   registry: Registry,
   handlers: ServerHandlers,
   app: AppServices,
 ): void {
-  registry.registerTool({
-    metadata: {
-      name: "indodax_quote",
-      title: "Quote fill",
-      description:
-        "Read-only, never places orders. Estimate a fill against the live order book before committing: instant with an average-price estimate, parked when the limit misses the book, or partial when depth is short. Args: pair, side BUY/SELL, quantity base units, optional price limit; omit price for a market-style estimate.",
-      capability: "READ",
-      riskClass: "read",
-      environmentRequirement: "any",
-      authRequirement: "none",
-      destructive: false,
-      idempotencyClass: "none",
-      auditClass: "read",
-    },
-    inputSchema: z.object({
-      pair: pairArg,
-      side: sideArg,
-      quantity: quantityArg,
-      price: priceArg.optional(),
-    }),
-  });
+  registry.registerTool(quoteTool);
 
   handlers.tools.set("indodax_quote", async (raw) => {
     try {
-      const args = parseArgs(
-        z.object({
-          pair: pairArg,
-          side: sideArg,
-          quantity: quantityArg,
-          price: priceArg.optional(),
-        }),
-        raw,
-      );
+      const args = parseArgs(quoteTool.inputSchema, raw);
       return ok(await estimateFill(app, args));
     } catch (error) {
       return fail(error);

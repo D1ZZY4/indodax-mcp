@@ -26,7 +26,9 @@ describe("empty and informational responses", () => {
       const events = await envelopeOf(
         harness.client.callTool({ name: "indodax_audit_events", arguments: {} }),
       );
-      expect(events.data).toEqual([]);
+      const eventData = events.data as { count: number; total: number; entries: unknown[] };
+      expect(eventData.count).toBe(0);
+      expect(eventData.entries).toEqual([]);
       expect(events.warnings ?? []).toContain(
         "audit trail is empty: no activity recorded yet in this session, not a failure",
       );
@@ -36,7 +38,9 @@ describe("empty and informational responses", () => {
           arguments: { correlationId: "never-seen" },
         }),
       );
-      expect(trace.data).toEqual([]);
+      const traceData = trace.data as { count: number; trace: unknown[] };
+      expect(traceData.count).toBe(0);
+      expect(traceData.trace).toEqual([]);
       expect(trace.warnings?.[0] ?? "").toContain("never-seen");
     } finally {
       await harness.close();

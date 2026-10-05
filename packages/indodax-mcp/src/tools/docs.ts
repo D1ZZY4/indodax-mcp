@@ -6,6 +6,7 @@ import { ValidationError } from "@indodax-mcp/errors";
 import type { Registry } from "@indodax-mcp/mcp-registry";
 import type { ServerHandlers } from "@indodax-mcp/mcp-core";
 import { fail, ok, parseArgs } from "../respond.js";
+import { defineTool } from "./define.js";
 import type { AppServices } from "../composition.js";
 
 const PAGES = [
@@ -67,34 +68,41 @@ function readPage(page: DocsPage): string | null {
   return null;
 }
 
+const docsTool = defineTool(
+  {
+    name: "indodax_docs",
+    title: "Tool guides",
+    description:
+      "Read-only. Agent-harness guide pages with full parameters, responses, errors, and worked usage for every tool area. Omit page for the index, or pass one area name like market, orders, paper, risk, or deadman.",
+    capability: "READ",
+    riskClass: "read",
+    environmentRequirement: "any",
+    authRequirement: "none",
+    destructive: false,
+    idempotencyClass: "none",
+    auditClass: "read",
+  },
+  { page: z.string().min(1).optional() },
+);
+
 export function registerDocsTools(
   registry: Registry,
   handlers: ServerHandlers,
   _app: AppServices,
 ): void {
   void _app;
-  registry.registerTool({
-    metadata: {
-      name: "indodax_docs",
-      title: "Tool guides",
-      description:
-        "Read-only. Agent-harness guide pages with full parameters, responses, errors, and worked usage for every tool area. Omit page for the index, or pass one area name like market, orders, paper, risk, or deadman.",
-      capability: "READ",
-      riskClass: "read",
-      environmentRequirement: "any",
-      authRequirement: "none",
-      destructive: false,
-      idempotencyClass: "none",
-      auditClass: "read",
-    },
-    inputSchema: z.object({ page: z.string().min(1).optional() }),
-  });
+  registry.registerTool(docsTool);
 
   handlers.tools.set("indodax_docs", async (raw) => {
     try {
-      const args = parseArgs(z.object({ page: z.string().min(1).optional() }), raw);
+      const args = parseArgs(docsTool.inputSchema, raw);
       if (args.page === undefined) {
         const index = readPage("docs");
+        if (index === null) {
+          return ok({ page: "index", pages: [...PAGES], markdown: null }, [
+            "guide pages unavailable at runtime: packed docs-tools missing, not an empty guide",
+          ]);
+        }
         return ok({ page: "index", pages: [...PAGES], markdown: index });
       }
       const page = args.page.toLowerCase();

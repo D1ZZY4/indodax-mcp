@@ -36,14 +36,16 @@ describe("market filters", () => {
     const { server } = stubbed();
     const harness = await withInMemoryServer(server);
     try {
-      const filtered = await dataOf(
+      const filtered = (await dataOf(
         harness.client.callTool({ name: "indodax_tickers_all", arguments: { quote: "usdt" } }),
-      );
-      expect(Object.keys(filtered)).toEqual(["eth_usdt", "btc_usdt"]);
-      const limited = await dataOf(
+      )) as { tickers: Record<string, unknown>; count: number; summary: string };
+      expect(Object.keys(filtered.tickers)).toEqual(["eth_usdt", "btc_usdt"]);
+      expect(filtered.count).toBe(2);
+      const limited = (await dataOf(
         harness.client.callTool({ name: "indodax_tickers_all", arguments: { limit: 1 } }),
-      );
-      expect(Object.keys(limited)).toHaveLength(1);
+      )) as { tickers: Record<string, unknown>; count: number };
+      expect(Object.keys(limited.tickers)).toHaveLength(1);
+      expect(limited.count).toBe(1);
     } finally {
       await harness.close();
     }
@@ -53,13 +55,14 @@ describe("market filters", () => {
     const { server } = stubbed();
     const harness = await withInMemoryServer(server);
     try {
-      const limited = await dataOf(
+      const limited = (await dataOf(
         harness.client.callTool({
           name: "indodax_trades",
           arguments: { pair: "btc_idr", limit: 2 },
         }),
-      );
-      expect(limited).toHaveLength(2);
+      )) as { trades: unknown[]; count: number; summary: string };
+      expect(limited.trades).toHaveLength(2);
+      expect(limited.count).toBe(2);
     } finally {
       await harness.close();
     }

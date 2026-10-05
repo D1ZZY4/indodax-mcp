@@ -112,8 +112,9 @@ describe("alert autopoll", () => {
       expect(created.isError).not.toBe(true);
       const listed = (await dataOf(
         harness.client.callTool({ name: "indodax_alerts", arguments: {} }),
-      )) as { pair: string }[];
-      expect(listed[0]?.pair).toBe("btc_idr");
+      )) as { alerts: { pair: string }[]; count: number };
+      expect(listed.alerts[0]?.pair).toBe("btc_idr");
+      expect(listed.count).toBe(1);
       app.publicClient = stubTicker("200");
       clearCache();
       const checked = (await dataOf(

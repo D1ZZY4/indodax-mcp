@@ -6,6 +6,7 @@ import { getTicker } from "@indodax-mcp/indodax-market";
 import { decimalOrNull } from "@indodax-mcp/core";
 import { fail, ok, parseArgs } from "../respond.js";
 import { canonicalPair, pairArg, priceArg, quantityArg, sideArg } from "../schemas.js";
+import { defineTool } from "./define.js";
 import type { AppServices } from "../composition.js";
 import { placeLiveOrder } from "./order-intent.js";
 import { placePaperOrder } from "./paper.js";
@@ -22,7 +23,7 @@ const STOP = {
 
 const STOP_READ = { ...STOP, riskClass: "read" as const, auditClass: "read" as const };
 
-const stopInput = z.object({
+const STOP_SHAPE = {
   pair: pairArg,
   side: sideArg,
   quantity: quantityArg,
@@ -34,7 +35,7 @@ const stopInput = z.object({
   timeInForce: z.enum(["GTC", "MOC"]).optional(),
   stpMode: z.enum(["EXPIRE_TAKER", "EXPIRE_MAKER", "EXPIRE_BOTH"]).optional(),
   groupId: z.string().min(1).max(36).optional(),
-});
+};
 
 function crossed(side: "BUY" | "SELL", last: string, stopPrice: number): boolean {
   const current = decimalOrNull(last);
@@ -122,53 +123,61 @@ export async function evaluateStops(app: AppServices): Promise<StopFireResult> {
   return { checked: app.stops.list(true).length, fired };
 }
 
+const stopCreate = defineTool(
+  {
+    name: "indodax_stop_create",
+    title: "Create stop",
+    description:
+      "Server-side emulated stop, not exchange-native. Stores a trigger after a notional limit pre-check; nothing is placed until indodax_stop_check or the opt-in autopoll sees the stop price crossed. Stops that share groupId behave as one-cancels-the-other: when one fires, open siblings auto-cancel. Live needs acknowledged true plus the full live gate, recorded as acknowledgedAt. Args: pair, side, quantity, stopPrice, optional limitPrice defaulting to stopPrice, optional groupId for OCO linking.",
+    ...STOP,
+  },
+  STOP_SHAPE,
+);
+
+const stopsList = defineTool(
+  {
+    name: "indodax_stops",
+    title: "List stops",
+    description: "Read-only. List open server-side stops, or include history with history true.",
+    ...STOP_READ,
+  },
+  { history: z.boolean().optional() },
+);
+
+const stopCancel = defineTool(
+  {
+    name: "indodax_stop_cancel",
+    title: "Cancel stop",
+    description: "Mutating local state. Cancel one open stop by id before it triggers.",
+    ...STOP,
+  },
+  { id: z.string().min(1) },
+);
+
+const stopCheck = defineTool(
+  {
+    name: "indodax_stop_check",
+    title: "Check stops",
+    description:
+      "Mutating when triggers fire. Evaluate open stops against live prices and execute crossed ones as LIMIT orders through risk. A fired stop auto-cancels open siblings in its OCO group. Paper fills nothing by itself; use indodax_paper_fill after.",
+    ...STOP,
+  },
+  {},
+);
+
 export function registerStopTools(
   registry: Registry,
   handlers: ServerHandlers,
   app: AppServices,
 ): void {
-  registry.registerTool({
-    metadata: {
-      name: "indodax_stop_create",
-      title: "Create stop",
-      description:
-        "Server-side emulated stop, not exchange-native. Stores a trigger after a notional limit pre-check; nothing is placed until indodax_stop_check or the opt-in autopoll sees the stop price crossed. Stops that share groupId behave as one-cancels-the-other: when one fires, open siblings auto-cancel. Live needs acknowledged true plus the full live gate, recorded as acknowledgedAt. Args: pair, side, quantity, stopPrice, optional limitPrice defaulting to stopPrice, optional groupId for OCO linking.",
-      ...STOP,
-    },
-    inputSchema: stopInput,
-  });
-  registry.registerTool({
-    metadata: {
-      name: "indodax_stops",
-      title: "List stops",
-      description: "Read-only. List open server-side stops, or include history with history true.",
-      ...STOP_READ,
-    },
-    inputSchema: z.object({ history: z.boolean().optional() }),
-  });
-  registry.registerTool({
-    metadata: {
-      name: "indodax_stop_cancel",
-      title: "Cancel stop",
-      description: "Mutating local state. Cancel one open stop by id before it triggers.",
-      ...STOP,
-    },
-    inputSchema: z.object({ id: z.string().min(1) }),
-  });
-  registry.registerTool({
-    metadata: {
-      name: "indodax_stop_check",
-      title: "Check stops",
-      description:
-        "Mutating when triggers fire. Evaluate open stops against live prices and execute crossed ones as LIMIT orders through risk. A fired stop auto-cancels open siblings in its OCO group. Paper fills nothing by itself; use indodax_paper_fill after.",
-      ...STOP,
-    },
-    inputSchema: z.object({}),
-  });
+  registry.registerTool(stopCreate);
+  registry.registerTool(stopsList);
+  registry.registerTool(stopCancel);
+  registry.registerTool(stopCheck);
 
   handlers.tools.set("indodax_stop_create", async (raw) => {
     try {
-      const args = parseArgs(stopInput, raw);
+      const args = parseArgs(stopCreate.inputSchema, raw);
       const mode = args.mode ?? "paper";
       if (mode === "live") {
         if (args.acknowledged !== true) {
@@ -208,7 +217,20 @@ export function registerStopTools(
         ...(args.groupId !== undefined ? { groupId: args.groupId } : {}),
         ...(mode === "live" ? { acknowledgedAt: new Date().toISOString() } : {}),
       });
-      return ok({ id: stop.id, status: stop.status });
+      return ok({
+        id: stop.id,
+        status: stop.status,
+        stop,
+        pair: stop.pair,
+        side: stop.side,
+        quantity: stop.quantity,
+        stopPrice: stop.stopPrice,
+        limitPrice: stop.limitPrice,
+        mode: stop.mode,
+        totalStops: app.stops.list(true).length,
+        summary: `stop ${stop.id} armed for ${stop.pair} ${stop.side} at ${stop.stopPrice}`,
+        note: "Emulated server-side; fires only while this server runs via indodax_stop_check or autopoll.",
+      });
     } catch (error) {
       return fail(error);
     }
@@ -216,8 +238,15 @@ export function registerStopTools(
 
   handlers.tools.set("indodax_stops", async (raw) => {
     try {
-      const args = parseArgs(z.object({ history: z.boolean().optional() }), raw);
-      return ok(app.stops.list(args.history ?? false));
+      const args = parseArgs(stopsList.inputSchema, raw);
+      const stops = app.stops.list(args.history ?? false);
+      return ok({
+        count: stops.length,
+        open: stops.filter((stop) => stop.status === "open").length,
+        stops,
+        pairs: [...new Set(stops.map((stop) => stop.pair))],
+        summary: `${stops.length} stops listed`,
+      });
     } catch (error) {
       return fail(error);
     }
@@ -225,10 +254,17 @@ export function registerStopTools(
 
   handlers.tools.set("indodax_stop_cancel", async (raw) => {
     try {
-      const args = parseArgs(z.object({ id: z.string().min(1) }), raw);
+      const args = parseArgs(stopCancel.inputSchema, raw);
+      const before = app.stops.list(true).find((stop) => stop.id === args.id) ?? null;
       const cancelled = app.stops.cancel(args.id);
       if (!cancelled) throw ValidationError(`stop ${args.id} is not open`);
-      return ok({ id: args.id, status: "cancelled" });
+      return ok({
+        id: args.id,
+        status: "cancelled",
+        cancelledStop: before,
+        remainingOpen: app.stops.list().length,
+        summary: `stop ${args.id} cancelled`,
+      });
     } catch (error) {
       return fail(error);
     }
@@ -236,7 +272,16 @@ export function registerStopTools(
 
   handlers.tools.set("indodax_stop_check", async () => {
     try {
-      return ok(await evaluateStops(app));
+      const result = await evaluateStops(app);
+      return ok({
+        ...result,
+        openStops: app.stops.list().length,
+        totalStops: app.stops.list(true).length,
+        summary:
+          result.fired.length > 0
+            ? `${result.fired.length} stop(s) fired of ${result.checked} checked`
+            : `${result.checked} stops checked, none crossed`,
+      });
     } catch (error) {
       return fail(error);
     }

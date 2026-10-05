@@ -16,13 +16,26 @@ Generic packages should not depend on INDODAX domain packages. Exchange protocol
 
 ## 2. Add a tool
 
-1. Define metadata and a Zod schema under packages/indodax-mcp/src/tools.
-2. Implement a thin handler: parse arguments, enforce operation-specific guards, call a service, serialize the result.
-3. Register the tool in packages/indodax-mcp/src/index.ts.
-4. Add regression coverage for success, validation, and denial paths.
-5. Update the MCP surface documentation.
+1. Declare metadata and a Zod shape once with `defineTool` under packages/indodax-mcp/src/tools.
+2. Register that definition and have the handler parse with the same `inputSchema`.
+3. Implement a thin handler: parse arguments, enforce operation-specific guards, call a service, serialize the result.
+4. Register the tool group in packages/indodax-mcp/src/index.ts.
+5. Add regression coverage for success, validation, and denial paths.
+6. Update the MCP surface documentation and the matching docs/tools page.
 
-The registry validates metadata, and a central guard enforces authentication and environment. Capability, risk, and audit enforcement stays in executable handler or service code.
+Step 2 is a correctness requirement, not style. The SDK strips arguments the
+registered schema does not declare, so a handler that parses a wider shape
+receives nothing for the extra keys and the call silently succeeds with the
+parameters dropped. Every group follows this, and
+`packages/indodax-mcp/test/audit-tool-schema.test.ts` fails the build if a module
+registers a literal schema inside `parseArgs`, if a module parses arguments
+without declaring a definition, or if a new tool module is missing from the
+list the test checks for coverage.
+
+The registry validates metadata, the central guard enforces environment and
+credentials, and MCP annotations are derived from the same metadata for client
+gating. Capability, risk, and audit enforcement stays in executable handler or
+service code.
 
 ## 3. Add a package
 

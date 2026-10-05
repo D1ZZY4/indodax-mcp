@@ -65,7 +65,15 @@ export function registerAccountTools(
       if (!app.accountClient) throw credentialError();
       const account = await app.accountClient.getAccount();
       app.accountSyncedAt = Date.now();
-      return ok(account);
+      const views = toBalanceViews(account);
+      return ok({
+        ...account,
+        balances: views,
+        balanceCount: views.length,
+        nonZeroBalances: views.filter((view) => view.total !== "0").length,
+        syncedAt: new Date(app.accountSyncedAt).toISOString(),
+        summary: `account ${account.uid ?? "unknown"} with ${views.length} balance row(s), trading ${account.canTrade ? "enabled" : "disabled"}`,
+      });
     } catch (error) {
       return fail(error);
     }
@@ -75,7 +83,14 @@ export function registerAccountTools(
       if (!app.accountClient) throw credentialError();
       const account = await app.accountClient.getAccount();
       app.accountSyncedAt = Date.now();
-      return ok(toBalanceViews(account).filter((view) => view.total !== "0"));
+      const views = toBalanceViews(account).filter((view) => view.total !== "0");
+      return ok({
+        count: views.length,
+        balances: views,
+        assets: views.map((view) => view.asset),
+        syncedAt: new Date(app.accountSyncedAt).toISOString(),
+        summary: `${views.length} non-zero balance(s)`,
+      });
     } catch (error) {
       return fail(error);
     }
@@ -95,6 +110,12 @@ export function registerAccountTools(
       "funding.withdraw": false,
       "paper.*": true,
       mode: app.env.APP_ENV,
+      policy: {
+        allowedModes: app.policy.allowedModes,
+        allowedCapabilities: app.policy.allowedCapabilities,
+        killSwitch: app.policy.killSwitch,
+        circuitBreaker: app.policy.circuitBreaker,
+      },
       liveGate: {
         satisfied: liveAllowed,
         needsAppEnvLive: app.env.APP_ENV === "live",
@@ -103,6 +124,9 @@ export function registerAccountTools(
         needsAcknowledged: "per live call (acknowledged: true)",
         needsRiskAllow: "per live call (risk ALLOW)",
       },
+      summary: liveAllowed
+        ? "live trading gated open (still needs per-call ack + risk ALLOW)"
+        : "live trading closed; paper simulation open",
     });
   });
 }
