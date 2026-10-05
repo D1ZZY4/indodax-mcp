@@ -6,16 +6,16 @@ This document records the dependency versions and compatibility decisions used b
 
 ## MCP SDK
 
-- @modelcontextprotocol/server 2.2.0
-- @modelcontextprotocol/core 2.2.0
-- @modelcontextprotocol/client 2.2.0
-- @modelcontextprotocol/hono 2.0.1
+- @modelcontextprotocol/server 2.3.0
+- @modelcontextprotocol/core 2.3.0
+- @modelcontextprotocol/client 2.3.0
+- @modelcontextprotocol/hono 2.0.2
 
 The repository uses MCP SDK v2 APIs and negotiates protocol 2025-11-25 in the current SDK environment.
 
 ## Web and database
 
-- hono 4.13.12
+- hono 4.13.13
 - @hono/standard-validator 0.4.0
 - postgres 3.4.9
 - drizzle-orm 0.45.3
@@ -28,14 +28,14 @@ The repository uses MCP SDK v2 APIs and negotiates protocol 2025-11-25 in the cu
 - Turborepo 2.11.7
 - Vitest 5.0.3
 - fast-check 4.10.2
-- msw 3.0.1
+- msw 3.0.0
 - Playwright 1.63.0
 
 ## Application libraries
 
 - citty 0.2.2
 - @clack/prompts 0.11.x
-- pino 10.3.1
+- pino 10.4.0
 - decimal.js 10.6.0
 - @t3-oss/env-core 0.13.11
 - React 19.3.0

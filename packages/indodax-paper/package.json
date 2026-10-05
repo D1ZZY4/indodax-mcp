@@ -14,7 +14,6 @@
     "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
-    "@indodax-mcp/core": "workspace:*",
     "@indodax-mcp/errors": "workspace:*",
     "@indodax-mcp/indodax-execution": "workspace:*",
     "@indodax-mcp/indodax-orders": "workspace:*",

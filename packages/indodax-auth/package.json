@@ -13,9 +13,7 @@
     "format:check": "biome format .",
     "test:coverage": "vitest run --coverage"
   },
-  "dependencies": {
-    "zod": "catalog:"
-  },
+  "dependencies": {},
   "devDependencies": {
     "@types/node": "catalog:",
     "@vitest/coverage-v8": "catalog:",

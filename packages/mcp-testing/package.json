@@ -15,8 +15,7 @@
   },
   "dependencies": {
     "@modelcontextprotocol/client": "catalog:",
-    "@modelcontextprotocol/server": "catalog:",
-    "zod": "catalog:"
+    "@modelcontextprotocol/server": "catalog:"
   },
   "devDependencies": {
     "@types/node": "catalog:",
