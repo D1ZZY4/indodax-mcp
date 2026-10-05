@@ -5,11 +5,22 @@ import { fileURLToPath } from "node:url";
 
 const dir = join(dirname(fileURLToPath(import.meta.url)), "..");
 
-async function runCli(args: string[]): Promise<{ code: number; out: string }> {
+async function runCli(
+  args: string[],
+  env: Record<string, string> = {},
+): Promise<{ code: number; out: string }> {
   return new Promise((resolve, reject) => {
-    const child = spawn("bun", ["src/main.ts", ...args], { cwd: dir, env: process.env });
+    const child = spawn("bun", ["src/main.ts", ...args], {
+      cwd: dir,
+      // Start from a minimal environment so the host credential state cannot
+      // make a private command look reachable in CI or on a developer machine.
+      env: { PATH: process.env.PATH ?? "", HOME: process.env.HOME ?? "", ...env },
+    });
     let out = "";
     child.stdout.on("data", (chunk: Buffer) => {
+      out += chunk.toString();
+    });
+    child.stderr.on("data", (chunk: Buffer) => {
       out += chunk.toString();
     });
     child.on("error", reject);
@@ -52,4 +63,47 @@ describe("cli", () => {
     },
     30_000,
   );
+});
+
+describe("cli exit codes", () => {
+  it("returns a usage exit for an unknown market action instead of a default read", async () => {
+    // Regression: unknown actions used to fall through to server-time and
+    // exit 0, so a typo looked like a successful read.
+    const { code, out } = await runCli(["market", "bogusaction"]);
+    expect(code).toBe(64);
+    expect(out).toContain("unknown market action");
+    expect(out).toContain("ticker, pairs, server-time");
+  });
+
+  it.each([
+    ["paper", "bogus", "unknown paper action"],
+    ["risk", "bogus", "unknown risk action"],
+    ["system", "bogus", "unknown system action"],
+    ["account", "bogus", "unknown account action"],
+  ])("returns a usage exit for %s %s", async (group, action, message) => {
+    const { code, out } = await runCli([group, action]);
+    expect(code).toBe(64);
+    expect(out).toContain(message);
+  });
+
+  it("separates an unacknowledged reset from a generic failure", async () => {
+    const unacknowledged = await runCli(["paper", "reset"]);
+    const usage = await runCli(["paper", "bogus"]);
+    expect(unacknowledged.code).not.toBe(0);
+    expect(unacknowledged.code).not.toBe(usage.code);
+  });
+
+  it("reports missing credentials distinctly for a private command", async () => {
+    const { code, out } = await runCli(["account", "info"], {
+      INDODAX_API_KEY: "",
+      INDODAX_API_SECRET: "",
+    });
+    expect(code).toBe(2);
+    expect(out).toContain("INDODAX_API_KEY");
+  });
+
+  it("exits 0 for a valid usage-free command", async () => {
+    const { code } = await runCli(["risk", "limits"]);
+    expect(code).toBe(0);
+  });
 });
