@@ -1,5 +1,5 @@
 import type { Capability, ExecutionMode, RiskDecision } from "@indodax-mcp/core";
-import { RiskDeniedError } from "@indodax-mcp/errors";
+import { RiskDeniedError, ValidationError } from "@indodax-mcp/errors";
 import type { OrderRecord } from "@indodax-mcp/indodax-orders";
 
 export interface ExecutionRequest {
@@ -33,6 +33,14 @@ export class ExecutionService<Backend extends ExecutionBackend> {
 
   async execute(request: ExecutionRequest, risk: RiskDecision): Promise<ExecutionResult> {
     if (!isAllow(risk)) throw RiskDeniedError(risk.message);
+    // Orders must flow through TradingService review, which moves NEW to
+    // SUBMITTING and then to ACCEPTED on ALLOW. Executing any other state
+    // would bypass proposal, validation, and risk review.
+    if (request.order.state !== "ACCEPTED") {
+      throw ValidationError(
+        `order ${request.order.internalOrderId} must be ACCEPTED by risk review before execution, got ${request.order.state}`,
+      );
+    }
     return this.backend.submit(request);
   }
 }

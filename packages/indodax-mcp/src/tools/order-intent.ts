@@ -21,6 +21,7 @@ export const stpModeArg = z.enum(["EXPIRE_TAKER", "EXPIRE_MAKER", "EXPIRE_BOTH"]
 export function executionMode(raw: string | undefined): ExecutionMode {
   if (raw === "live") return "live";
   if (raw === "shadow") return "shadow";
+  if (raw === "development") return "development";
   return "paper";
 }
 
@@ -188,5 +189,13 @@ export async function reviewHypothetical(app: AppServices, args: HypotheticalArg
   // PROPOSED has no machine edges by design; it is display-only.
   order.state = "PROPOSED";
   order.updatedAt = new Date().toISOString();
-  return { proposal, order, decision };
+  // Quantity increments are enforced at placement; surface them here as a
+  // warning so a proposal cannot look executable when placement would refuse it.
+  let incrementWarning: string | null = null;
+  try {
+    await checkQuantityIncrement(app.publicClient, args.pair, args.quantity);
+  } catch (error) {
+    incrementWarning = error instanceof Error ? error.message : String(error);
+  }
+  return { proposal, order, decision, incrementWarning };
 }

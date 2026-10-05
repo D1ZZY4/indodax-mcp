@@ -23,7 +23,7 @@ function orderShape(overrides: Record<string, unknown> = {}) {
     price: "1000",
     quantity: "1",
     remaining: "1",
-    state: "NEW",
+    state: "ACCEPTED",
     environment: "paper",
     tenantId: "t1",
     exchangeAccountId: "a1",
@@ -206,6 +206,7 @@ describe("paper safety", () => {
   });
 
   it("rejects quantities below the pair increment with a suggestion", async () => {
+    clearCache();
     const app = createApp(loadEnv({}));
     app.publicClient = {
       ticker: async () => ({ high: "1", low: "1", last: "1", buy: "1", sell: "1" }),
@@ -223,5 +224,97 @@ describe("paper safety", () => {
     await expect(
       placePaperOrder(app, { pair: "mubarak_idr", side: "BUY", price: 1000, quantity: 13.4 }),
     ).rejects.toThrow(/increment 1.*such as 13/);
+  });
+
+  it("sums unrealized pnl across same-pair open orders", async () => {
+    const app = createApp(loadEnv({}));
+    app.publicClient = {
+      ticker: async () => ({ high: "1300", low: "1300", last: "1300", buy: "1300", sell: "1300" }),
+    } as unknown as PublicClient;
+    const executor = new PaperExecutor();
+    const service = new ExecutionService(executor);
+    await service.execute(executionRequest(orderShape()), allow);
+    executor.fill("o1", "1000");
+    await service.execute(
+      executionRequest(orderShape({ internalOrderId: "o2", clientOrderId: "c2" })),
+      allow,
+    );
+    await service.execute(
+      executionRequest(orderShape({ internalOrderId: "o3", clientOrderId: "c3" })),
+      allow,
+    );
+    app.paper = executor;
+    const context = await resolveRiskContext(app, {
+      mode: "paper",
+      capability: "PAPER",
+      pair: "wxx_idr",
+    });
+    // Two open units on 1002.6 basis marked at 1300: 2 * 297.4 = 594.8.
+    expect(context.dailyPnl?.toString()).toBe("594.8");
+  });
+
+  it("reports cached ticker age instead of zero", async () => {
+    vi.useFakeTimers();
+    try {
+      vi.setSystemTime(new Date("2026-01-01T00:00:00Z"));
+      clearCache();
+      const app = createApp(loadEnv({}));
+      app.publicClient = {
+        ticker: async () => ({ high: "1", low: "1", last: "100", buy: "100", sell: "100" }),
+      } as unknown as PublicClient;
+      const fresh = await resolveRiskContext(app, {
+        mode: "paper",
+        capability: "PAPER",
+        pair: "age_idr",
+      });
+      expect(fresh.marketAgeMs).toBe(0);
+      vi.setSystemTime(new Date("2026-01-01T00:00:20Z"));
+      const cached = await resolveRiskContext(app, {
+        mode: "paper",
+        capability: "PAPER",
+        pair: "age_idr",
+      });
+      // Served from the 30s market cache: real age ~20s, not 0.
+      expect(cached.marketAgeMs).toBeGreaterThanOrEqual(19000);
+      expect(cached.marketAgeMs).toBeLessThanOrEqual(21000);
+    } finally {
+      vi.useRealTimers();
+      clearCache();
+    }
+  });
+
+  it("ages offline markets from the last exchange read, not the last cache serve", async () => {
+    vi.useFakeTimers();
+    try {
+      vi.setSystemTime(new Date("2026-01-01T00:00:00Z"));
+      clearCache();
+      const app = createApp(loadEnv({}));
+      app.publicClient = {
+        ticker: async () => ({ high: "1", low: "1", last: "100", buy: "100", sell: "100" }),
+      } as unknown as PublicClient;
+      await resolveRiskContext(app, { mode: "paper", capability: "PAPER", pair: "offlineage_idr" });
+      vi.setSystemTime(new Date("2026-01-01T00:00:20Z"));
+      await resolveRiskContext(app, { mode: "paper", capability: "PAPER", pair: "offlineage_idr" });
+      app.publicClient = {
+        ticker: async () => {
+          throw new Error("offline");
+        },
+      } as unknown as PublicClient;
+      clearCache();
+      vi.setSystemTime(new Date("2026-01-01T00:01:00Z"));
+      const offline = await resolveRiskContext(app, {
+        mode: "paper",
+        capability: "PAPER",
+        pair: "offlineage_idr",
+      });
+      // True exchange read was at 00:00:00, so age is ~60s even though a
+      // cached serve happened at 00:00:20. The old nowMs bookkeeping
+      // reported only ~40s here.
+      expect(offline.marketAgeMs).toBeGreaterThanOrEqual(59000);
+      expect(offline.marketAgeMs).toBeLessThanOrEqual(61000);
+    } finally {
+      vi.useRealTimers();
+      clearCache();
+    }
   });
 });

@@ -14,6 +14,7 @@ import {
   sideArg,
 } from "../schemas.js";
 import type { AppServices } from "../composition.js";
+import { defineTool, refineTool } from "./define.js";
 import {
   ambiguousToUnknown,
   draftIntent,
@@ -31,14 +32,17 @@ export function registerOrderTools(
   const base = {
     capability: "TRADE" as const,
     riskClass: "mutation" as const,
-    environmentRequirement: "paper" as const,
+    environmentRequirement: "any" as const,
     authRequirement: "none" as const,
     destructive: false,
     idempotencyClass: "client-key" as const,
     auditClass: "mutation" as const,
   };
-  registry.registerTool({
-    metadata: {
+  // Declared once so the advertised schema and the handler parse cannot drift.
+  // timeInForce and stpMode were previously accepted by the handler but absent
+  // from the registered schema, so the SDK stripped them before the handler ran.
+  const validateOrder = defineTool(
+    {
       name: "indodax_validate_order",
       title: "Validate order",
       description:
@@ -47,16 +51,19 @@ export function registerOrderTools(
       riskClass: "read",
       auditClass: "read",
     },
-    inputSchema: z.object({
+    {
       pair: pairArg,
       side: sideArg,
       quantity: quantityArg,
       price: priceArg.optional(),
       mode: modeArg,
-    }),
-  });
-  registry.registerTool({
-    metadata: {
+      timeInForce: timeInForceArg,
+      stpMode: stpModeArg,
+    },
+  );
+  registry.registerTool(validateOrder);
+  const proposeOrder = defineTool(
+    {
       name: "indodax_propose_order",
       title: "Propose order",
       description:
@@ -65,7 +72,7 @@ export function registerOrderTools(
       riskClass: "read",
       auditClass: "read",
     },
-    inputSchema: z.object({
+    {
       pair: pairArg,
       side: sideArg,
       quantity: quantityArg,
@@ -74,10 +81,11 @@ export function registerOrderTools(
       reason: z.string().optional(),
       timeInForce: timeInForceArg,
       stpMode: stpModeArg,
-    }),
-  });
-  registry.registerTool({
-    metadata: {
+    },
+  );
+  registry.registerTool(proposeOrder);
+  const createOrder = defineTool(
+    {
       name: "indodax_create_order",
       title: "Create order",
       description:
@@ -85,7 +93,7 @@ export function registerOrderTools(
       ...base,
       destructive: true,
     },
-    inputSchema: z.object({
+    {
       pair: pairArg,
       side: sideArg,
       quantity: quantityArg,
@@ -95,48 +103,41 @@ export function registerOrderTools(
       clientOrderId: clientOrderIdArg,
       timeInForce: timeInForceArg,
       stpMode: stpModeArg,
-    }),
-  });
-  registry.registerTool({
-    metadata: {
-      name: "indodax_cancel_order",
-      title: "Cancel order",
-      description:
-        "MUTATING a paper order by default with refund (orderId or clientOrderId). Live cancel needs ALL of: mode live, acknowledged true, APP_ENV=live, TRADE_ENABLED=true, credentials, plus symbol and exchange orderId or clientOrderId.",
-      ...base,
-      destructive: true,
     },
-    inputSchema: z
-      .object({
+  );
+  registry.registerTool(createOrder);
+  // The at-least-one-id rule is a cross-field refinement, so it stays on the
+  // advertised schema rather than living only inside the handler.
+  const cancelOrder = refineTool(
+    defineTool(
+      {
+        name: "indodax_cancel_order",
+        title: "Cancel order",
+        description:
+          "MUTATING a paper order by default with refund (orderId or clientOrderId). Live cancel needs ALL of: mode live, acknowledged true, APP_ENV=live, TRADE_ENABLED=true, credentials, plus symbol and exchange orderId or clientOrderId.",
+        ...base,
+        destructive: true,
+      },
+      {
         orderId: z.string().min(1).optional(),
         mode: modeArg,
         acknowledged: acknowledgedArg,
         symbol: z.string().min(1).optional(),
         clientOrderId: z.string().min(1).optional(),
-      })
-      .refine((args) => args.orderId !== undefined || args.clientOrderId !== undefined, {
-        message: "cancel needs orderId or clientOrderId",
-      }),
-  });
+      },
+    ),
+    (args) => args.orderId !== undefined || args.clientOrderId !== undefined,
+    "cancel needs orderId or clientOrderId",
+  );
+  registry.registerTool(cancelOrder);
 
   handlers.tools.set("indodax_validate_order", async (raw) => {
     try {
-      const args = parseArgs(
-        z.object({
-          pair: pairArg,
-          side: sideArg,
-          quantity: quantityArg,
-          price: priceArg.optional(),
-          mode: modeArg,
-          timeInForce: timeInForceArg,
-          stpMode: stpModeArg,
-        }),
-        raw,
-      );
-      const { proposal, order, decision } = await reviewHypothetical(app, args);
-      return ok({ proposal: proposal.correlationId, order, decision, executed: false }, [
-        "proposal only: nothing was placed and no funds moved",
-      ]);
+      const args = parseArgs(validateOrder.inputSchema, raw);
+      const { proposal, order, decision, incrementWarning } = await reviewHypothetical(app, args);
+      const warnings = ["proposal only: nothing was placed and no funds moved"];
+      if (incrementWarning !== null) warnings.push(`quantity increment: ${incrementWarning}`);
+      return ok({ proposal: proposal.correlationId, order, decision, executed: false }, warnings);
     } catch (error) {
       return fail(error);
     }
@@ -144,23 +145,11 @@ export function registerOrderTools(
 
   handlers.tools.set("indodax_propose_order", async (raw) => {
     try {
-      const args = parseArgs(
-        z.object({
-          pair: pairArg,
-          side: sideArg,
-          quantity: quantityArg,
-          price: priceArg.optional(),
-          mode: modeArg,
-          reason: z.string().optional(),
-          timeInForce: timeInForceArg,
-          stpMode: stpModeArg,
-        }),
-        raw,
-      );
-      const { proposal, order, decision } = await reviewHypothetical(app, args);
-      return ok({ proposal: proposal.correlationId, order, decision, executed: false }, [
-        "proposal only: nothing was placed and no funds moved",
-      ]);
+      const args = parseArgs(proposeOrder.inputSchema, raw);
+      const { proposal, order, decision, incrementWarning } = await reviewHypothetical(app, args);
+      const warnings = ["proposal only: nothing was placed and no funds moved"];
+      if (incrementWarning !== null) warnings.push(`quantity increment: ${incrementWarning}`);
+      return ok({ proposal: proposal.correlationId, order, decision, executed: false }, warnings);
     } catch (error) {
       return fail(error);
     }
@@ -168,45 +157,48 @@ export function registerOrderTools(
 
   handlers.tools.set("indodax_create_order", async (raw) => {
     try {
-      const args = parseArgs(
-        z.object({
-          pair: pairArg,
-          side: sideArg,
-          quantity: quantityArg,
-          price: priceArg.optional(),
-          mode: modeArg,
-          acknowledged: acknowledgedArg,
-          clientOrderId: clientOrderIdArg,
-          timeInForce: timeInForceArg,
-          stpMode: stpModeArg,
-        }),
-        raw,
-      );
+      const args = parseArgs(createOrder.inputSchema, raw);
       const { intent, mode } = draftIntent(app, args);
-      if (mode !== "paper") {
-        return ok(
-          await placeLiveOrder(app, {
-            pair: args.pair,
-            side: args.side,
-            quantity: args.quantity,
-            ...(args.price === undefined ? {} : { price: args.price }),
-            ...(args.clientOrderId === undefined ? {} : { clientOrderId: args.clientOrderId }),
-            ...(args.timeInForce === undefined ? {} : { timeInForce: args.timeInForce }),
-            ...(args.stpMode === undefined ? {} : { stpMode: args.stpMode }),
-            ...(args.acknowledged === undefined ? {} : { acknowledged: args.acknowledged }),
-          }),
-        );
-      }
-      return ok(
-        await placePaperOrder(app, {
+      if (mode === "live") {
+        const result = (await placeLiveOrder(app, {
           pair: args.pair,
           side: args.side,
-          orderType: intent.orderType,
-          ...(args.price === undefined ? {} : { price: args.price }),
           quantity: args.quantity,
+          ...(args.price === undefined ? {} : { price: args.price }),
           ...(args.clientOrderId === undefined ? {} : { clientOrderId: args.clientOrderId }),
-        }),
-      );
+          ...(args.timeInForce === undefined ? {} : { timeInForce: args.timeInForce }),
+          ...(args.stpMode === undefined ? {} : { stpMode: args.stpMode }),
+          ...(args.acknowledged === undefined ? {} : { acknowledged: args.acknowledged }),
+        })) as unknown as Record<string, unknown>;
+        return ok({
+          ...result,
+          pair: args.pair,
+          side: args.side,
+          mode: "live",
+          summary: `live order accepted with exchange id ${String(result.exchangeOrderId ?? "unknown")}`,
+        });
+      }
+      if (mode !== "paper") {
+        throw AuthorizationError(
+          `execution mode ${mode} is reserved and has no backend; use paper for simulation`,
+        );
+      }
+      const paperResult = (await placePaperOrder(app, {
+        pair: args.pair,
+        side: args.side,
+        orderType: intent.orderType,
+        ...(args.price === undefined ? {} : { price: args.price }),
+        quantity: args.quantity,
+        ...(args.clientOrderId === undefined ? {} : { clientOrderId: args.clientOrderId }),
+      })) as unknown as Record<string, unknown>;
+      return ok({
+        ...paperResult,
+        pair: args.pair,
+        side: args.side,
+        mode: "paper",
+        summary: `paper order accepted with id ${String(paperResult.exchangeOrderId ?? paperResult.internalOrderId ?? "unknown")}`,
+        note: "Acceptance is not a fill; use indodax_paper_fill next.",
+      });
     } catch (error) {
       return fail(error);
     }
@@ -214,20 +206,12 @@ export function registerOrderTools(
 
   handlers.tools.set("indodax_cancel_order", async (raw) => {
     try {
-      const args = parseArgs(
-        z
-          .object({
-            orderId: z.string().min(1).optional(),
-            mode: modeArg,
-            acknowledged: acknowledgedArg,
-            symbol: z.string().min(1).optional(),
-            clientOrderId: z.string().min(1).optional(),
-          })
-          .refine((value) => value.orderId !== undefined || value.clientOrderId !== undefined, {
-            message: "cancel needs orderId or clientOrderId",
-          }),
-        raw,
-      );
+      const args = parseArgs(cancelOrder.inputSchema, raw);
+      if (args.mode !== undefined && args.mode !== "paper" && args.mode !== "live") {
+        throw AuthorizationError(
+          `execution mode ${args.mode} is reserved and has no backend; use paper for simulation`,
+        );
+      }
       if (args.mode === "live") {
         if (args.acknowledged !== true) {
           throw AuthorizationError("live cancel needs acknowledged true");
@@ -262,7 +246,11 @@ export function registerOrderTools(
       if (!cancelled) {
         throw ValidationError(`paper order ${target} is not open`);
       }
-      return ok({ orderId: target, status: "cancelled" });
+      return ok({
+        orderId: target,
+        status: "cancelled",
+        balances: app.paper.snapshot().balances,
+      });
     } catch (error) {
       return fail(error);
     }

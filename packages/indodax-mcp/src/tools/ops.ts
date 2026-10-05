@@ -3,59 +3,16 @@ import Decimal from "decimal.js";
 import { ValidationError } from "@indodax-mcp/errors";
 import type { Registry } from "@indodax-mcp/mcp-registry";
 import type { ServerHandlers } from "@indodax-mcp/mcp-core";
-import { getTicker } from "@indodax-mcp/indodax-market";
 import { DEFAULT_PUBLIC_TOKEN, PUBLIC_WS_URL } from "@indodax-mcp/indodax-websocket";
 import { reconcileFills } from "@indodax-mcp/indodax-reconciliation";
-import type { BacktestReport } from "@indodax-mcp/indodax-backtest";
 import { fail, ok, parseArgs } from "../respond.js";
 import type { AppServices } from "../composition.js";
+import { defineTool } from "./define.js";
+import { getBacktest } from "./ops-backtest.js";
+import { exposureReport } from "./ops-exposure.js";
 
-interface StoredBacktest {
-  id: string;
-  report: {
-    signalsEvaluated: number;
-    hypotheticalFills: number;
-    totalFees: string;
-    netPnl: string;
-    maxDrawdownPct: string;
-    trades: { index: number; price: string; fee: string }[];
-  };
-  createdAt: string;
-}
-
-const runs = new Map<string, StoredBacktest>();
-let runCounter = 1;
-
-/** Bounded so long-running processes cannot leak memory. Oldest run evicted first. */
-const MAX_STORED_RUNS = 100;
-
-export function storeBacktest(report: BacktestReport): StoredBacktest {
-  const id = `backtest-${runCounter}`;
-  runCounter += 1;
-  const stored: StoredBacktest = {
-    id,
-    report: {
-      signalsEvaluated: report.signalsEvaluated,
-      hypotheticalFills: report.hypotheticalFills,
-      totalFees: report.totalFees.toString(),
-      netPnl: report.netPnl.toString(),
-      maxDrawdownPct: report.maxDrawdownPct.toString(),
-      trades: report.trades.map((trade) => ({
-        index: trade.index,
-        price: trade.price.toString(),
-        fee: trade.fee.toString(),
-      })),
-    },
-    createdAt: new Date().toISOString(),
-  };
-  runs.set(id, stored);
-  while (runs.size > MAX_STORED_RUNS) {
-    const oldest = runs.keys().next().value;
-    if (oldest === undefined) break;
-    runs.delete(oldest);
-  }
-  return stored;
-}
+export type { StoredBacktest } from "./ops-backtest.js";
+export { storeBacktest } from "./ops-backtest.js";
 
 const READ = {
   capability: "READ" as const,
@@ -67,45 +24,56 @@ const READ = {
   auditClass: "read" as const,
 };
 
+/** Socket lifecycle tools mutate connection state without touching exchange data. */
+const SOCKET_MUTATION = {
+  capability: "SYSTEM" as const,
+  riskClass: "mutation" as const,
+  environmentRequirement: "any" as const,
+  authRequirement: "none" as const,
+  destructive: false,
+  idempotencyClass: "none" as const,
+  auditClass: "mutation" as const,
+};
+
 export function registerOpsTools(
   registry: Registry,
   handlers: ServerHandlers,
   app: AppServices,
 ): void {
-  registry.registerTool({
-    metadata: {
+  const backtestGet = defineTool(
+    {
       name: "indodax_backtest_get",
       title: "Backtest detail",
       description: "Read-only. One stored backtest report with trade journal. Args: id.",
       ...READ,
     },
-    inputSchema: z.object({ id: z.string().min(1) }),
-  });
-  registry.registerTool({
-    metadata: {
+    { id: z.string().min(1) },
+  );
+  const backtestCompare = defineTool(
+    {
       name: "indodax_backtest_compare",
       title: "Compare backtests",
       description: "Read-only. Compare net PnL and fills across stored runs. Args: ids array.",
       ...READ,
     },
-    inputSchema: z.object({ ids: z.array(z.string()).min(2).max(10) }),
-  });
-  registry.registerTool({
-    metadata: {
+    { ids: z.array(z.string()).min(2).max(10) },
+  );
+  const strategyValidate = defineTool(
+    {
       name: "indodax_strategy_validate",
       title: "Validate strategy",
       description:
         "No side effects. Check strategy inputs without computing. Args: id, closes, window.",
       ...READ,
     },
-    inputSchema: z.object({
+    {
       id: z.string().min(1),
       closes: z.array(z.number().positive()),
       window: z.number().int().positive().optional(),
-    }),
-  });
-  registry.registerTool({
-    metadata: {
+    },
+  );
+  const reconcileTrades = defineTool(
+    {
       name: "indodax_reconcile_trades",
       title: "Reconcile trades",
       description:
@@ -113,44 +81,38 @@ export function registerOpsTools(
       ...READ,
       authRequirement: "credentials" as const,
     },
-    inputSchema: z.object({ symbol: z.string().min(1) }),
-  });
-  registry.registerTool({
-    metadata: {
+    { symbol: z.string().min(1) },
+  );
+  const auditRisk = defineTool(
+    {
       name: "indodax_audit_risk",
       title: "Risk decisions",
       description: "Read-only. Audit entries for risk approvals and rejections. Args: limit.",
       ...READ,
     },
-    inputSchema: z.object({ limit: z.number().int().min(1).max(100).optional() }),
-  });
-  registry.registerTool({
-    metadata: {
+    { limit: z.number().int().min(1).max(100).optional() },
+  );
+  const exposure = defineTool(
+    {
       name: "indodax_exposure",
       title: "Exposure",
       description: "Read-only. Per-asset paper exposure in IDR at live prices.",
       ...READ,
     },
-    inputSchema: z.object({}),
-  });
-  registry.registerTool({
-    metadata: {
+    {},
+  );
+  const wsReconnect = defineTool(
+    {
       name: "indodax_ws_reconnect",
       title: "Reconnect sockets",
       description:
         "Mutating connection state. Drop and re-establish market and private sockets. Args: scope market, private, or all.",
-      capability: "SYSTEM",
-      riskClass: "mutation",
-      environmentRequirement: "any",
-      authRequirement: "none",
-      destructive: false,
-      idempotencyClass: "none",
-      auditClass: "mutation",
+      ...SOCKET_MUTATION,
     },
-    inputSchema: z.object({ scope: z.enum(["market", "private", "all"]).optional() }),
-  });
-  registry.registerTool({
-    metadata: {
+    { scope: z.enum(["market", "private", "all"]).optional() },
+  );
+  const privateConnect = defineTool(
+    {
       name: "indodax_private_connect",
       title: "Connect private channel",
       description:
@@ -163,10 +125,10 @@ export function registerOpsTools(
       idempotencyClass: "none",
       auditClass: "mutation",
     },
-    inputSchema: z.object({}),
-  });
-  registry.registerTool({
-    metadata: {
+    {},
+  );
+  const privateDisconnect = defineTool(
+    {
       name: "indodax_private_disconnect",
       title: "Disconnect private channel",
       description:
@@ -179,45 +141,65 @@ export function registerOpsTools(
       idempotencyClass: "none",
       auditClass: "mutation",
     },
-    inputSchema: z.object({}),
-  });
+    {},
+  );
+  for (const tool of [
+    backtestGet,
+    backtestCompare,
+    strategyValidate,
+    reconcileTrades,
+    auditRisk,
+    exposure,
+    wsReconnect,
+    privateConnect,
+    privateDisconnect,
+  ]) {
+    registry.registerTool(tool);
+  }
 
   handlers.tools.set("indodax_backtest_get", async (raw) => {
     try {
-      const args = parseArgs(z.object({ id: z.string().min(1) }), raw);
-      const run = runs.get(args.id);
+      const args = parseArgs(backtestGet.inputSchema, raw);
+      const run = getBacktest(args.id);
       if (!run) throw ValidationError(`backtest ${args.id} not found`);
-      return ok(run);
+      return ok({
+        ...run,
+        summary: `backtest ${run.id} with ${run.report.hypotheticalFills} hypothetical fill(s), net PnL ${run.report.netPnl}`,
+      });
     } catch (error) {
       return fail(error);
     }
   });
   handlers.tools.set("indodax_backtest_compare", async (raw) => {
     try {
-      const args = parseArgs(z.object({ ids: z.array(z.string()).min(2).max(10) }), raw);
+      const args = parseArgs(backtestCompare.inputSchema, raw);
       const rows = args.ids.map((id) => {
-        const run = runs.get(id);
+        const run = getBacktest(id);
         if (!run) throw ValidationError(`backtest ${id} not found`);
-        return { id, netPnl: run.report.netPnl, fills: run.report.hypotheticalFills };
+        return {
+          id,
+          netPnl: run.report.netPnl,
+          fills: run.report.hypotheticalFills,
+          fees: run.report.totalFees,
+          evaluated: run.report.signalsEvaluated,
+        };
       });
       const ranked = [...rows].sort((a, b) =>
         new Decimal(b.netPnl).comparedTo(new Decimal(a.netPnl)),
       );
-      return ok({ rows, best: ranked[0]?.id ?? null });
+      return ok({
+        count: rows.length,
+        rows,
+        best: ranked[0]?.id ?? null,
+        summary: `best of ${rows.length} is ${ranked[0]?.id ?? "none"} with net PnL ${ranked[0]?.netPnl ?? "n/a"}`,
+      });
     } catch (error) {
       return fail(error);
     }
   });
   handlers.tools.set("indodax_strategy_validate", async (raw) => {
     try {
-      const args = parseArgs(
-        z.object({
-          id: z.string().min(1),
-          closes: z.array(z.number().positive()),
-          window: z.number().int().positive().optional(),
-        }),
-        raw,
-      );
+      const args = parseArgs(strategyValidate.inputSchema, raw);
       if (args.id !== "ma-cross" && args.id !== "momentum-threshold") {
         throw ValidationError("unknown strategy, see indodax_strategies");
       }
@@ -225,7 +207,17 @@ export function registerOpsTools(
       const errors: string[] = [];
       if (args.closes.length < 2) errors.push("closes needs at least two numbers");
       if (window > args.closes.length) errors.push("window must fit inside closes");
-      return ok({ id: args.id, valid: errors.length === 0, errors });
+      return ok({
+        id: args.id,
+        valid: errors.length === 0,
+        errors,
+        closes: args.closes.length,
+        window,
+        summary:
+          errors.length === 0
+            ? `strategy ${args.id} inputs valid`
+            : `invalid: ${errors.join("; ")}`,
+      });
     } catch (error) {
       return fail(error);
     }
@@ -233,7 +225,7 @@ export function registerOpsTools(
   handlers.tools.set("indodax_reconcile_trades", async (raw) => {
     try {
       if (!app.accountClient) throw ValidationError("credentials required");
-      const args = parseArgs(z.object({ symbol: z.string().min(1) }), raw);
+      const args = parseArgs(reconcileTrades.inputSchema, raw);
       const exchange = (await app.accountClient.myTrades({ symbol: args.symbol })) as {
         data?: { orderId?: string; qty?: string }[];
       };
@@ -250,56 +242,43 @@ export function registerOpsTools(
           exchangeOrderId: order.exchangeOrderId ?? order.internalOrderId,
           quantity: new Decimal(order.quantity).minus(new Decimal(order.remaining)).toString(),
         }));
-      return ok({ symbol: args.symbol, ...reconcileFills(localFills, exchangeFills) });
+      const result = reconcileFills(localFills, exchangeFills);
+      return ok({
+        symbol: args.symbol,
+        ...result,
+        localCount: localFills.length,
+        exchangeCount: exchangeFills.length,
+        checkedAt: new Date().toISOString(),
+        summary: `${result.state} across ${result.checked} local fill(s) vs ${exchangeFills.length} exchange fill(s)`,
+        note: "Paper fills never settle on the exchange; divergence means different ledgers, not broken.",
+      });
     } catch (error) {
       return fail(error);
     }
   });
   handlers.tools.set("indodax_audit_risk", async (raw) => {
     try {
-      const args = parseArgs(z.object({ limit: z.number().int().min(1).max(100).optional() }), raw);
-      const entries = app.audit
+      const args = parseArgs(auditRisk.inputSchema, raw);
+      const all = app.audit
         .list()
-        .filter((entry) => entry.kind === "RiskApproved" || entry.kind === "RiskRejected")
-        .slice(-(args.limit ?? 20));
-      return ok(entries);
+        .filter((entry) => entry.kind === "RiskApproved" || entry.kind === "RiskRejected");
+      const entries = all.slice(-(args.limit ?? 20));
+      return ok({
+        count: entries.length,
+        total: all.length,
+        approved: entries.filter((e) => e.kind === "RiskApproved").length,
+        rejected: entries.filter((e) => e.kind === "RiskRejected").length,
+        entries,
+        summary: `${entries.length} risk decision(s) of ${all.length} total`,
+      });
     } catch (error) {
       return fail(error);
     }
   });
-  handlers.tools.set("indodax_exposure", async () => {
-    try {
-      const balances = app.paper.snapshot().balances;
-      const rows = [];
-      let totalIdr = new Decimal(0);
-      const incomplete: string[] = [];
-      for (const [asset, amount] of Object.entries(balances)) {
-        if (asset === "idr") {
-          rows.push({ asset, amount, valueIdr: amount });
-          totalIdr = totalIdr.plus(new Decimal(amount));
-          continue;
-        }
-        try {
-          const ticker = await getTicker(app.publicClient, `${asset}_idr`);
-          const valueIdr = new Decimal(amount).mul(new Decimal(ticker.last)).toString();
-          rows.push({ asset, amount, valueIdr });
-          totalIdr = totalIdr.plus(new Decimal(valueIdr));
-        } catch {
-          rows.push({ asset, amount, valueIdr: null });
-          incomplete.push(asset);
-        }
-      }
-      return ok({ exposure: rows, totalIdr: totalIdr.toString(), incomplete });
-    } catch (error) {
-      return fail(error);
-    }
-  });
+  handlers.tools.set("indodax_exposure", async () => ok(await exposureReport(app)));
   handlers.tools.set("indodax_ws_reconnect", async (raw) => {
     try {
-      const args = parseArgs(
-        z.object({ scope: z.enum(["market", "private", "all"]).optional() }),
-        raw,
-      );
+      const args = parseArgs(wsReconnect.inputSchema, raw);
       const scope = args.scope ?? "all";
       const restored: string[] = [];
       const reasons: string[] = [];

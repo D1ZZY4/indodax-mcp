@@ -15,7 +15,7 @@ function paperRequest(overrides: Record<string, unknown> = {}) {
       price: "1000",
       quantity: "1",
       remaining: "1",
-      state: "NEW",
+      state: "ACCEPTED",
       environment: "paper",
       tenantId: "t1",
       exchangeAccountId: "a1",

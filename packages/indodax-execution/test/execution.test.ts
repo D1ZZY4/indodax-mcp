@@ -23,7 +23,7 @@ describe("execution service", () => {
   it("rejects without risk approval", async () => {
     const service = new ExecutionService(backend);
     const request = {
-      order: { internalOrderId: "o1" },
+      order: { internalOrderId: "o1", state: "ACCEPTED" },
       mode: "paper",
       capability: "PAPER",
       correlationId: "c1",
@@ -35,7 +35,7 @@ describe("execution service", () => {
   it("delegates approved requests to the backend", async () => {
     const service = new ExecutionService(backend);
     const request = {
-      order: { internalOrderId: "o1" },
+      order: { internalOrderId: "o1", state: "ACCEPTED" },
       mode: "paper",
       capability: "PAPER",
       correlationId: "c1",
@@ -44,6 +44,18 @@ describe("execution service", () => {
     const result = await service.execute(request, allow);
     expect(result.accepted).toBe(true);
     expect(service.backendName).toBe("ok");
+  });
+
+  it("rejects orders that skipped risk review", async () => {
+    const service = new ExecutionService(backend);
+    const request = {
+      order: { internalOrderId: "o1", state: "NEW" },
+      mode: "paper",
+      capability: "PAPER",
+      correlationId: "c1",
+      requestedAt: new Date().toISOString(),
+    } as ExecutionRequest;
+    await expect(service.execute(request, allow)).rejects.toThrow(/ACCEPTED by risk review/);
   });
 
   it("rejects live cancels with nonzero exchange codes", async () => {
@@ -245,5 +257,17 @@ describe("execution service", () => {
     await expect(executor.cancelByExchangeId("BTCIDR", undefined, "my-cid-1")).resolves.toBe(true);
     expect(seenUrl).toContain("origClientOrderId=my-cid-1");
     await expect(executor.cancelByExchangeId("BTCIDR")).rejects.toThrow(/orderId or clientOrderId/);
+  });
+
+  it("uppercases lowercase cancel symbols like submit does", async () => {
+    let seenUrl = "";
+    const fetchFn = (async (input: string) => {
+      seenUrl = String(input);
+      return new Response(JSON.stringify({ code: 0, data: {} }));
+    }) as import("@indodax-mcp/transport").FetchFn;
+    const executor = new LiveExecutor({ signer: new TapiV2Signer("k", "s"), fetchFn });
+    await expect(executor.cancelByExchangeId("btc_idr", "42")).resolves.toBe(true);
+    expect(seenUrl).toContain("symbol=BTCIDR");
+    await expect(executor.cancelByExchangeId("!!!", "42")).rejects.toThrow(/invalid symbol/);
   });
 });

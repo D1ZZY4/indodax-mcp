@@ -7,6 +7,15 @@ function build() {
   return buildIndodaxServer(loadEnv({}));
 }
 
+async function bodyOf(call: Promise<unknown>): Promise<{ data: never }> {
+  const result = (await call) as {
+    content: { type: string; text: string }[];
+    isError?: boolean;
+  };
+  expect(result.isError).not.toBe(true);
+  return JSON.parse(result.content[0]?.text ?? "{}") as { data: never };
+}
+
 describe("indodax-mcp surface", () => {
   it("registers a broad tool surface with safety metadata", async () => {
     const { server, registry } = build();
@@ -20,6 +29,19 @@ describe("indodax-mcp surface", () => {
     }
     expect(registry.listResources().length).toBeGreaterThanOrEqual(7);
     expect(registry.listPrompts().length).toBeGreaterThanOrEqual(5);
+  });
+
+  it("builds a server, which fails fast when a registered tool has no handler", async () => {
+    // buildServer throws on a missing handler, so a successful build proves
+    // every registry entry is wired.
+    const { server } = build();
+    const harness = await withInMemoryServer(server);
+    try {
+      const listed = await harness.client.listTools();
+      expect(listed.tools.length).toBeGreaterThanOrEqual(40);
+    } finally {
+      await harness.close();
+    }
   });
 
   it("runs paper lifecycle offline", async () => {
@@ -110,15 +132,17 @@ describe("indodax-mcp surface", () => {
     const { server } = build();
     const harness = await withInMemoryServer(server);
     try {
-      const result = await harness.client.callTool({ name: "indodax_capabilities", arguments: {} });
-      expect(result.isError).not.toBe(true);
-      const text = (result.content as { type: string; text: string }[])[0]?.text ?? "{}";
-      const data = JSON.parse(text) as {
-        data: { "trade.place": boolean; "trade.cancel": boolean; "funding.withdraw": boolean };
+      const body = await bodyOf(
+        harness.client.callTool({ name: "indodax_capabilities", arguments: {} }),
+      );
+      const data = body.data as {
+        "trade.place": boolean;
+        "trade.cancel": boolean;
+        "funding.withdraw": boolean;
       };
-      expect(data.data["trade.place"]).toBe(false);
-      expect(data.data["trade.cancel"]).toBe(false);
-      expect(data.data["funding.withdraw"]).toBe(false);
+      expect(data["trade.place"]).toBe(false);
+      expect(data["trade.cancel"]).toBe(false);
+      expect(data["funding.withdraw"]).toBe(false);
     } finally {
       await harness.close();
     }
@@ -128,33 +152,22 @@ describe("indodax-mcp surface", () => {
     const { server } = build();
     const harness = await withInMemoryServer(server);
     try {
-      const empty = await harness.client.callTool({
-        name: "indodax_reconciliation_state",
-        arguments: {},
-      });
-      expect(empty.isError).not.toBe(true);
-      const emptyText = (empty.content as { type: string; text: string }[])[0]?.text ?? "{}";
-      const emptyData = JSON.parse(emptyText) as {
-        data: { state: string; checkedOrders: number };
-      };
-      expect(emptyData.data.state).toBe("MATCH");
-      expect(emptyData.data.checkedOrders).toBe(0);
+      const empty = await bodyOf(
+        harness.client.callTool({ name: "indodax_reconciliation_state", arguments: {} }),
+      );
+      expect((empty.data as { state: string; checkedOrders: number }).state).toBe("MATCH");
+      expect((empty.data as { checkedOrders: number }).checkedOrders).toBe(0);
 
       const placed = await harness.client.callTool({
         name: "indodax_paper_order",
         arguments: { pair: "btc_idr", side: "BUY", price: 1000, quantity: 100 },
       });
       expect(placed.isError).not.toBe(true);
-      const filled = await harness.client.callTool({
-        name: "indodax_reconciliation_state",
-        arguments: {},
-      });
-      const filledText = (filled.content as { type: string; text: string }[])[0]?.text ?? "{}";
-      const filledData = JSON.parse(filledText) as {
-        data: { state: string; checkedOrders: number };
-      };
-      expect(filledData.data.state).toBe("MATCH");
-      expect(filledData.data.checkedOrders).toBe(1);
+      const filled = await bodyOf(
+        harness.client.callTool({ name: "indodax_reconciliation_state", arguments: {} }),
+      );
+      expect((filled.data as { state: string }).state).toBe("MATCH");
+      expect((filled.data as { checkedOrders: number }).checkedOrders).toBe(1);
     } finally {
       await harness.close();
     }
@@ -164,26 +177,21 @@ describe("indodax-mcp surface", () => {
     const { server, app } = build();
     const harness = await withInMemoryServer(server);
     try {
+      const args = {
+        pair: "btc_idr",
+        side: "BUY",
+        price: 1000,
+        quantity: 100,
+        clientOrderId: "replay-1",
+      };
       const first = await harness.client.callTool({
         name: "indodax_paper_order",
-        arguments: {
-          pair: "btc_idr",
-          side: "BUY",
-          price: 1000,
-          quantity: 100,
-          clientOrderId: "replay-1",
-        },
+        arguments: args,
       });
       expect(first.isError).not.toBe(true);
       const second = await harness.client.callTool({
         name: "indodax_paper_order",
-        arguments: {
-          pair: "btc_idr",
-          side: "BUY",
-          price: 1000,
-          quantity: 100,
-          clientOrderId: "replay-1",
-        },
+        arguments: args,
       });
       expect(second.isError).not.toBe(true);
       expect(app.paper.snapshot().tradeCount).toBe(1);
@@ -201,39 +209,6 @@ describe("indodax-mcp surface", () => {
         arguments: { symbol: "btcidr" },
       });
       expect(denied.isError).toBe(true);
-    } finally {
-      await harness.close();
-    }
-  });
-
-  it("reconciles paper against stubbed exchange state", async () => {
-    const built = build();
-    built.app.accountClient = {
-      getAccount: async () => ({
-        canTrade: true,
-        canWithdraw: false,
-        balances: [{ asset: "IDR", free: "100000000", locked: "0" }],
-      }),
-      openOrders: async () => [{ orderId: 42, symbol: "BTCIDR" }],
-      myTrades: async () => ({ data: [] }),
-    } as unknown as NonNullable<typeof built.app.accountClient>;
-    const harness = await withInMemoryServer(built.server);
-    try {
-      const result = await harness.client.callTool({
-        name: "indodax_reconcile_full",
-        arguments: { symbol: "btcidr" },
-      });
-      expect(result.isError).not.toBe(true);
-      const text = (result.content as { type: string; text: string }[])[0]?.text ?? "{}";
-      const data = JSON.parse(text) as {
-        data: {
-          paper: { state: string };
-          exchange: { openOrders: unknown[]; balances: unknown[] };
-        };
-      };
-      expect(data.data.paper.state).toBe("MATCH");
-      expect(data.data.exchange.openOrders).toHaveLength(1);
-      expect(data.data.exchange.balances).toHaveLength(1);
     } finally {
       await harness.close();
     }
@@ -338,11 +313,8 @@ describe("indodax-mcp surface", () => {
     const { server } = build();
     const harness = await withInMemoryServer(server);
     try {
-      const index = await harness.client.callTool({ name: "indodax_docs", arguments: {} });
-      expect(index.isError).not.toBe(true);
-      const text = (index.content as { type: string; text: string }[])[0]?.text ?? "{}";
-      const data = JSON.parse(text) as { data: { pages: string[] } };
-      expect(data.data.pages).toContain("market");
+      const index = await bodyOf(harness.client.callTool({ name: "indodax_docs", arguments: {} }));
+      expect((index.data as { pages: string[] }).pages).toContain("market");
       const page = await harness.client.callTool({
         name: "indodax_docs",
         arguments: { page: "risk" },

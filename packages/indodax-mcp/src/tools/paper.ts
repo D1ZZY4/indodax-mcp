@@ -1,15 +1,12 @@
 import { z } from "zod";
-import Decimal from "decimal.js";
-import { AuthorizationError, RiskDeniedError, ValidationError } from "@indodax-mcp/errors";
+import { AuthorizationError, ValidationError } from "@indodax-mcp/errors";
 import type { Registry } from "@indodax-mcp/mcp-registry";
 import type { ServerHandlers } from "@indodax-mcp/mcp-core";
-import { parseSymbolFlexible } from "@indodax-mcp/core";
-import { ExecutionService } from "@indodax-mcp/indodax-execution";
-import { checkQuantityIncrement, getTicker } from "@indodax-mcp/indodax-market";
 import { fail, ok, parseArgs } from "../respond.js";
 import { clientOrderIdArg, pairArg, priceArg, quantityArg, sideArg } from "../schemas.js";
-import { resolveRiskContext } from "../risk-context.js";
+import { defineTool } from "./define.js";
 import type { AppServices } from "../composition.js";
+import { placePaperOrder } from "./paper-order.js";
 
 const PAPER = {
   capability: "PAPER" as const,
@@ -23,132 +20,60 @@ const PAPER = {
 
 const PAPER_READ = { ...PAPER, riskClass: "read" as const, auditClass: "read" as const };
 
-export interface PaperPlacement {
-  pair: string;
-  side: "BUY" | "SELL";
-  orderType?: "LIMIT" | "MARKET" | undefined;
-  price?: number | undefined;
-  quantity: number;
-  clientOrderId?: string | undefined;
-}
+export type { PaperPlacement } from "./paper-order.js";
+export { placePaperOrder } from "./paper-order.js";
 
-export async function placePaperOrder(app: AppServices, placement: PaperPlacement) {
-  if (placement.clientOrderId !== undefined && placement.clientOrderId !== "") {
-    const replay = app.paper.replayResult(placement.clientOrderId);
-    if (replay) return replay;
-  }
-  const symbol = parseSymbolFlexible(placement.pair);
-  if (!symbol) throw ValidationError(`invalid pair: ${placement.pair}`);
-  if (app.deadman.shouldHaltLiveTrading()) {
-    throw RiskDeniedError(`deadman ${app.deadman.snapshot().state} halts trading`);
-  }
-  await checkQuantityIncrement(app.publicClient, placement.pair, placement.quantity);
-  // MARKET mirrors live semantics by filling immediately at the current
-  // price: resolve the price, run the standard LIMIT pipeline for
-  // validation plus risk review, then fill at once. Needs a live ticker;
-  // offline simulation stays LIMIT-only.
-  let marketFillPrice: string | null = null;
-  if ((placement.orderType ?? "LIMIT") === "MARKET") {
-    try {
-      const ticker = await getTicker(app.publicClient, `${symbol.base}_${symbol.quote}`);
-      marketFillPrice = ticker.last;
-    } catch {
-      throw ValidationError("paper MARKET needs a live market price; retry online or use LIMIT");
-    }
-  }
-  const orderType = "LIMIT" as const;
-  const price =
-    marketFillPrice !== null
-      ? new Decimal(marketFillPrice)
-      : placement.price === undefined
-        ? null
-        : new Decimal(String(placement.price));
-  const quantity = new Decimal(String(placement.quantity));
-  const notional = price === null ? null : price.mul(quantity);
-  const ledger = app.paper.snapshot();
-  const intent = {
-    agentId: "mcp",
-    sessionId: `mcp-${Date.now().toString(36)}`,
-    symbol,
-    side: placement.side,
-    orderType,
-    price: price?.toString() ?? null,
-    quantityOrIdr: quantity.toString(),
-    quantityIsIdr: false,
-    mode: "paper" as const,
-    capability: "PAPER" as const,
-    reason: "paper_order",
-  };
-  const proposal = app.trading.propose(intent);
-  const order = app.trading.toOrder(proposal, {
-    tenantId: app.tenantId,
-    exchangeAccountId: app.accountId,
-  });
-  if (placement.clientOrderId !== undefined && placement.clientOrderId !== "") {
-    order.clientOrderId = placement.clientOrderId.slice(0, 36);
-  }
-  const decision = app.trading.review(
-    order,
-    await resolveRiskContext(app, {
-      mode: "paper",
-      capability: "PAPER",
-      pair: placement.pair,
-      clientOrderId: placement.clientOrderId ?? order.clientOrderId,
-      balanceSufficient: hasPaperBalance(
-        ledger.balances,
-        symbol,
-        placement.side,
-        notional,
-        quantity,
-      ),
-    }),
-  );
-  if (decision.outcome !== "ALLOW") throw RiskDeniedError(decision.message);
-  const execution = new ExecutionService(app.paper);
-  const result = await execution.execute(
-    {
-      order,
-      mode: "paper",
-      capability: "PAPER",
-      correlationId: proposal.correlationId,
-      requestedAt: new Date().toISOString(),
-    },
-    decision,
-  );
-  if (marketFillPrice !== null) {
-    const { fee } = app.paper.fill(
-      result.exchangeOrderId ?? result.internalOrderId,
-      marketFillPrice,
-    );
-    const filled = { ...result, status: "filled", fillPrice: marketFillPrice, fee };
-    if (placement.clientOrderId !== undefined && placement.clientOrderId !== "") {
-      app.paper.rememberResult(placement.clientOrderId, filled);
-    }
-    return filled;
-  }
-  if (placement.clientOrderId !== undefined && placement.clientOrderId !== "") {
-    app.paper.rememberResult(placement.clientOrderId, result);
-  }
-  return result;
-}
+const paperOrder = defineTool(
+  {
+    name: "indodax_paper_order",
+    title: "Paper order",
+    description:
+      "Simulated execution through validation and risk. Args: pair, side, quantity in base units, optional clientOrderId for idempotent replay, orderType LIMIT (default, needs price) or MARKET (fills instantly at the live price, needs market reachability). Returns the open paper order id, or fill details for MARKET.",
+    ...PAPER,
+  },
+  {
+    pair: pairArg,
+    side: sideArg,
+    price: priceArg.optional(),
+    quantity: quantityArg,
+    clientOrderId: clientOrderIdArg,
+    orderType: z.enum(["LIMIT", "MARKET"]).optional(),
+  },
+);
 
-function hasPaperBalance(
-  balances: Record<string, string>,
-  symbol: { base: string; quote: string },
-  side: "BUY" | "SELL",
-  notional: Decimal | null,
-  quantity: Decimal,
-): boolean | null {
-  try {
-    if (side === "BUY") {
-      if (notional === null) return null;
-      return new Decimal(balances[symbol.quote] ?? "0").gte(notional);
-    }
-    return new Decimal(balances[symbol.base] ?? "0").gte(quantity);
-  } catch {
-    return null;
-  }
-}
+const paperFill = defineTool(
+  {
+    name: "indodax_paper_fill",
+    title: "Paper fill",
+    description:
+      "Simulated execution. Fill one open paper order with fees; returns fee, fill price, filled quantity, and balances after the fill. Args: orderId, price.",
+    ...PAPER,
+  },
+  { orderId: z.string().min(1), price: z.number().positive() },
+);
+
+const paperCancel = defineTool(
+  {
+    name: "indodax_paper_cancel",
+    title: "Paper cancel",
+    description:
+      "Simulated execution. Cancel one open paper order with refund; returns balances after the refund. Args: orderId.",
+    ...PAPER,
+  },
+  { orderId: z.string().min(1) },
+);
+
+const paperReset = defineTool(
+  {
+    name: "indodax_paper_reset",
+    title: "Paper reset",
+    description:
+      "Simulated, destructive to simulation only. Reset balances and clear orders after acknowledged:true. Never touches real money. Args: acknowledged required.",
+    ...PAPER,
+    destructive: true,
+  },
+  { acknowledged: z.boolean() },
+);
 
 export function registerPaperTools(
   registry: Registry,
@@ -158,19 +83,23 @@ export function registerPaperTools(
   const defs = [
     {
       name: "indodax_paper_account",
-      description: "Read-only. Virtual paper balances. Never touches real money.",
+      description:
+        "Read-only. Complete virtual paper account: balances, initial balances, trade count, open orders, and total fees. Never touches real money.",
     },
     {
       name: "indodax_paper_status",
-      description: "Read-only. Paper trade count, open orders, and total fees.",
+      description:
+        "Read-only. Complete paper status: trade count, open order count with ids (first 100), total fees, balances, and realized PnL today.",
     },
     {
       name: "indodax_paper_orders",
-      description: "Read-only. List open paper orders.",
+      description:
+        "Read-only. Complete open paper orders with count, full order records, pairs, and summary.",
     },
     {
       name: "indodax_paper_snapshots",
-      description: "Read-only. Full paper ledger snapshot for debugging.",
+      description:
+        "Read-only. Complete paper ledger snapshot with balances, orders, cost basis, realized PnL, replay log, and summary counts.",
     },
   ];
   for (const def of defs) {
@@ -179,75 +108,87 @@ export function registerPaperTools(
       inputSchema: z.object({}),
     });
   }
-  registry.registerTool({
-    metadata: {
-      name: "indodax_paper_order",
-      title: "Paper order",
-      description:
-        "Simulated execution through validation and risk. Args: pair, side, quantity in base units, optional clientOrderId for idempotent replay, orderType LIMIT (default, needs price) or MARKET (fills instantly at the live price, needs market reachability). Returns the open paper order id, or fill details for MARKET.",
-      ...PAPER,
-    },
-    inputSchema: z.object({
-      pair: pairArg,
-      side: sideArg,
-      price: priceArg.optional(),
-      quantity: quantityArg,
-      clientOrderId: clientOrderIdArg,
-      orderType: z.enum(["LIMIT", "MARKET"]).optional(),
-    }),
-  });
-  registry.registerTool({
-    metadata: {
-      name: "indodax_paper_fill",
-      title: "Paper fill",
-      description:
-        "Simulated execution. Fill one open paper order with fees. Args: orderId, price.",
-      ...PAPER,
-    },
-    inputSchema: z.object({ orderId: z.string().min(1), price: z.number().positive() }),
-  });
-  registry.registerTool({
-    metadata: {
-      name: "indodax_paper_cancel",
-      title: "Paper cancel",
-      description: "Simulated execution. Cancel one open paper order with refund. Args: orderId.",
-      ...PAPER,
-    },
-    inputSchema: z.object({ orderId: z.string().min(1) }),
-  });
-  registry.registerTool({
-    metadata: {
-      name: "indodax_paper_reset",
-      title: "Paper reset",
-      description:
-        "Simulated, destructive to simulation only. Reset balances and clear orders after acknowledged:true. Never touches real money. Args: acknowledged required.",
-      ...PAPER,
-      destructive: true,
-    },
-    inputSchema: z.object({ acknowledged: z.boolean() }),
-  });
+  registry.registerTool(paperOrder);
+  registry.registerTool(paperFill);
+  registry.registerTool(paperCancel);
+  registry.registerTool(paperReset);
 
-  handlers.tools.set("indodax_paper_account", async () => ok(app.paper.snapshot().balances));
-  handlers.tools.set("indodax_paper_status", async () => {
+  handlers.tools.set("indodax_paper_account", async () => {
     const snapshot = app.paper.snapshot();
+    const open = app.paper.openOrders();
     return ok({
+      balances: snapshot.balances,
+      initialBalances: snapshot.initialBalances,
       tradeCount: snapshot.tradeCount,
-      openOrders: snapshot.orders.filter((order) => order.state === "ACCEPTED").length,
+      openOrders: open.length,
+      openOrderIds: open.map((order) => order.internalOrderId).slice(0, 100),
       totalFees: snapshot.totalFees,
+      realizedByDay: snapshot.realizedByDay,
+      costBasisAssets: Object.keys(snapshot.costBasis),
+      summary: `${Object.keys(snapshot.balances).length} assets, ${open.length} open orders, ${snapshot.tradeCount} lifetime trades, fees ${snapshot.totalFees}`,
+      note: "Simulation only. Paper balances never settle on the exchange.",
     });
   });
-  handlers.tools.set("indodax_paper_orders", async () => ok(app.paper.openOrders()));
-  handlers.tools.set("indodax_paper_snapshots", async () => ok(app.paper.snapshot()));
+  handlers.tools.set("indodax_paper_status", async () => {
+    const snapshot = app.paper.snapshot();
+    const open = app.paper.openOrders();
+    const openOrderIds = open.map((order) => order.internalOrderId);
+    const filled = snapshot.orders.filter((order) => order.state === "FILLED").length;
+    return ok({
+      tradeCount: snapshot.tradeCount,
+      openOrders: open.length,
+      openOrderIds: openOrderIds.slice(0, 100),
+      openOrdersTruncated: openOrderIds.length > 100,
+      totalFees: snapshot.totalFees,
+      filledOrders: filled,
+      balances: snapshot.balances,
+      initialBalances: snapshot.initialBalances,
+      realizedByDay: snapshot.realizedByDay,
+      pairs: [...new Set(open.map((order) => `${order.symbol.base}_${order.symbol.quote}`))],
+      summary: `trades=${snapshot.tradeCount} open=${open.length} filled=${filled} fees=${snapshot.totalFees}`,
+      note: "Simulation only. Acceptance is not a fill; use indodax_paper_fill next.",
+    });
+  });
+  handlers.tools.set("indodax_paper_orders", async () => {
+    const orders = app.paper.openOrders();
+    return ok({
+      count: orders.length,
+      orders,
+      pairs: [...new Set(orders.map((order) => `${order.symbol.base}_${order.symbol.quote}`))],
+      sides: [...new Set(orders.map((order) => order.side))],
+      summary: `${orders.length} open paper orders (${orders.filter((o) => o.side === "BUY").length} BUY, ${orders.filter((o) => o.side === "SELL").length} SELL)`,
+      note: "ACCEPTED and PARTIALLY_FILLED only. Use indodax_paper_fill or indodax_paper_cancel next.",
+    });
+  });
+  handlers.tools.set("indodax_paper_snapshots", async () => {
+    const snapshot = app.paper.snapshot();
+    const open = snapshot.orders.filter(
+      (order) => order.state === "ACCEPTED" || order.state === "PARTIALLY_FILLED",
+    ).length;
+    const filled = snapshot.orders.filter((order) => order.state === "FILLED").length;
+    return ok({
+      ...snapshot,
+      summary: {
+        assets: Object.keys(snapshot.balances).length,
+        totalOrders: snapshot.orders.length,
+        openOrders: open,
+        filledOrders: filled,
+        tradeCount: snapshot.tradeCount,
+        totalFees: snapshot.totalFees,
+      },
+      note: "Full ledger including balances, orders, cost basis, realized PnL, and idempotent replay log.",
+    });
+  });
   handlers.tools.set("indodax_paper_reset", async (raw) => {
     try {
-      const args = parseArgs(z.object({ acknowledged: z.boolean() }), raw);
+      const args = parseArgs(paperReset.inputSchema, raw);
       if (args.acknowledged !== true) {
         throw AuthorizationError("paper reset needs acknowledged true");
       }
       const before = app.paper.snapshot();
       const cleared = {
         tradeCount: before.tradeCount,
-        openOrders: before.orders.filter((order) => order.state === "ACCEPTED").length,
+        openOrders: app.paper.openOrders().length,
         totalFees: before.totalFees,
       };
       app.paper.reset();
@@ -265,17 +206,7 @@ export function registerPaperTools(
 
   handlers.tools.set("indodax_paper_order", async (raw) => {
     try {
-      const args = parseArgs(
-        z.object({
-          pair: pairArg,
-          side: sideArg,
-          price: priceArg.optional(),
-          quantity: quantityArg,
-          clientOrderId: clientOrderIdArg,
-          orderType: z.enum(["LIMIT", "MARKET"]).optional(),
-        }),
-        raw,
-      );
+      const args = parseArgs(paperOrder.inputSchema, raw);
       return ok(await placePaperOrder(app, args));
     } catch (error) {
       return fail(error);
@@ -284,12 +215,30 @@ export function registerPaperTools(
 
   handlers.tools.set("indodax_paper_fill", async (raw) => {
     try {
-      const args = parseArgs(
-        z.object({ orderId: z.string().min(1), price: z.number().positive() }),
-        raw,
-      );
+      const args = parseArgs(paperFill.inputSchema, raw);
       const { fee } = app.paper.fill(args.orderId, String(args.price));
-      return ok({ orderId: args.orderId, status: "filled", fee });
+      const snapshot = app.paper.snapshot();
+      const filled = snapshot.orders.find(
+        (order) =>
+          order.internalOrderId === args.orderId ||
+          order.exchangeOrderId === args.orderId ||
+          order.clientOrderId === args.orderId,
+      );
+      return ok({
+        orderId: args.orderId,
+        status: "filled",
+        fee,
+        feeRate: "0.0026",
+        fillPrice: String(args.price),
+        filledQuantity: filled?.quantity ?? null,
+        filledOrder: filled ?? null,
+        state: filled?.state ?? "FILLED",
+        balances: snapshot.balances,
+        totalFees: snapshot.totalFees,
+        tradeCount: snapshot.tradeCount,
+        summary: `order ${args.orderId} filled at ${String(args.price)} with fee ${fee}`,
+        note: "BUY fills add average-cost basis including fees; SELL fills realize PnL.",
+      });
     } catch (error) {
       return fail(error);
     }
@@ -297,10 +246,19 @@ export function registerPaperTools(
 
   handlers.tools.set("indodax_paper_cancel", async (raw) => {
     try {
-      const args = parseArgs(z.object({ orderId: z.string().min(1) }), raw);
+      const args = parseArgs(paperCancel.inputSchema, raw);
       const cancelled = await app.paper.cancel(args.orderId);
       if (!cancelled) throw ValidationError(`paper order ${args.orderId} is not open`);
-      return ok({ orderId: args.orderId, status: "cancelled" });
+      const snapshot = app.paper.snapshot();
+      return ok({
+        orderId: args.orderId,
+        status: "cancelled",
+        balances: snapshot.balances,
+        openOrders: app.paper.openOrders().length,
+        tradeCount: snapshot.tradeCount,
+        summary: `order ${args.orderId} cancelled with reserved funds refunded`,
+        note: "BUY refunds reserved quote; SELL refunds reserved base.",
+      });
     } catch (error) {
       return fail(error);
     }
