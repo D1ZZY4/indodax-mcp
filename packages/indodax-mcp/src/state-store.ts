@@ -6,11 +6,16 @@ import {
   stopSnapshots,
 } from "@indodax-mcp/db";
 import type { AppServices } from "./composition.js";
+import { persistenceCause, resolveBootSnapshot } from "./persist-error.js";
 
 /**
  * Durable alerts and stops. In-memory stores stay primary so the server
  * works without a database. When DATABASE_URL is configured, mutations
  * mirror to Postgres and snapshots reload on boot. Failures only log.
+ *
+ * Boot race: patches install synchronously so boot-time mutations are
+ * captured. Restore applies only on a clean boot; mutated memory wins
+ * and is mirrored out instead of being overwritten.
  */
 function attachSnapshot(
   app: AppServices,
@@ -20,52 +25,57 @@ function attachSnapshot(
 ): void {
   const url = app.env.DATABASE_URL;
   if (!url) return;
+  let repo: DrizzleSnapshotRepository | null = null;
+  let ready = false;
+  let bootDirty = false;
+  const snapshotNow = (): unknown =>
+    kind === "alerts" ? app.alerts.list(true) : app.stops.list(true);
+  const flush = (): void => {
+    if (!ready || repo === null) return;
+    repo.save("local", snapshotNow()).catch((error: unknown) => {
+      app.logger.warn(
+        { error: String(error), cause: persistenceCause(error) },
+        `${kind} persistence failed`,
+      );
+    });
+  };
+  save(() => {
+    bootDirty = true;
+    flush();
+  });
   void (async () => {
-    let repo: DrizzleSnapshotRepository;
-    let close: () => Promise<void>;
     try {
       const connection = connectDatabase(url);
-      close = connection.close;
-      repo = new DrizzleSnapshotRepository(
+      const close = connection.close;
+      const repository = new DrizzleSnapshotRepository(
         connection.db,
         kind === "alerts" ? alertSnapshots : stopSnapshots,
       );
-      const stored = await repo.load("local");
-      if (stored !== null) {
+      const stored = await repository.load("local");
+      const action = resolveBootSnapshot(stored !== null, bootDirty);
+      if (action === "restore" && stored !== null) {
         try {
           restore(stored);
           app.logger.info(`${kind} restored from database`);
         } catch {
           app.logger.warn(`stored ${kind} snapshot invalid, starting fresh`);
         }
+      } else if (action === "keep-local") {
+        app.logger.info(`${kind} mutated during boot; memory kept and mirrored to database`);
       }
+      repo = repository;
+      ready = true;
+      app.shutdownHooks.push(async () => {
+        await close();
+      });
+      if (bootDirty) flush();
     } catch (error) {
       app.logger.warn(
-        { error: String(error), cause: causeOf(error) },
+        { error: String(error), cause: persistenceCause(error) },
         `${kind} persistence disabled`,
       );
-      return;
     }
-    app.shutdownHooks.push(async () => {
-      await close();
-    });
-    save(() => {
-      const snapshot = kind === "alerts" ? app.alerts.list(true) : app.stops.list(true);
-      repo.save("local", snapshot).catch((error: unknown) => {
-        app.logger.warn(
-          { error: String(error), cause: causeOf(error) },
-          `${kind} persistence failed`,
-        );
-      });
-    });
   })();
-}
-
-/** Underlying driver cause (e.g. connection refused) without connection secrets. */
-function causeOf(error: unknown): string {
-  if (typeof error !== "object" || error === null) return String(error).slice(0, 200);
-  const cause = (error as { cause?: unknown }).cause;
-  return String(cause ?? error).slice(0, 200);
 }
 
 export function attachAlertPersistence(app: AppServices): void {
@@ -133,23 +143,71 @@ export function attachStopPersistence(app: AppServices): void {
  * Durable Deadman protection. Without this mirror an armed switch silently
  * disarms on restart; with DATABASE_URL configured the state survives and
  * reloads on boot. Mutations mirror to Postgres; failures only log.
+ * Boot-time mutations win over the stored snapshot (see attachSnapshot).
  */
 export function attachDeadmanPersistence(app: AppServices): void {
   const url = app.env.DATABASE_URL;
   if (!url) return;
+  const deadman = app.deadman;
+  let repo: DrizzleDeadmanRepository | null = null;
+  let tenantId = "";
+  let ready = false;
+  let bootDirty = false;
+  const flush = (): void => {
+    if (!ready || repo === null) return;
+    const status = deadman.snapshot();
+    repo
+      .save(tenantId, {
+        state: status.state,
+        pairs: status.pairs,
+        countdownMs: status.countdownMs,
+      })
+      .catch((error: unknown) => {
+        app.logger.warn(
+          { error: String(error), cause: persistenceCause(error) },
+          "deadman persistence failed, keeping memory switch",
+        );
+      });
+  };
+  const persist = (): void => {
+    bootDirty = true;
+    flush();
+  };
+  const arm = deadman.arm.bind(deadman);
+  deadman.arm = (pairs, countdownMs) => {
+    const result = arm(pairs, countdownMs);
+    persist();
+    return result;
+  };
+  const disarm = deadman.disarm.bind(deadman);
+  deadman.disarm = () => {
+    const result = disarm();
+    persist();
+    return result;
+  };
+  const refreshOk = deadman.recordRefreshSuccess.bind(deadman);
+  deadman.recordRefreshSuccess = () => {
+    const result = refreshOk();
+    persist();
+    return result;
+  };
+  const refreshFail = deadman.recordRefreshFailure.bind(deadman);
+  deadman.recordRefreshFailure = () => {
+    const result = refreshFail();
+    persist();
+    return result;
+  };
   void (async () => {
-    let repo: DrizzleDeadmanRepository;
-    let tenantId: string;
-    let close: () => Promise<void>;
     try {
       const connection = connectDatabase(url);
-      close = connection.close;
-      repo = new DrizzleDeadmanRepository(connection.db);
-      tenantId = await repo.ensureTenant("local");
-      const stored = await repo.load(tenantId);
-      if (stored !== null) {
+      const close = connection.close;
+      const repository = new DrizzleDeadmanRepository(connection.db);
+      const tenant = await repository.ensureTenant("local");
+      const stored = await repository.load(tenant);
+      const action = resolveBootSnapshot(stored !== null, bootDirty);
+      if (action === "restore" && stored !== null) {
         try {
-          app.deadman.restore({
+          deadman.restore({
             state: stored.state as "DISARMED" | "ARMED" | "STALE" | "EXPIRED",
             pairs: Array.isArray(stored.pairs) ? stored.pairs.filter(isString) : [],
             countdownMs: stored.countdownMs,
@@ -158,57 +216,22 @@ export function attachDeadmanPersistence(app: AppServices): void {
         } catch {
           app.logger.warn("stored deadman snapshot invalid, starting disarmed");
         }
+      } else if (action === "keep-local") {
+        app.logger.info("deadman mutated during boot; memory kept and mirrored to database");
       }
+      repo = repository;
+      tenantId = tenant;
+      ready = true;
+      app.shutdownHooks.push(async () => {
+        await close();
+      });
+      if (bootDirty) flush();
     } catch (error) {
       app.logger.warn(
-        { error: String(error), cause: causeOf(error) },
+        { error: String(error), cause: persistenceCause(error) },
         "deadman persistence disabled, keeping memory switch",
       );
-      return;
     }
-    app.shutdownHooks.push(async () => {
-      await close();
-    });
-    const persist = (): void => {
-      const status = app.deadman.snapshot();
-      repo
-        .save(tenantId, {
-          state: status.state,
-          pairs: status.pairs,
-          countdownMs: status.countdownMs,
-        })
-        .catch((error: unknown) => {
-          app.logger.warn(
-            { error: String(error), cause: causeOf(error) },
-            "deadman persistence failed, keeping memory switch",
-          );
-        });
-    };
-    const deadman = app.deadman;
-    const arm = deadman.arm.bind(deadman);
-    deadman.arm = (pairs, countdownMs) => {
-      const result = arm(pairs, countdownMs);
-      persist();
-      return result;
-    };
-    const disarm = deadman.disarm.bind(deadman);
-    deadman.disarm = () => {
-      const result = disarm();
-      persist();
-      return result;
-    };
-    const refreshOk = deadman.recordRefreshSuccess.bind(deadman);
-    deadman.recordRefreshSuccess = () => {
-      const result = refreshOk();
-      persist();
-      return result;
-    };
-    const refreshFail = deadman.recordRefreshFailure.bind(deadman);
-    deadman.recordRefreshFailure = () => {
-      const result = refreshFail();
-      persist();
-      return result;
-    };
   })();
 }
 

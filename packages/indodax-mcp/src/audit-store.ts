@@ -1,6 +1,7 @@
 import type { AuditTrail } from "@indodax-mcp/indodax-audit";
 import { DrizzleAuditRepository, connectDatabase } from "@indodax-mcp/db";
 import type { AppServices } from "./composition.js";
+import { persistenceCause } from "./persist-error.js";
 
 /**
  * Best-effort audit persistence. The in-memory trail stays primary and
@@ -19,7 +20,7 @@ export function attachAuditPersistence(app: AppServices): void {
     repo = new DrizzleAuditRepository(connection.db);
   } catch (error) {
     app.logger.warn(
-      { error: String(error), cause: causeOf(error) },
+      { error: String(error), cause: persistenceCause(error) },
       "audit persistence disabled, keeping memory trail",
     );
     return;
@@ -44,16 +45,9 @@ export function attachAuditPersistence(app: AppServices): void {
       })
       .catch((error: unknown) => {
         app.logger.warn(
-          { error: String(error), cause: causeOf(error) },
+          { error: String(error), cause: persistenceCause(error) },
           "audit persistence failed, keeping memory trail",
         );
       });
   };
-}
-
-/** Underlying driver cause (e.g. connection refused) without connection secrets. */
-function causeOf(error: unknown): string {
-  if (typeof error !== "object" || error === null) return String(error).slice(0, 200);
-  const cause = (error as { cause?: unknown }).cause;
-  return String(cause ?? error).slice(0, 200);
 }
