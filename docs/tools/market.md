@@ -11,7 +11,7 @@ exchange wire spelling per endpoint.
 | `indodax_ticker` | `pair` string required | `{ high, low, last, buy, sell, server_time?, symbol, fetchedAt }`, money as strings | Cached 30s. |
 | `indodax_tickers_all` | `quote` string 1-10 optional, `limit` int 1-500 optional | Map of pair to ticker body | No filter and no limit defaults to **100 rows** so one call cannot flood a harness context. |
 | `indodax_orderbook` | `pair` required, `levels` int 1-100 default 20 | `{ buy, sell, spread, mid }`, money as strings | `spread`/`mid` derive from best bid/ask with Decimal math; `null` on an empty side. |
-| `indodax_trades` | `pair` required, `limit` int 1-500 optional (default all) | Array of `{ date, price, amount, tid, type }` (`type` is lowercase `buy`/`sell`) | — |
+| `indodax_trades` | `pair` required, `limit` int 1-500 optional (default all) | Array of `{ date, price, amount, tid, type }` (`type` is lowercase `buy`/`sell`) | none |
 | `indodax_candles` | `symbol` required (any spelling), `timeframe` default `"60"` (`1, 15, 30, 60, 240, 1D, 3D, 1W`), `from`/`to` unix seconds default last 24h | Array of `{ Time, Open, High, Low, Close, Volume }`; money fields are strings, `Time` is unix seconds | Symbol is uppercased to compact form (`BTCIDR`) before the call. |
 | `indodax_price_increments` | none | Raw exchange payload | Shape-level only. |
 | `indodax_summaries` | none | `{ tickers, prices_24h?, prices_7d? }` | 24h/7d overview. |

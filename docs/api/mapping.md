@@ -48,10 +48,11 @@ Token endpoint `POST https://indodax.com/api/private_ws/v1/generate_token` (HMAC
 
 ## Official contract notes
 
-Verified against the official docs repo (Public/Private REST, Trade API v2, both WebSockets, Deadman, STP, enums):
+Verified against the official docs repo 2026-10-05 (Public/Private REST, Trade API v2, both WebSockets, Deadman, STP, enums):
 
 - `GET /api/v2/order/histories` returns `oriQty` (not `origQty`) plus `submitTime`/`finishTime`, with `cancelReason: SELF_TRADE_PREVENTION` only on STP-cancelled orders.
 - `GET /api/v2/myTrades` returns the **full** order id (`aaveidr-limit-3568`) in `orderId`, while `GET /api/v2/order` uses the **numeric** id (`6423`). Never assume both spellings match; the reconciliation helpers treat them as opaque strings.
+- Symbol casing is endpoint-specific per the official doc: history endpoints take lowercase compact (`symbol=btcidr` in the signed myTrades example and `btcidr, ethidr` in Order History), while order endpoints take uppercase (`BTCIDR, ETHIDR`). The implementation matches: history params lowercase, order/cancel params uppercase.
 - Legacy v1 `tradeHistory` and `orderHistory` were decommissioned on 7 Apr 2026; the v2 history endpoints are the only supported path.
 - STP parameters apply to orders created on or after 14 Jul 2026 with exchange default `EXPIRE_MAKER` (legacy `MAKER`).
 - The STP doc table lists `https://tapi.indodax.com` while the Trade API v2 doc specifies `https://api.indodax.com`; the implementation follows the Trade API v2 doc.

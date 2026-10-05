@@ -3,9 +3,9 @@
 Two separate safety layers share one state machine (`DISARMED`, `ARMED`,
 `STALE`, `EXPIRED`):
 
-1. **Local switch** — halts placement through risk when heartbeats go stale.
+1. **Local switch** - halts placement through risk when heartbeats go stale.
    `DISARMED` is an explicit opt-out and never blocks.
-2. **Exchange countdown** (`POST /tapi countdownCancelAll`) — the exchange
+2. **Exchange countdown** (`POST /tapi countdownCancelAll`) - the exchange
    cancels the pairs' open orders if no heartbeat arrives within the window.
    Countdown `0` stops the exchange timer.
 

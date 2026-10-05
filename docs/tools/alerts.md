@@ -6,7 +6,7 @@ against live public prices.
 
 | Tool | Parameters | Response `data` | Notes |
 | --- | --- | --- | --- |
-| `indodax_alerts` | `history` boolean optional | Active alerts, or all states with history | — |
+| `indodax_alerts` | `history` boolean optional | Active alerts, or all states with history | none |
 | `indodax_alert_create` | `pair`, exactly one of `above`, `below`, `percentUp`, `percentDown` (positive numbers), `note`? | `{ id, status }` | Percent modes anchor to the live price at creation. Anything else is a `ValidationError`. |
 | `indodax_alert_cancel` | `id` | `{ id, status: "cancelled" }` | Only active alerts cancel. |
 | `indodax_alert_check` | `pair` | `{ pair, price, triggered }` | Manual evaluation; no mutation when nothing triggers. |
