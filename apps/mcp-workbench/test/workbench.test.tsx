@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { ToolsPage } from "../src/pages/Tools.js";
+import { ToolsPage } from "@indodax-mcp/mcp-workbench/pages/Tools";
 
 describe("workbench", () => {
   it("renders the tools page with invoke controls", () => {

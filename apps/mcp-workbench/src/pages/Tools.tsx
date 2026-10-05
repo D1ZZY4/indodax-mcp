@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { connectMcp } from "../api/mcp";
+import { connectMcp } from "@indodax-mcp/mcp-workbench/api/mcp";
 
 const URL = "/mcp";
 

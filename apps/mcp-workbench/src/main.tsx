@@ -2,9 +2,9 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter, Link, Route, Routes } from "react-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { ToolsPage } from "./pages/Tools.js";
-import { HealthPage } from "./pages/Health.js";
-import { PaperPage } from "./pages/Paper.js";
+import { ToolsPage } from "@indodax-mcp/mcp-workbench/pages/Tools";
+import { HealthPage } from "@indodax-mcp/mcp-workbench/pages/Health";
+import { PaperPage } from "@indodax-mcp/mcp-workbench/pages/Paper";
 import "./index.css";
 
 const queryClient = new QueryClient();
