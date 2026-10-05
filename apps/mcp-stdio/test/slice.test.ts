@@ -37,6 +37,21 @@ describe("mcp-stdio production server", () => {
     }
   });
 
+  it("explains unwired health checks instead of bare unknown", async () => {
+    const harness = await withInMemoryServer(build());
+    try {
+      const result = await harness.client.callTool({ name: "indodax_health", arguments: {} });
+      expect(result.isError).not.toBe(true);
+      const text = result.content.map((block) => (block.type === "text" ? block.text : "")).join();
+      const body = JSON.parse(text) as {
+        data: { components: Record<string, { status: string; detail?: string }> };
+      };
+      expect(body.data.components.database?.detail).toContain("not wired");
+    } finally {
+      await harness.close();
+    }
+  });
+
   it("runs paper lifecycle offline", async () => {
     const harness = await withInMemoryServer(build());
     try {
@@ -63,8 +78,8 @@ describe("mcp-stdio production server", () => {
 
   it("serves Streamable HTTP end to end", async () => {
     const { buildHttpApp } = await import("@indodax-mcp/mcp-runtime");
-    const server = build();
-    const app = buildHttpApp(() => server);
+    const { createServer } = buildIndodaxServer(loadEnv({}));
+    const app = buildHttpApp(() => createServer());
     const headers = {
       "content-type": "application/json",
       accept: "application/json, text/event-stream",

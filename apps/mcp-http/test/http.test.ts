@@ -33,4 +33,35 @@ describe("mcp-http", () => {
     const body = (await response?.json()) as { status?: string };
     expect(body.status).toBe("ok");
   }, 30_000);
+
+  it("serves MCP initialize over Streamable HTTP", async () => {
+    const init = await fetch(`http://127.0.0.1:${PORT}/mcp`, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        accept: "application/json, text/event-stream",
+      },
+      body: JSON.stringify({
+        jsonrpc: "2.0",
+        id: 1,
+        method: "initialize",
+        params: {
+          protocolVersion: "2025-11-25",
+          capabilities: {},
+          clientInfo: { name: "http-test", version: "0" },
+        },
+      }),
+    });
+    expect(init.status).toBe(200);
+    const listed = await fetch(`http://127.0.0.1:${PORT}/mcp`, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        accept: "application/json, text/event-stream",
+      },
+      body: JSON.stringify({ jsonrpc: "2.0", id: 2, method: "tools/list", params: {} }),
+    });
+    expect(listed.status).toBe(200);
+    expect(await listed.text()).toContain("indodax_health");
+  }, 30_000);
 });

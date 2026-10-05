@@ -1,5 +1,5 @@
 import type { McpServer } from "@modelcontextprotocol/server";
-import { StdioServerTransport, serveStdio } from "@modelcontextprotocol/server/stdio";
+import { serveStdio } from "@modelcontextprotocol/server/stdio";
 import { createMcpHandler } from "@modelcontextprotocol/server";
 import { createMcpHonoApp } from "@modelcontextprotocol/hono";
 import type { Hono } from "hono";
@@ -9,17 +9,17 @@ export async function serveStdioTransport(build: () => McpServer): Promise<void>
   await serveStdio(build);
 }
 
-export async function connectStdio(server: McpServer): Promise<void> {
-  const transport = new StdioServerTransport();
-  await server.connect(transport);
-}
-
 export interface HttpServeOptions {
   port: number;
   hostname?: string;
   path?: string;
 }
 
+/**
+ * Build a Streamable HTTP app. The factory must return a fresh MCP server
+ * for every request sharing the same application services. Reusing one
+ * instance fails with "still serving another request".
+ */
 export function buildHttpApp(build: () => McpServer, path = "/mcp"): Hono {
   const handler = createMcpHandler(build);
   const app = createMcpHonoApp();

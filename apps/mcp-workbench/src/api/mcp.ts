@@ -1,17 +1,25 @@
 import { Client } from "@modelcontextprotocol/client";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/client";
 
-let client: Client | null = null;
+/**
+ * One client per page for the lifetime of the module.
+ *
+ * The MCP client keeps a session over Streamable HTTP, so reconnecting per call
+ * would drop server-side session state and reopen a stream each time.
+ */
+let pending: Promise<Client> | null = null;
 
-export async function connectMcp(url: string): Promise<Client> {
-  if (client) return client;
-  const next = new Client({ name: "mcp-workbench", version: "1.0.0" }, {});
-  await next.connect(new StreamableHTTPClientTransport(new URL(url)));
-  client = next;
-  return next;
+export function connectMcp(url: string): Promise<Client> {
+  pending ??= (async () => {
+    const client = new Client({ name: "mcp-workbench", version: "1.0.0" }, {});
+    await client.connect(new StreamableHTTPClientTransport(new URL(url)));
+    return client;
+  })();
+  return pending;
 }
 
-export function disconnectMcp(): void {
-  void client?.close();
-  client = null;
+/** Drop the cached client so the next call reconnects. */
+export function resetMcp(): void {
+  void pending?.then((client) => client.close());
+  pending = null;
 }
