@@ -7,6 +7,18 @@ describe("alerts", () => {
     expect(shouldTrigger({ type: "below", price: "100" }, 101)).toBe(false);
   });
 
+  it("compares precise exchange strings without float loss", () => {
+    expect(shouldTrigger({ type: "above", price: "100000.12345678" }, "100000.12345678")).toBe(
+      true,
+    );
+    expect(shouldTrigger({ type: "above", price: "100000.12345678" }, "100000.12345677")).toBe(
+      false,
+    );
+    const store = new AlertStore();
+    store.add({ pair: "btc_idr", condition: { type: "above", price: "100000.12345678" } });
+    expect(store.check("btc_idr", "100000.12345678")).toHaveLength(1);
+  });
+
   it("adds, triggers, and cancels", () => {
     const store = new AlertStore();
     const alert = store.add({ pair: "btc_idr", condition: { type: "above", price: "10" } });

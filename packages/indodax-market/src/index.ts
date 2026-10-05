@@ -43,7 +43,33 @@ export function clearCache(): void {
 }
 
 const PAIRS_STALE_AFTER_MS = 300_000;
+/** Beyond this age a cached pair list is no longer trusted for halt verdicts. */
+const PAIRS_MAX_STALE_MS = 1_800_000;
 let pairsCache: { pairs: PairInfo[]; at: number } | null = null;
+
+/**
+ * Pair list with a short TTL so repeated order placements and suspension
+ * checks share one fetch instead of hitting the public API on every call.
+ * A failed refresh keeps serving the previous snapshot within a bounded
+ * horizon; only a failure with no snapshot at all, or with a snapshot
+ * older than the max horizon, propagates to the caller.
+ */
+export async function getPairsCached(client: PublicClient): Promise<PairInfo[]> {
+  const cached = pairsCache;
+  if (!cached || Date.now() - cached.at >= PAIRS_STALE_AFTER_MS) {
+    try {
+      pairsCache = { pairs: await client.pairs(), at: Date.now() };
+      return pairsCache.pairs;
+    } catch {
+      if (!cached) throw new Error("pair list unreachable");
+      if (Date.now() - cached.at > PAIRS_MAX_STALE_MS) {
+        throw new Error("pair list stale beyond horizon");
+      }
+      return cached.pairs;
+    }
+  }
+  return cached.pairs;
+}
 
 function flagOn(value: boolean | number | string | undefined): boolean {
   if (value === undefined) return false;
@@ -55,8 +81,9 @@ function flagOn(value: boolean | number | string | undefined): boolean {
 
 /**
  * Whether the exchange halted this market. Returns null when the pair
- * list is unreachable or the pair is absent, so callers skip the
- * suspension check instead of inventing a halt.
+ * list is unreachable, the pair is absent, or the cached list is older
+ * than the trust horizon, so callers skip the suspension check instead
+ * of enforcing an outdated halt or inventing one.
  */
 export async function isMarketSuspended(
   client: PublicClient,
@@ -68,14 +95,13 @@ export async function isMarketSuspended(
     asCompact(symbol),
     `${symbol.base}${symbol.quote}`.toUpperCase(),
   ]);
+  let pairs: PairInfo[];
   try {
-    if (!pairsCache || Date.now() - pairsCache.at >= PAIRS_STALE_AFTER_MS) {
-      pairsCache = { pairs: await client.pairs(), at: Date.now() };
-    }
+    pairs = await getPairsCached(client);
   } catch {
-    return pairsCache ? matchSuspended(pairsCache.pairs, wanted) : null;
+    return null;
   }
-  return matchSuspended(pairsCache.pairs, wanted);
+  return matchSuspended(pairs, wanted);
 }
 
 function matchSuspended(pairs: PairInfo[], wanted: Set<string>): boolean | null {
@@ -118,7 +144,7 @@ export async function checkQuantityIncrement(
 ): Promise<void> {
   let pairs: PairInfo[];
   try {
-    pairs = await client.pairs();
+    pairs = await getPairsCached(client);
   } catch {
     return;
   }

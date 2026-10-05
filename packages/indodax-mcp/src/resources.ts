@@ -107,9 +107,11 @@ export function registerResources(
   );
   handlers.resources.set("reconciliation://state", async () => {
     const snapshot = app.paper.snapshot();
+    const open = app.paper.openOrders();
     return JSON.stringify({
       scope: "paper-local",
-      openOrders: snapshot.orders.filter((order) => order.state === "ACCEPTED").length,
+      openOrders: open.length,
+      openOrderIds: open.map((order) => order.internalOrderId).slice(0, 100),
       fills: snapshot.orders.filter((order) => order.state === "FILLED").length,
       tradeCount: snapshot.tradeCount,
       note: "paper ledger counts only; use reconcile tools for exchange comparison",

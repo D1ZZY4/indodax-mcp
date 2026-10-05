@@ -18,8 +18,11 @@ export interface PriceAlert {
   triggeredAt?: string;
 }
 
-export function shouldTrigger(condition: AlertCondition, price: number): boolean {
-  const current = new Decimal(price);
+export function shouldTrigger(condition: AlertCondition, price: number | string): boolean {
+  // Accept the exchange string form directly so large or precise prices never
+  // pass through a binary float. Numbers still work via their shortest
+  // round-trip string, which matches human threshold expectations.
+  const current = new Decimal(typeof price === "number" ? String(price) : price);
   if (!current.isFinite()) return false;
   switch (condition.type) {
     case "above":
@@ -104,7 +107,7 @@ export class AlertStore {
     return true;
   }
 
-  check(pair: string, price: number): PriceAlert[] {
+  check(pair: string, price: number | string): PriceAlert[] {
     const triggered: PriceAlert[] = [];
     for (const alert of this.alerts.values()) {
       if (alert.status !== "active" || alert.pair !== pair) continue;
