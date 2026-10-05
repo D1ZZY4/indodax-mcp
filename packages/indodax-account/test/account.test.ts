@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { FetchFn } from "@indodax-mcp/transport";
-import { AccountClient, capabilitiesFor, toBalanceViews } from "../src/index.js";
+import { AccountClient, capabilitiesFor, toBalanceViews } from "@indodax-mcp/indodax-account";
 import { TapiV2Signer } from "@indodax-mcp/indodax-auth";
 
 const ACCOUNT = {

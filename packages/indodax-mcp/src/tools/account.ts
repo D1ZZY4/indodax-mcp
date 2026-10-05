@@ -3,8 +3,8 @@ import { AuthenticationError } from "@indodax-mcp/errors";
 import type { Registry } from "@indodax-mcp/mcp-registry";
 import type { ServerHandlers } from "@indodax-mcp/mcp-core";
 import { toBalanceViews } from "@indodax-mcp/indodax-account";
-import { fail, ok } from "../respond.js";
-import type { AppServices } from "../composition.js";
+import { fail, ok } from "@indodax-mcp/indodax-mcp/respond";
+import type { AppServices } from "@indodax-mcp/indodax-mcp/composition";
 
 export function registerAccountTools(
   registry: Registry,

@@ -1,37 +1,37 @@
 import { Registry } from "@indodax-mcp/mcp-registry";
 import { buildServer, sendResourceUpdated } from "@indodax-mcp/mcp-core";
 import type { ServerHandlers } from "@indodax-mcp/mcp-core";
-import { createApp, type AppServices } from "./composition.js";
-import { buildGuard } from "./guard.js";
-import { attachAuditPersistence } from "./audit-store.js";
-import { attachPaperPersistence } from "./order-store.js";
+import { createApp, type AppServices } from "@indodax-mcp/indodax-mcp/composition";
+import { buildGuard } from "@indodax-mcp/indodax-mcp/guard";
+import { attachAuditPersistence } from "@indodax-mcp/indodax-mcp/audit-store";
+import { attachPaperPersistence } from "@indodax-mcp/indodax-mcp/order-store";
 import {
   attachAlertPersistence,
   attachDeadmanPersistence,
   attachStopPersistence,
-} from "./state-store.js";
-import { evaluateAlerts } from "./tools/alerts.js";
-import { evaluateStops } from "./tools/stop.js";
-import { registerMarketTools } from "./tools/market.js";
-import { registerAccountTools } from "./tools/account.js";
-import { registerOrderTools } from "./tools/orders.js";
-import { registerPortfolioTools } from "./tools/portfolio.js";
-import { registerRiskTools } from "./tools/risk.js";
-import { registerPaperTools } from "./tools/paper.js";
-import { registerStrategyTools } from "./tools/strategy.js";
-import { registerReconcileTools } from "./tools/reconcile.js";
-import { registerAuditTools } from "./tools/audit.js";
-import { registerAlertTools } from "./tools/alerts.js";
-import { registerSystemTools } from "./tools/system.js";
-import { registerFundingTools } from "./tools/funding.js";
-import { registerHistoryTools } from "./tools/history.js";
-import { registerOpsTools } from "./tools/ops.js";
-import { registerQuoteTools } from "./tools/quote.js";
-import { registerDeadmanTools } from "./tools/deadman.js";
-import { registerStopTools } from "./tools/stop.js";
-import { registerDocsTools } from "./tools/docs.js";
-import { registerResources } from "./resources.js";
-import { registerPrompts } from "./prompts.js";
+} from "@indodax-mcp/indodax-mcp/state-store";
+import { evaluateAlerts } from "@indodax-mcp/indodax-mcp/tools/alerts";
+import { evaluateStops } from "@indodax-mcp/indodax-mcp/tools/stop";
+import { registerMarketTools } from "@indodax-mcp/indodax-mcp/tools/market";
+import { registerAccountTools } from "@indodax-mcp/indodax-mcp/tools/account";
+import { registerOrderTools } from "@indodax-mcp/indodax-mcp/tools/orders";
+import { registerPortfolioTools } from "@indodax-mcp/indodax-mcp/tools/portfolio";
+import { registerRiskTools } from "@indodax-mcp/indodax-mcp/tools/risk";
+import { registerPaperTools } from "@indodax-mcp/indodax-mcp/tools/paper";
+import { registerStrategyTools } from "@indodax-mcp/indodax-mcp/tools/strategy";
+import { registerReconcileTools } from "@indodax-mcp/indodax-mcp/tools/reconcile";
+import { registerAuditTools } from "@indodax-mcp/indodax-mcp/tools/audit";
+import { registerAlertTools } from "@indodax-mcp/indodax-mcp/tools/alerts";
+import { registerSystemTools } from "@indodax-mcp/indodax-mcp/tools/system";
+import { registerFundingTools } from "@indodax-mcp/indodax-mcp/tools/funding";
+import { registerHistoryTools } from "@indodax-mcp/indodax-mcp/tools/history";
+import { registerOpsTools } from "@indodax-mcp/indodax-mcp/tools/ops";
+import { registerQuoteTools } from "@indodax-mcp/indodax-mcp/tools/quote";
+import { registerDeadmanTools } from "@indodax-mcp/indodax-mcp/tools/deadman";
+import { registerStopTools } from "@indodax-mcp/indodax-mcp/tools/stop";
+import { registerDocsTools } from "@indodax-mcp/indodax-mcp/tools/docs";
+import { registerResources } from "@indodax-mcp/indodax-mcp/resources";
+import { registerPrompts } from "@indodax-mcp/indodax-mcp/prompts";
 import type { AppEnv, ConfigDiagnostic } from "@indodax-mcp/config";
 
 export const SERVER_NAME = "indodax-mcp";

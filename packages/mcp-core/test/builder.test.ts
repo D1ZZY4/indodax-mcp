@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { z } from "zod";
 import { Registry } from "@indodax-mcp/mcp-registry";
 import { withInMemoryServer } from "@indodax-mcp/mcp-testing";
-import { buildServer } from "../src/index.js";
+import { buildServer } from "@indodax-mcp/mcp-core";
 
 function setup() {
   const registry = new Registry();

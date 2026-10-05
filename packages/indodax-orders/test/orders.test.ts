@@ -9,7 +9,7 @@ import {
   compareOrderIds,
   isLegalTransition,
   transition,
-} from "../src/index.js";
+} from "@indodax-mcp/indodax-orders";
 
 describe("order machine", () => {
   it("walks the happy path", () => {

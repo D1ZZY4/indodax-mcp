@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { SecretValue, redact, redactHeaders } from "../src/index.js";
+import { SecretValue, redact, redactHeaders } from "@indodax-mcp/secrets";
 
 describe("secrets", () => {
   it("never prints values", () => {

@@ -1,2 +1,2 @@
-export * from "./fetch.js";
-export * from "./rate-limit.js";
+export * from "@indodax-mcp/transport/fetch";
+export * from "@indodax-mcp/transport/rate-limit";

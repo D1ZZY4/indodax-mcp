@@ -7,7 +7,7 @@ import {
   type FetchFn,
   fetchWithRetry,
 } from "@indodax-mcp/transport";
-import { PUBLIC_BASE, PublicApi } from "./endpoints.js";
+import { PUBLIC_BASE, PublicApi } from "@indodax-mcp/indodax-client/endpoints";
 import {
   depthSchema,
   ohlcSchema,
@@ -22,7 +22,7 @@ import {
   type PairInfo,
   type ServerTime,
   type TickerBody,
-} from "./public-schemas.js";
+} from "@indodax-mcp/indodax-client/public-schemas";
 
 export type { Depth as DepthBook, OhlcBar, PairInfo, ServerTime, TickerBody };
 

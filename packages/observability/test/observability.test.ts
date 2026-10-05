@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { Counters, HealthTracker } from "../src/index.js";
+import { Counters, HealthTracker } from "@indodax-mcp/observability";
 
 describe("observability", () => {
   it("rolls component health up to overall status", () => {

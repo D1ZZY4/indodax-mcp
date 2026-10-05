@@ -1,6 +1,6 @@
 import Decimal from "decimal.js";
 import { getTicker } from "@indodax-mcp/indodax-market";
-import type { AppServices } from "../composition.js";
+import type { AppServices } from "@indodax-mcp/indodax-mcp/composition";
 
 export interface ExposureRow {
   asset: string;

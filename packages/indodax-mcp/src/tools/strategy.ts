@@ -10,11 +10,11 @@ import {
   validateSignalInput,
 } from "@indodax-mcp/indodax-strategy";
 import { runBacktest } from "@indodax-mcp/indodax-backtest";
-import { fail, ok, parseArgs } from "../respond.js";
-import { pairArg } from "../schemas.js";
-import { defineTool } from "./define.js";
-import { storeBacktest } from "./ops.js";
-import type { AppServices } from "../composition.js";
+import { fail, ok, parseArgs } from "@indodax-mcp/indodax-mcp/respond";
+import { pairArg } from "@indodax-mcp/indodax-mcp/schemas";
+import { defineTool } from "@indodax-mcp/indodax-mcp/tools/define";
+import { storeBacktest } from "@indodax-mcp/indodax-mcp/tools/ops";
+import type { AppServices } from "@indodax-mcp/indodax-mcp/composition";
 
 const closesArg = z.array(z.number().positive());
 

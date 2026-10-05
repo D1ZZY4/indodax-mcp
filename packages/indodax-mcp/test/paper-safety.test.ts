@@ -6,9 +6,9 @@ import type { RiskDecision } from "@indodax-mcp/core";
 import { PaperExecutor, currentUtcDay } from "@indodax-mcp/indodax-paper";
 import type { PublicClient } from "@indodax-mcp/indodax-client";
 import { clearCache } from "@indodax-mcp/indodax-market";
-import { createApp } from "../src/composition.js";
-import { placePaperOrder } from "../src/tools/paper.js";
-import { resolveRiskContext } from "../src/risk-context.js";
+import { createApp } from "@indodax-mcp/indodax-mcp/composition";
+import { placePaperOrder } from "@indodax-mcp/indodax-mcp/tools/paper";
+import { resolveRiskContext } from "@indodax-mcp/indodax-mcp/risk-context";
 
 const allow: RiskDecision = { outcome: "ALLOW", reasons: [], message: "allowed" };
 

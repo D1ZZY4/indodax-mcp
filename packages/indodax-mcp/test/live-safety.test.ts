@@ -7,8 +7,8 @@ import {
   isAppError,
 } from "@indodax-mcp/errors";
 import { withInMemoryServer } from "@indodax-mcp/mcp-testing";
-import { buildIndodaxServer } from "../src/index.js";
-import { ambiguousToUnknown, placeLiveOrder } from "../src/tools/order-intent.js";
+import { buildIndodaxServer } from "@indodax-mcp/indodax-mcp";
+import { ambiguousToUnknown, placeLiveOrder } from "@indodax-mcp/indodax-mcp/tools/order-intent";
 
 function liveApp() {
   const { app, server } = buildIndodaxServer(

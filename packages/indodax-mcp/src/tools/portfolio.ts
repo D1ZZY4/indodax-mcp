@@ -3,8 +3,8 @@ import Decimal from "decimal.js";
 import type { Registry } from "@indodax-mcp/mcp-registry";
 import type { ServerHandlers } from "@indodax-mcp/mcp-core";
 import { equityIdr, pnl } from "@indodax-mcp/indodax-portfolio";
-import { fail, ok } from "../respond.js";
-import type { AppServices } from "../composition.js";
+import { fail, ok } from "@indodax-mcp/indodax-mcp/respond";
+import type { AppServices } from "@indodax-mcp/indodax-mcp/composition";
 
 const READ = {
   capability: "READ" as const,

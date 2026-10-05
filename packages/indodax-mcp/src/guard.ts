@@ -1,6 +1,6 @@
 import { AuthenticationError, AuthorizationError } from "@indodax-mcp/errors";
 import type { ToolMetadata } from "@indodax-mcp/mcp-contracts";
-import type { AppServices } from "./composition.js";
+import type { AppServices } from "@indodax-mcp/indodax-mcp/composition";
 
 /**
  * Central metadata gate: enforces the mechanical dimensions (auth and

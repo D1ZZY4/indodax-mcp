@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { FetchFn } from "@indodax-mcp/transport";
-import { DEADMAN_V1_BASE, requestDeadmanCountdown } from "../src/exchange.js";
+import { DEADMAN_V1_BASE, requestDeadmanCountdown } from "@indodax-mcp/indodax-deadman/exchange";
 
 function stubFetch(body: unknown): FetchFn {
   return (async () => new Response(JSON.stringify(body))) as FetchFn;

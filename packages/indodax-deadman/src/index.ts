@@ -1,6 +1,6 @@
 export type DeadmanState = "DISARMED" | "ARMED" | "STALE" | "EXPIRED";
 
-export * from "./exchange.js";
+export * from "@indodax-mcp/indodax-deadman/exchange";
 
 export interface DeadmanStatus {
   state: DeadmanState;

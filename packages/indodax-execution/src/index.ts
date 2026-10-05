@@ -49,4 +49,4 @@ function isAllow(risk: RiskDecision): boolean {
   return risk.outcome === "ALLOW";
 }
 
-export * from "./live.js";
+export * from "@indodax-mcp/indodax-execution/live";

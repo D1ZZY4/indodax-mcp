@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { readFileSync, readdirSync } from "node:fs";
 import { loadEnv } from "@indodax-mcp/config";
 import { withInMemoryServer } from "@indodax-mcp/mcp-testing";
-import { buildIndodaxServer } from "../src/index.js";
+import { buildIndodaxServer } from "@indodax-mcp/indodax-mcp";
 
 /** Tool modules that register MCP tools. */
 const TOOL_MODULES = [

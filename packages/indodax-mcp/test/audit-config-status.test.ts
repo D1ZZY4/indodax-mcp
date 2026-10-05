@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { loadConfig, loadEnv } from "@indodax-mcp/config";
 import { withInMemoryServer } from "@indodax-mcp/mcp-testing";
-import { buildIndodaxServer } from "../src/index.js";
+import { buildIndodaxServer } from "@indodax-mcp/indodax-mcp";
 
 type Harness = Awaited<ReturnType<typeof withInMemoryServer>>;
 

@@ -5,8 +5,8 @@ import {
   connectDatabase,
   stopSnapshots,
 } from "@indodax-mcp/db";
-import type { AppServices } from "./composition.js";
-import { persistenceCause, resolveBootSnapshot } from "./persist-error.js";
+import type { AppServices } from "@indodax-mcp/indodax-mcp/composition";
+import { persistenceCause, resolveBootSnapshot } from "@indodax-mcp/indodax-mcp/persist-error";
 
 /**
  * Durable alerts and stops. In-memory stores stay primary so the server

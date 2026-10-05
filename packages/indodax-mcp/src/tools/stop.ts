@@ -4,12 +4,18 @@ import type { Registry } from "@indodax-mcp/mcp-registry";
 import type { ServerHandlers } from "@indodax-mcp/mcp-core";
 import { getTicker } from "@indodax-mcp/indodax-market";
 import { decimalOrNull } from "@indodax-mcp/core";
-import { fail, ok, parseArgs } from "../respond.js";
-import { canonicalPair, pairArg, priceArg, quantityArg, sideArg } from "../schemas.js";
-import { defineTool } from "./define.js";
-import type { AppServices } from "../composition.js";
-import { placeLiveOrder } from "./order-intent.js";
-import { placePaperOrder } from "./paper.js";
+import { fail, ok, parseArgs } from "@indodax-mcp/indodax-mcp/respond";
+import {
+  canonicalPair,
+  pairArg,
+  priceArg,
+  quantityArg,
+  sideArg,
+} from "@indodax-mcp/indodax-mcp/schemas";
+import { defineTool } from "@indodax-mcp/indodax-mcp/tools/define";
+import type { AppServices } from "@indodax-mcp/indodax-mcp/composition";
+import { placeLiveOrder } from "@indodax-mcp/indodax-mcp/tools/order-intent";
+import { placePaperOrder } from "@indodax-mcp/indodax-mcp/tools/paper";
 
 const STOP = {
   capability: "TRADE" as const,

@@ -27,7 +27,7 @@ import {
 } from "@indodax-mcp/indodax-websocket";
 import { Scheduler } from "@indodax-mcp/scheduler";
 import { createLogger } from "@indodax-mcp/logging";
-import { StopStore } from "./stop-store.js";
+import { StopStore } from "@indodax-mcp/indodax-mcp/stop-store";
 
 export interface AppServices {
   env: AppEnv;

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import Decimal from "decimal.js";
-import { drawdownPct, equityIdr, pnl } from "../src/index.js";
+import { drawdownPct, equityIdr, pnl } from "@indodax-mcp/indodax-portfolio";
 
 describe("portfolio", () => {
   it("values holdings in IDR", () => {

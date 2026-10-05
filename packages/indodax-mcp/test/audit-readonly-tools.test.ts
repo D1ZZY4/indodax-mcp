@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { loadEnv } from "@indodax-mcp/config";
 import { withInMemoryServer } from "@indodax-mcp/mcp-testing";
-import { buildIndodaxServer } from "../src/index.js";
-import { resolveRiskContext } from "../src/risk-context.js";
+import { buildIndodaxServer } from "@indodax-mcp/indodax-mcp";
+import { resolveRiskContext } from "@indodax-mcp/indodax-mcp/risk-context";
 
 type Harness = Awaited<ReturnType<typeof withInMemoryServer>>;
 

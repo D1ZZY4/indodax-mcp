@@ -5,14 +5,14 @@ import type { Registry } from "@indodax-mcp/mcp-registry";
 import type { ServerHandlers } from "@indodax-mcp/mcp-core";
 import { DEFAULT_PUBLIC_TOKEN, PUBLIC_WS_URL } from "@indodax-mcp/indodax-websocket";
 import { reconcileFills } from "@indodax-mcp/indodax-reconciliation";
-import { fail, ok, parseArgs } from "../respond.js";
-import type { AppServices } from "../composition.js";
-import { defineTool } from "./define.js";
-import { getBacktest } from "./ops-backtest.js";
-import { exposureReport } from "./ops-exposure.js";
+import { fail, ok, parseArgs } from "@indodax-mcp/indodax-mcp/respond";
+import type { AppServices } from "@indodax-mcp/indodax-mcp/composition";
+import { defineTool } from "@indodax-mcp/indodax-mcp/tools/define";
+import { getBacktest } from "@indodax-mcp/indodax-mcp/tools/ops-backtest";
+import { exposureReport } from "@indodax-mcp/indodax-mcp/tools/ops-exposure";
 
-export type { StoredBacktest } from "./ops-backtest.js";
-export { storeBacktest } from "./ops-backtest.js";
+export type { StoredBacktest } from "@indodax-mcp/indodax-mcp/tools/ops-backtest";
+export { storeBacktest } from "@indodax-mcp/indodax-mcp/tools/ops-backtest";
 
 const READ = {
   capability: "READ" as const,

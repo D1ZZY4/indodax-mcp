@@ -8,7 +8,7 @@ import {
   isMarketSuspended,
   normalizePair,
   toCompactPair,
-} from "../src/index.js";
+} from "@indodax-mcp/indodax-market";
 
 const TICKER = {
   ticker: { high: "110", low: "90", last: "100", buy: "99", sell: "101" },

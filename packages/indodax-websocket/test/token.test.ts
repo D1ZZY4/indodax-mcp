@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { requestPrivateToken } from "../src/token.js";
+import { requestPrivateToken } from "@indodax-mcp/indodax-websocket/token";
 import type { FetchFn } from "@indodax-mcp/transport";
 
 function fetchOk(): FetchFn {

@@ -1,1 +1,1 @@
-export * from "./executor.js";
+export * from "@indodax-mcp/indodax-paper/executor";

@@ -4,9 +4,9 @@ import type { Registry } from "@indodax-mcp/mcp-registry";
 import type { ServerHandlers } from "@indodax-mcp/mcp-core";
 import { INDODAX_V2_BASE, LegacyTapiSigner, nextNonce } from "@indodax-mcp/indodax-auth";
 import { fetchWithRetry } from "@indodax-mcp/transport";
-import { fail, ok, parseArgs } from "../respond.js";
-import { defineTool } from "./define.js";
-import type { AppServices } from "../composition.js";
+import { fail, ok, parseArgs } from "@indodax-mcp/indodax-mcp/respond";
+import { defineTool } from "@indodax-mcp/indodax-mcp/tools/define";
+import type { AppServices } from "@indodax-mcp/indodax-mcp/composition";
 
 const V1_BASE = "https://indodax.com/tapi";
 const V2_BASE = INDODAX_V2_BASE;

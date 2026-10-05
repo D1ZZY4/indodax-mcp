@@ -3,10 +3,10 @@ import Decimal from "decimal.js";
 import type { Registry } from "@indodax-mcp/mcp-registry";
 import type { ServerHandlers } from "@indodax-mcp/mcp-core";
 import { getTicker, toCompactPair } from "@indodax-mcp/indodax-market";
-import { fail, ok, parseArgs } from "../respond.js";
-import { canonicalPair, pairArg } from "../schemas.js";
-import { defineTool } from "./define.js";
-import type { AppServices } from "../composition.js";
+import { fail, ok, parseArgs } from "@indodax-mcp/indodax-mcp/respond";
+import { canonicalPair, pairArg } from "@indodax-mcp/indodax-mcp/schemas";
+import { defineTool } from "@indodax-mcp/indodax-mcp/tools/define";
+import type { AppServices } from "@indodax-mcp/indodax-mcp/composition";
 
 function meta(name: string, description: string) {
   return {

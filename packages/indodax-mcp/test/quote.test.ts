@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { loadEnv } from "@indodax-mcp/config";
 import type { PublicClient } from "@indodax-mcp/indodax-client";
 import { withInMemoryServer } from "@indodax-mcp/mcp-testing";
-import { buildIndodaxServer } from "../src/index.js";
+import { buildIndodaxServer } from "@indodax-mcp/indodax-mcp";
 
 const BOOK = {
   buy: [

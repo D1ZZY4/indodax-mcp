@@ -12,8 +12,8 @@ import { checkQuantityIncrement } from "@indodax-mcp/indodax-market";
 import type { Capability, ExecutionMode } from "@indodax-mcp/core";
 import { parseSymbolFlexible } from "@indodax-mcp/core";
 import type { TradeIntent } from "@indodax-mcp/indodax-trading";
-import { resolveRiskContext } from "../risk-context.js";
-import type { AppServices } from "../composition.js";
+import { resolveRiskContext } from "@indodax-mcp/indodax-mcp/risk-context";
+import type { AppServices } from "@indodax-mcp/indodax-mcp/composition";
 
 export const timeInForceArg = z.enum(["GTC", "MOC", "FOK"]).optional();
 export const stpModeArg = z.enum(["EXPIRE_TAKER", "EXPIRE_MAKER", "EXPIRE_BOTH"]).optional();

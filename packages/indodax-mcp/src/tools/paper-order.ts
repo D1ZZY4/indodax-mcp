@@ -4,8 +4,8 @@ import { parseSymbolFlexible } from "@indodax-mcp/core";
 import { ExecutionService } from "@indodax-mcp/indodax-execution";
 import type { ExecutionResult } from "@indodax-mcp/indodax-execution";
 import { checkQuantityIncrement, getTicker } from "@indodax-mcp/indodax-market";
-import { resolveRiskContext } from "../risk-context.js";
-import type { AppServices } from "../composition.js";
+import { resolveRiskContext } from "@indodax-mcp/indodax-mcp/risk-context";
+import type { AppServices } from "@indodax-mcp/indodax-mcp/composition";
 
 export interface PaperPlacement {
   pair: string;

@@ -1,7 +1,7 @@
 import type { Registry } from "@indodax-mcp/mcp-registry";
 import type { ServerHandlers } from "@indodax-mcp/mcp-core";
 import { cacheSize } from "@indodax-mcp/indodax-market";
-import type { AppServices } from "./composition.js";
+import type { AppServices } from "@indodax-mcp/indodax-mcp/composition";
 
 export function registerResources(
   registry: Registry,

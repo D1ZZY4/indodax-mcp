@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { diagnoseEnv, hasCredentials, loadConfig, loadEnv } from "../src/index.js";
+import { diagnoseEnv, hasCredentials, loadConfig, loadEnv } from "@indodax-mcp/config";
 
 describe("configuration diagnosis", () => {
   it("reports both credentials as absent for an empty environment", () => {

@@ -1,5 +1,5 @@
 import { decimalOrNull } from "@indodax-mcp/core";
-import type { AppServices } from "./composition.js";
+import type { AppServices } from "@indodax-mcp/indodax-mcp/composition";
 
 export interface PaperConsistency {
   state: "MATCH" | "MISMATCH";

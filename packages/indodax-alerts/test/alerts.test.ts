@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { AlertStore, shouldTrigger } from "../src/index.js";
+import { AlertStore, shouldTrigger } from "@indodax-mcp/indodax-alerts";
 
 describe("alerts", () => {
   it("evaluates threshold conditions", () => {

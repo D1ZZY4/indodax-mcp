@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { type FetchFn, fetchWithRetry } from "../src/fetch.js";
+import { type FetchFn, fetchWithRetry } from "@indodax-mcp/transport/fetch";
 import {
   OFFICIAL_PUBLIC_BUCKET,
   OFFICIAL_V2_BUCKET,
   RateLimiter,
   appThrottleBucket,
-} from "../src/rate-limit.js";
+} from "@indodax-mcp/transport/rate-limit";
 import { isAppError } from "@indodax-mcp/errors";
 
 describe("fetchWithRetry", () => {

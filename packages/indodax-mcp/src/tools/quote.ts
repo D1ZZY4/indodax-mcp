@@ -3,10 +3,16 @@ import { ValidationError } from "@indodax-mcp/errors";
 import type { Registry } from "@indodax-mcp/mcp-registry";
 import type { ServerHandlers } from "@indodax-mcp/mcp-core";
 import { toCompactPair } from "@indodax-mcp/indodax-market";
-import { fail, ok, parseArgs } from "../respond.js";
-import { canonicalPair, pairArg, priceArg, quantityArg, sideArg } from "../schemas.js";
-import { defineTool } from "./define.js";
-import type { AppServices } from "../composition.js";
+import { fail, ok, parseArgs } from "@indodax-mcp/indodax-mcp/respond";
+import {
+  canonicalPair,
+  pairArg,
+  priceArg,
+  quantityArg,
+  sideArg,
+} from "@indodax-mcp/indodax-mcp/schemas";
+import { defineTool } from "@indodax-mcp/indodax-mcp/tools/define";
+import type { AppServices } from "@indodax-mcp/indodax-mcp/composition";
 
 export type QuoteVerdict = "instant" | "parked" | "partial";
 

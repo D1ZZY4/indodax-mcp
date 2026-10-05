@@ -2,7 +2,7 @@ import { mkdtempSync, mkdirSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { hasCredentials, loadEnv, loadRepoEnvFile } from "../src/index.js";
+import { hasCredentials, loadEnv, loadRepoEnvFile } from "@indodax-mcp/config";
 
 describe("config", () => {
   it("loads empty env with safe defaults", () => {

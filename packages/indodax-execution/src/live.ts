@@ -7,7 +7,11 @@ import {
   fetchWithRetry,
   type FetchFn,
 } from "@indodax-mcp/transport";
-import type { ExecutionBackend, ExecutionRequest, ExecutionResult } from "./index.js";
+import type {
+  ExecutionBackend,
+  ExecutionRequest,
+  ExecutionResult,
+} from "@indodax-mcp/indodax-execution";
 
 const V2_BASE = INDODAX_V2_BASE;
 

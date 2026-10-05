@@ -2,8 +2,8 @@ import { z } from "zod";
 import { AuthenticationError, AuthorizationError, ValidationError } from "@indodax-mcp/errors";
 import type { Registry } from "@indodax-mcp/mcp-registry";
 import type { ServerHandlers } from "@indodax-mcp/mcp-core";
-import { placePaperOrder } from "./paper.js";
-import { fail, ok, parseArgs } from "../respond.js";
+import { placePaperOrder } from "@indodax-mcp/indodax-mcp/tools/paper";
+import { fail, ok, parseArgs } from "@indodax-mcp/indodax-mcp/respond";
 import {
   acknowledgedArg,
   clientOrderIdArg,
@@ -12,9 +12,9 @@ import {
   priceArg,
   quantityArg,
   sideArg,
-} from "../schemas.js";
-import type { AppServices } from "../composition.js";
-import { defineTool, refineTool } from "./define.js";
+} from "@indodax-mcp/indodax-mcp/schemas";
+import type { AppServices } from "@indodax-mcp/indodax-mcp/composition";
+import { defineTool, refineTool } from "@indodax-mcp/indodax-mcp/tools/define";
 import {
   ambiguousToUnknown,
   draftIntent,
@@ -22,7 +22,7 @@ import {
   reviewHypothetical,
   stpModeArg,
   timeInForceArg,
-} from "./order-intent.js";
+} from "@indodax-mcp/indodax-mcp/tools/order-intent";
 
 export function registerOrderTools(
   registry: Registry,

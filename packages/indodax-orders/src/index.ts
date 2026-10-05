@@ -1,3 +1,3 @@
-export * from "./machine.js";
-export * from "./reconcile.js";
-export * from "./record.js";
+export * from "@indodax-mcp/indodax-orders/machine";
+export * from "@indodax-mcp/indodax-orders/reconcile";
+export * from "@indodax-mcp/indodax-orders/record";

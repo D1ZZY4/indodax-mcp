@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { Scheduler } from "../src/index.js";
+import { Scheduler } from "@indodax-mcp/scheduler";
 
 describe("scheduler", () => {
   afterEach(() => {

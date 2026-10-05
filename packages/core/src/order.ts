@@ -1,5 +1,5 @@
 import type Decimal from "decimal.js";
-import type { SymbolParts } from "./asset.js";
+import type { SymbolParts } from "@indodax-mcp/core/asset";
 
 export interface OrderInput {
   internalOrderId: string;

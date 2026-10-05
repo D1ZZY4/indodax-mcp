@@ -2,7 +2,7 @@ import { z } from "zod";
 import Decimal from "decimal.js";
 import { compareBalance } from "@indodax-mcp/indodax-orders";
 import { reconcileFills } from "@indodax-mcp/indodax-reconciliation";
-import type { AppServices } from "../composition.js";
+import type { AppServices } from "@indodax-mcp/indodax-mcp/composition";
 
 export interface BalanceRow {
   asset: string;

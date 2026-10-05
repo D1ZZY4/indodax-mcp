@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createLogger, logContext } from "../src/index.js";
+import { createLogger, logContext } from "@indodax-mcp/logging";
 
 describe("logging", () => {
   it("creates child loggers with context", () => {

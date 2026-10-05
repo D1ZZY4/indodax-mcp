@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { ExecutionService, type ExecutionBackend, type ExecutionRequest } from "../src/index.js";
-import { LiveExecutor } from "../src/live.js";
+import {
+  ExecutionService,
+  type ExecutionBackend,
+  type ExecutionRequest,
+} from "@indodax-mcp/indodax-execution";
+import { LiveExecutor } from "@indodax-mcp/indodax-execution/live";
 import { TapiV2Signer } from "@indodax-mcp/indodax-auth";
 import type { RiskDecision } from "@indodax-mcp/core";
 

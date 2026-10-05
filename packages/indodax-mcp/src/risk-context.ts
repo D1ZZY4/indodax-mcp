@@ -4,8 +4,8 @@ import { decimalOrNull } from "@indodax-mcp/core";
 import { getTicker, isMarketSuspended } from "@indodax-mcp/indodax-market";
 import { currentUtcDay } from "@indodax-mcp/indodax-paper";
 import type { RiskContext } from "@indodax-mcp/indodax-risk";
-import { checkPaperConsistency } from "./paper-consistency.js";
-import type { AppServices } from "./composition.js";
+import { checkPaperConsistency } from "@indodax-mcp/indodax-mcp/paper-consistency";
+import type { AppServices } from "@indodax-mcp/indodax-mcp/composition";
 
 export interface RiskContextRequest {
   mode: ExecutionMode;

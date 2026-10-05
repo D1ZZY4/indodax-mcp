@@ -10,14 +10,14 @@ import {
   privateSubscribeMessage,
   subscribeMessage,
   unsubscribeMessage,
-} from "../src/protocol.js";
-import { compactPair, summaryRows, ManagedSocket } from "../src/socket.js";
+} from "@indodax-mcp/indodax-websocket/protocol";
+import { compactPair, summaryRows, ManagedSocket } from "@indodax-mcp/indodax-websocket/socket";
 import {
   extractPrivateUpdates,
   isStpCancellation,
   parseOrderUpdate,
   tokenExpired,
-} from "../src/private.js";
+} from "@indodax-mcp/indodax-websocket/private";
 
 describe("websocket protocol", () => {
   it("builds auth, subscribe, and ping frames", () => {

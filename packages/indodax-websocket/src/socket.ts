@@ -9,9 +9,9 @@ import {
   subscribeMessage,
   type ChannelSubscription,
   type ConnectionState,
-} from "./protocol.js";
-import { extractPrivateUpdates } from "./private.js";
-import { SubscriptionRegistry } from "./protocol.js";
+} from "@indodax-mcp/indodax-websocket/protocol";
+import { extractPrivateUpdates } from "@indodax-mcp/indodax-websocket/private";
+import { SubscriptionRegistry } from "@indodax-mcp/indodax-websocket/protocol";
 
 export const PUBLIC_WS_URL = "wss://ws3.indodax.com/ws/";
 export const PRIVATE_WS_URL = "wss://pws.indodax.com/ws/?cf_ws_frame_ping_pong=true";

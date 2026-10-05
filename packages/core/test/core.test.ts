@@ -8,7 +8,7 @@ import {
   isValidClientOrderId,
   parseSymbolFlexible,
   validateOrderInput,
-} from "../src/index.js";
+} from "@indodax-mcp/core";
 
 describe("core money", () => {
   it("parses exchange decimal strings without float loss", () => {

@@ -1,7 +1,7 @@
 import { DrizzlePaperLedgerRepository, connectDatabase } from "@indodax-mcp/db";
 import type { ExecutionRequest, ExecutionResult } from "@indodax-mcp/indodax-execution";
-import type { AppServices } from "./composition.js";
-import { persistenceCause, resolveBootSnapshot } from "./persist-error.js";
+import type { AppServices } from "@indodax-mcp/indodax-mcp/composition";
+import { persistenceCause, resolveBootSnapshot } from "@indodax-mcp/indodax-mcp/persist-error";
 
 /**
  * Durable paper ledger. The in-memory PaperExecutor stays primary so the

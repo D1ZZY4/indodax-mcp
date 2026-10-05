@@ -2,11 +2,17 @@ import { z } from "zod";
 import { AuthorizationError, ValidationError } from "@indodax-mcp/errors";
 import type { Registry } from "@indodax-mcp/mcp-registry";
 import type { ServerHandlers } from "@indodax-mcp/mcp-core";
-import { fail, ok, parseArgs } from "../respond.js";
-import { clientOrderIdArg, pairArg, priceArg, quantityArg, sideArg } from "../schemas.js";
-import { defineTool } from "./define.js";
-import type { AppServices } from "../composition.js";
-import { placePaperOrder } from "./paper-order.js";
+import { fail, ok, parseArgs } from "@indodax-mcp/indodax-mcp/respond";
+import {
+  clientOrderIdArg,
+  pairArg,
+  priceArg,
+  quantityArg,
+  sideArg,
+} from "@indodax-mcp/indodax-mcp/schemas";
+import { defineTool } from "@indodax-mcp/indodax-mcp/tools/define";
+import type { AppServices } from "@indodax-mcp/indodax-mcp/composition";
+import { placePaperOrder } from "@indodax-mcp/indodax-mcp/tools/paper-order";
 
 const PAPER = {
   capability: "PAPER" as const,
@@ -20,8 +26,8 @@ const PAPER = {
 
 const PAPER_READ = { ...PAPER, riskClass: "read" as const, auditClass: "read" as const };
 
-export type { PaperPlacement } from "./paper-order.js";
-export { placePaperOrder } from "./paper-order.js";
+export type { PaperPlacement } from "@indodax-mcp/indodax-mcp/tools/paper-order";
+export { placePaperOrder } from "@indodax-mcp/indodax-mcp/tools/paper-order";
 
 const paperOrder = defineTool(
   {

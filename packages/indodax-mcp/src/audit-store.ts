@@ -1,7 +1,7 @@
 import type { AuditTrail } from "@indodax-mcp/indodax-audit";
 import { DrizzleAuditRepository, connectDatabase } from "@indodax-mcp/db";
-import type { AppServices } from "./composition.js";
-import { persistenceCause } from "./persist-error.js";
+import type { AppServices } from "@indodax-mcp/indodax-mcp/composition";
+import { persistenceCause } from "@indodax-mcp/indodax-mcp/persist-error";
 
 /**
  * Best-effort audit persistence. The in-memory trail stays primary and

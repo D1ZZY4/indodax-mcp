@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { auditClassSchema, toolMetadataSchema } from "../src/index.js";
+import { auditClassSchema, toolMetadataSchema } from "@indodax-mcp/mcp-contracts";
 
 describe("mcp-contracts", () => {
   it("validates tool metadata", () => {

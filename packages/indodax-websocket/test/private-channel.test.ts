@@ -7,7 +7,7 @@ import {
   REFRESH_MARGIN_MS,
   TOKEN_TTL_MS,
   type PrivateToken,
-} from "../src/private-channel.js";
+} from "@indodax-mcp/indodax-websocket/private-channel";
 
 function token(issuedAtMs: number): PrivateToken {
   return { token: "t", channel: "pws:#x", issuedAtMs };

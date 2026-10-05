@@ -3,7 +3,7 @@ import { loadEnv } from "@indodax-mcp/config";
 import type { PublicClient } from "@indodax-mcp/indodax-client";
 import { withInMemoryServer } from "@indodax-mcp/mcp-testing";
 import { clearCache } from "@indodax-mcp/indodax-market";
-import { buildIndodaxServer } from "../src/index.js";
+import { buildIndodaxServer } from "@indodax-mcp/indodax-mcp";
 
 function stubTicker(last: string) {
   return {
