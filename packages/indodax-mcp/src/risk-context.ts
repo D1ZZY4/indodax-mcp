@@ -4,6 +4,7 @@ import { decimalOrNull } from "@indodax-mcp/core";
 import { getTicker, isMarketSuspended } from "@indodax-mcp/indodax-market";
 import { currentUtcDay } from "@indodax-mcp/indodax-paper";
 import type { RiskContext } from "@indodax-mcp/indodax-risk";
+import { checkPaperConsistency } from "./paper-consistency.js";
 import type { AppServices } from "./composition.js";
 
 export interface RiskContextRequest {
@@ -37,19 +38,36 @@ export interface RiskContextRequest {
 
 /** Last successful ticker read per canonical pair. Shared so staleness grows while offline. */
 const tickerSeenAt = new Map<string, number>();
+const MAX_TRACKED_PAIRS = 500;
+
+function rememberTicker(key: string, nowMs: number): void {
+  if (!tickerSeenAt.has(key) && tickerSeenAt.size >= MAX_TRACKED_PAIRS) {
+    const oldest = tickerSeenAt.keys().next().value;
+    if (oldest !== undefined) tickerSeenAt.delete(oldest);
+  }
+  tickerSeenAt.set(key, nowMs);
+}
 
 async function readMarket(
   app: AppServices,
   pair: string,
 ): Promise<{ ageMs: number | null; last: Decimal | null }> {
   const key = pair.toLowerCase();
+  const nowMs = Date.now();
   try {
     const ticker = await getTicker(app.publicClient, pair);
-    tickerSeenAt.set(key, Date.now());
-    return { ageMs: 0, last: decimalOrNull(ticker.last) };
+    // getTicker serves a 30s cache; fetchedAt marks the real exchange read
+    // so cached rows report their true age instead of 0. Remember the true
+    // read time as well, so offline staleness grows from the last exchange
+    // read rather than from the last cached serve.
+    const readAt = Date.parse(ticker.fetchedAt);
+    const effectiveAt = Number.isFinite(readAt) ? (readAt as number) : nowMs;
+    rememberTicker(key, effectiveAt);
+    const ageMs = Number.isFinite(readAt) ? Math.max(0, nowMs - (readAt as number)) : 0;
+    return { ageMs, last: decimalOrNull(ticker.last) };
   } catch {
     const seen = tickerSeenAt.get(key);
-    return { ageMs: seen === undefined ? null : Math.max(0, Date.now() - seen), last: null };
+    return { ageMs: seen === undefined ? null : Math.max(0, nowMs - seen), last: null };
   }
 }
 
@@ -57,6 +75,9 @@ export async function resolveRiskContext(
   app: AppServices,
   request: RiskContextRequest,
 ): Promise<RiskContext> {
+  // Derived at evaluation time rather than cached by a tool call, so the
+  // trading gate cannot be opened or closed by an unrelated read.
+  app.reconciliationHalted = checkPaperConsistency(app).state === "MISMATCH";
   let marketAgeMs: number | null = null;
   let marketSuspended: boolean | null = null;
   if (request.pair !== undefined) {
@@ -111,20 +132,23 @@ async function unrealizedOpenPnl(
   ledger: ReturnType<AppServices["paper"]["snapshot"]>,
 ): Promise<Decimal> {
   let total = new Decimal(0);
-  const seenPairs = new Set<string>();
+  const remainingByPair = new Map<string, Decimal>();
   for (const order of ledger.orders) {
     if (order.side !== "BUY") continue;
     if (order.state !== "ACCEPTED" && order.state !== "PARTIALLY_FILLED") continue;
     const pair = `${order.symbol.base}_${order.symbol.quote}`;
-    if (seenPairs.has(pair)) continue;
-    seenPairs.add(pair);
+    const remaining = decimalOrNull(order.remaining);
+    if (remaining === null) continue;
+    remainingByPair.set(pair, (remainingByPair.get(pair) ?? new Decimal(0)).plus(remaining));
+  }
+  for (const [pair, remaining] of remainingByPair) {
     const { last } = await readMarket(app, pair);
     if (last === null) continue;
-    const remaining = decimalOrNull(order.remaining);
-    const basis = ledger.costBasis[order.symbol.base];
+    const base = pair.slice(0, pair.lastIndexOf("_"));
+    const basis = ledger.costBasis[base];
     const basisQty = basis ? decimalOrNull(basis.qty) : null;
     const basisTotal = basis ? decimalOrNull(basis.total) : null;
-    if (remaining === null || basisQty === null || basisTotal === null || basisQty.lte(0)) {
+    if (basisQty === null || basisTotal === null || basisQty.lte(0)) {
       continue;
     }
     total = total.plus(last.minus(basisTotal.div(basisQty)).mul(remaining));

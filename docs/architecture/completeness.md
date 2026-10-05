@@ -35,7 +35,7 @@ Definitions:
 | MCP tools | 83 | yes | yes | protocol harness |
 | MCP resources | 12 | yes | protocol | protocol path |
 | MCP prompts | 5 | yes | protocol | protocol path |
-| MCP metadata contracts | yes | guard for auth/environment | schema tests | handler plus risk checks stay downstream |
+| MCP metadata contracts | yes | guard for env/credentials plus tool annotations on every tool | schema tests, guard and annotation tests | handler plus risk checks stay downstream |
 | HTTP gateway | yes | yes | yes | Playwright path |
 | MCP stdio server | yes | yes | yes | consumer/protocol path |
 | Deadman state machine | yes | yes | yes | state-machine coverage |
@@ -52,5 +52,7 @@ Definitions:
 3. Risk context resolves from live market reads, account sync state, ledger trade counts, and Deadman state. A market never reached stays unknown rather than fresh.
 4. State-changing requests attempt exactly once by default and opt into retries only with proven idempotency. Paper placement replays repeated client order ids.
 5. Live order placement is gated by `APP_ENV=live` plus `TRADE_ENABLED=true`, credentials, acknowledgement, and risk approval. Withdrawal stays denied.
+6. Reconciliation halt is re-derived inside `resolveRiskContext` rather than cached, so the trading gate cannot be moved by calling a read-only tool. The cost is one extra ledger snapshot per risk evaluation.
+7. Signed TAPI v2 reads rebuild the signature per retry attempt. The previous single-signature reuse could exceed `recvWindow` and convert a transient failure into a permanent timestamp rejection.
 
 **Promote a capability to a stronger status only when** its wiring and tests are updated with it.
