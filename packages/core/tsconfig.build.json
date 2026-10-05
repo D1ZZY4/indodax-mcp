@@ -7,7 +7,11 @@
     "declarationMap": false,
     "sourceMap": false,
     "outDir": "dist",
-    "rootDir": "src"
+    "rootDir": "src",
+    "paths": {
+      "@indodax-mcp/core": ["./src/index.ts"],
+      "@indodax-mcp/core/*": ["./src/*"]
+    }
   },
   "include": ["src"]
 }
