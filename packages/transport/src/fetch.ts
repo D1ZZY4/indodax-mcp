@@ -100,7 +100,15 @@ export async function fetchWithRetry(
         continue;
       }
       const body = await response.text().catch(() => "");
-      throw ExchangeApiError(`unexpected HTTP ${response.status}: ${body.slice(0, 200)}`);
+      // Carry the status and the raw body so an adapter can tell a business
+      // rejection from a transport fault. The exchange answers order and
+      // cancel rejections with HTTP 4xx plus a JSON error code, so the message
+      // text alone leaves the caller unable to name the cause or the next
+      // action. safeMetadata keeps the payload available without changing the
+      // message that existing callers and logs already match on.
+      throw ExchangeApiError(`unexpected HTTP ${response.status}: ${body.slice(0, 200)}`, {
+        safeMetadata: { status: response.status, body: body.slice(0, 2000) },
+      });
     } catch (error) {
       if (error instanceof Error && error.message.startsWith("unexpected HTTP")) throw error;
       if (error instanceof Error && error.name === "AbortError") {
