@@ -2,6 +2,8 @@ import { DrizzlePaperLedgerRepository, connectDatabase } from "@indodax-mcp/db";
 import type { ExecutionRequest, ExecutionResult } from "@indodax-mcp/indodax-execution";
 import type { AppServices } from "@indodax-mcp/indodax-mcp/composition";
 import { persistenceCause, resolveBootSnapshot } from "@indodax-mcp/indodax-mcp/persist-error";
+import { noteConnected, noteFailure } from "@indodax-mcp/indodax-mcp/persistence-state";
+import type { PersistenceHealth } from "@indodax-mcp/indodax-mcp/state-store";
 
 /**
  * Durable paper ledger. The in-memory PaperExecutor stays primary so the
@@ -15,7 +17,7 @@ import { persistenceCause, resolveBootSnapshot } from "@indodax-mcp/indodax-mcp/
  * are captured. Restore applies only on a clean boot; when mutations
  * landed first, memory wins and is mirrored out instead of overwritten.
  */
-export function attachPaperPersistence(app: AppServices): void {
+export function attachPaperPersistence(app: AppServices, health: PersistenceHealth): void {
   const url = app.env.DATABASE_URL;
   if (!url) return;
   const paper = app.paper;
@@ -26,6 +28,8 @@ export function attachPaperPersistence(app: AppServices): void {
   const flush = (): void => {
     if (!ready || repo === null) return;
     repo.save(tenantId, paper.snapshot()).catch((error: unknown) => {
+      noteFailure(persistenceCause(error));
+      health.refresh();
       app.logger.warn(
         { error: String(error), cause: persistenceCause(error) },
         "paper persistence failed, keeping memory ledger",
@@ -80,11 +84,15 @@ export function attachPaperPersistence(app: AppServices): void {
       repo = repository;
       tenantId = tenant;
       ready = true;
+      noteConnected();
+      health.refresh();
       app.shutdownHooks.push(async () => {
         await close();
       });
       if (bootDirty) flush();
     } catch (error) {
+      noteFailure(persistenceCause(error));
+      health.refresh();
       app.logger.warn(
         { error: String(error), cause: persistenceCause(error) },
         "paper persistence disabled, keeping memory ledger",

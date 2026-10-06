@@ -2,6 +2,8 @@ import type { AuditTrail } from "@indodax-mcp/indodax-audit";
 import { DrizzleAuditRepository, connectDatabase } from "@indodax-mcp/db";
 import type { AppServices } from "@indodax-mcp/indodax-mcp/composition";
 import { persistenceCause } from "@indodax-mcp/indodax-mcp/persist-error";
+import { noteConnected, noteFailure } from "@indodax-mcp/indodax-mcp/persistence-state";
+import type { PersistenceHealth } from "@indodax-mcp/indodax-mcp/state-store";
 
 /**
  * Best-effort audit persistence. The in-memory trail stays primary and
@@ -9,7 +11,7 @@ import { persistenceCause } from "@indodax-mcp/indodax-mcp/persist-error";
  * record is also appended to Postgres; a failing append is logged and
  * never breaks trading.
  */
-export function attachAuditPersistence(app: AppServices): void {
+export function attachAuditPersistence(app: AppServices, health: PersistenceHealth): void {
   const url = app.env.DATABASE_URL;
   if (!url) return;
   let repo: DrizzleAuditRepository;

@@ -57,8 +57,25 @@ export interface StopFireResult {
     status: string;
     price?: string;
     reason?: string;
+    /** True when a later cycle could still succeed after the named remedy. */
+    retryable?: boolean;
+    /** The next action, present on a retryable failure. */
+    fix?: string;
     cancelledSiblings?: string[];
   }[];
+}
+
+/**
+ * Whether a placement refusal can still be cleared by a later cycle.
+ *
+ * Local context refusals are the ones worth retrying: the price condition
+ * already held, the stop never reached the exchange, and the position is
+ * still unprotected. Anything the exchange itself refused is terminal,
+ * because resubmitting the same order would only be refused again.
+ */
+export function isRetryableStopFailure(reason: string): boolean {
+  if (/^denied: (STALE_ACCOUNT_STATE|STALE_MARKET_DATA)\b/.test(reason)) return true;
+  return /\b(COOLDOWN_ACTIVE)\b/.test(reason);
 }
 
 /** Cancel the open siblings of a fired stop (pseudo-OCO within one group). */
@@ -122,8 +139,29 @@ export async function evaluateStops(app: AppServices): Promise<StopFireResult> {
       fired.push(entry);
     } catch (error) {
       const reason = error instanceof Error ? error.message : String(error);
+      /**
+       * A rejection that a later cycle could still clear must not retire the
+       * stop. A stop whose placement was refused because the account snapshot
+       * went stale is still armed protection: marking it failed removed it
+       * from the open list, so the loop saw no stop and the position stayed
+       * uncovered while the price kept moving. Such a stop stays open, keeps
+       * its protection, and is reported as retryable so the caller refreshes
+       * the account and runs the check again.
+       */
+      const retryable = isRetryableStopFailure(reason);
+      if (retryable) {
+        fired.push({
+          id: stop.id,
+          status: "retry",
+          price: last,
+          reason,
+          retryable: true,
+          fix: "refresh the account with indodax_account, then run indodax_stop_check again; this stop is still armed",
+        });
+        continue;
+      }
       app.stops.mark(stop.id, "failed", { reason });
-      fired.push({ id: stop.id, status: "failed", reason });
+      fired.push({ id: stop.id, status: "failed", reason, retryable: false });
     }
   }
   return { checked: app.stops.list(true).length, fired };
@@ -279,14 +317,28 @@ export function registerStopTools(
   handlers.tools.set("indodax_stop_check", async () => {
     try {
       const result = await evaluateStops(app);
+      const retry = result.fired.filter((entry) => entry.retryable === true);
       return ok({
         ...result,
         openStops: app.stops.list().length,
         totalStops: app.stops.list(true).length,
+        /** Armed stops whose placement was refused but is worth another cycle. */
+        retryable: retry.length,
+        retryableStops: retry.map((entry) => ({
+          id: entry.id,
+          reason: entry.reason,
+          fix: entry.fix,
+        })),
+        protectionIntact:
+          retry.length > 0
+            ? "a stop crossed its price but was not placed; it is still open, refresh the account and check again"
+            : null,
         summary:
-          result.fired.length > 0
-            ? `${result.fired.length} stop(s) fired of ${result.checked} checked`
-            : `${result.checked} stops checked, none crossed`,
+          retry.length > 0
+            ? `${retry.length} stop(s) still armed after a refreshable failure of ${result.checked} checked`
+            : result.fired.length > 0
+              ? `${result.fired.length} stop(s) fired of ${result.checked} checked`
+              : `${result.checked} stops checked, none crossed`,
       });
     } catch (error) {
       return fail(error);

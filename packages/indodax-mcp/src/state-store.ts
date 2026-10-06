@@ -7,6 +7,13 @@ import {
 } from "@indodax-mcp/db";
 import type { AppServices } from "@indodax-mcp/indodax-mcp/composition";
 import { persistenceCause, resolveBootSnapshot } from "@indodax-mcp/indodax-mcp/persist-error";
+import { noteConnected, noteFailure } from "@indodax-mcp/indodax-mcp/persistence-state";
+
+/**
+ * Recompute health after a mirror settles. Passed in so this module does not
+ * depend on the composition root.
+ */
+export type PersistenceHealth = { refresh: () => void };
 
 /**
  * Durable alerts and stops. In-memory stores stay primary so the server
@@ -22,6 +29,7 @@ function attachSnapshot(
   kind: "alerts" | "stops",
   save: (persist: () => void) => void,
   restore: (stored: unknown[]) => void,
+  health: PersistenceHealth,
 ): void {
   const url = app.env.DATABASE_URL;
   if (!url) return;
@@ -33,6 +41,8 @@ function attachSnapshot(
   const flush = (): void => {
     if (!ready || repo === null) return;
     repo.save("local", snapshotNow()).catch((error: unknown) => {
+      noteFailure(persistenceCause(error));
+      health.refresh();
       app.logger.warn(
         { error: String(error), cause: persistenceCause(error) },
         `${kind} persistence failed`,
@@ -65,11 +75,15 @@ function attachSnapshot(
       }
       repo = repository;
       ready = true;
+      noteConnected();
+      health.refresh();
       app.shutdownHooks.push(async () => {
         await close();
       });
       if (bootDirty) flush();
     } catch (error) {
+      noteFailure(persistenceCause(error));
+      health.refresh();
       app.logger.warn(
         { error: String(error), cause: persistenceCause(error) },
         `${kind} persistence disabled`,
@@ -78,7 +92,7 @@ function attachSnapshot(
   })();
 }
 
-export function attachAlertPersistence(app: AppServices): void {
+export function attachAlertPersistence(app: AppServices, health: PersistenceHealth): void {
   attachSnapshot(
     app,
     "alerts",
@@ -104,10 +118,11 @@ export function attachAlertPersistence(app: AppServices): void {
       };
     },
     (stored) => app.alerts.restore(stored),
+    health,
   );
 }
 
-export function attachStopPersistence(app: AppServices): void {
+export function attachStopPersistence(app: AppServices, health: PersistenceHealth): void {
   attachSnapshot(
     app,
     "stops",
@@ -136,6 +151,7 @@ export function attachStopPersistence(app: AppServices): void {
       };
     },
     (stored) => app.stops.restore(stored),
+    health,
   );
 }
 
@@ -145,7 +161,7 @@ export function attachStopPersistence(app: AppServices): void {
  * reloads on boot. Mutations mirror to Postgres; failures only log.
  * Boot-time mutations win over the stored snapshot (see attachSnapshot).
  */
-export function attachDeadmanPersistence(app: AppServices): void {
+export function attachDeadmanPersistence(app: AppServices, health: PersistenceHealth): void {
   const url = app.env.DATABASE_URL;
   if (!url) return;
   const deadman = app.deadman;
@@ -163,6 +179,8 @@ export function attachDeadmanPersistence(app: AppServices): void {
         countdownMs: status.countdownMs,
       })
       .catch((error: unknown) => {
+        noteFailure(persistenceCause(error));
+        health.refresh();
         app.logger.warn(
           { error: String(error), cause: persistenceCause(error) },
           "deadman persistence failed, keeping memory switch",
@@ -222,11 +240,15 @@ export function attachDeadmanPersistence(app: AppServices): void {
       repo = repository;
       tenantId = tenant;
       ready = true;
+      noteConnected();
+      health.refresh();
       app.shutdownHooks.push(async () => {
         await close();
       });
       if (bootDirty) flush();
     } catch (error) {
+      noteFailure(persistenceCause(error));
+      health.refresh();
       app.logger.warn(
         { error: String(error), cause: persistenceCause(error) },
         "deadman persistence disabled, keeping memory switch",

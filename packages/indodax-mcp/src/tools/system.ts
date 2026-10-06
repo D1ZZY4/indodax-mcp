@@ -6,6 +6,7 @@ import type { ServerHandlers } from "@indodax-mcp/mcp-core";
 import { fail, ok, parseArgs } from "@indodax-mcp/indodax-mcp/respond";
 import { pairArg } from "@indodax-mcp/indodax-mcp/schemas";
 import { defineTool } from "@indodax-mcp/indodax-mcp/tools/define";
+import { persistenceReport } from "@indodax-mcp/indodax-mcp/persistence-state";
 import type { AppServices } from "@indodax-mcp/indodax-mcp/composition";
 
 const SYSTEM = {
@@ -100,8 +101,10 @@ export function registerSystemTools(
     const snapshot = app.health.snapshot();
     const wiring: Record<string, { wired: boolean; action: string }> = {
       database: {
-        wired: false,
-        action: "set DATABASE_URL to mirror paper/audit/alerts/stops/deadman",
+        wired: true,
+        action:
+          "set DATABASE_URL to mirror paper/audit/alerts/stops/deadman; " +
+          "config_status reports whether the connection is actually reachable",
       },
       exchangeRest: {
         wired: false,
@@ -219,6 +222,13 @@ export function registerSystemTools(
       : keySource === "absent" && secretSource === "absent"
         ? "this process received no INDODAX_API_KEY or INDODAX_API_SECRET; export them in the environment of the process that starts this server, or add a repository .env beside the workspace"
         : `partial credentials: INDODAX_API_KEY from ${keySource}, INDODAX_API_SECRET from ${secretSource}; both are required`;
+    const persistence = persistenceReport();
+    const database =
+      persistence.state === "connected"
+        ? "connected"
+        : persistence.state === "failed"
+          ? "configured_unreachable"
+          : "absent";
     return ok({
       credentialsConfigured: configured,
       mode: app.env.APP_ENV,
@@ -228,7 +238,22 @@ export function registerSystemTools(
       rateLimitRps: app.env.INDODAX_RATE_LIMIT ?? null,
       stopAutopollMs: app.env.STOP_AUTOPOLL_MS ?? null,
       alertAutopollMs: app.env.ALERT_AUTOPOLL_MS ?? null,
-      database: app.env.DATABASE_URL !== undefined ? "configured" : "absent",
+      /**
+       * Reachability, not presence. `configured` used to mean only that the
+       * variable existed, which stayed green while every mirror write failed
+       * and a restart silently lost stops, alerts, and the deadman state.
+       */
+      database,
+      durability: {
+        state: persistence.state,
+        mirrors: persistence.mirrors,
+        since: persistence.since,
+        lastError: persistence.lastError,
+        degraded: persistence.degraded,
+        note: persistence.degraded
+          ? "the database mirror is configured but not reachable, so a restart cannot restore this state"
+          : "state is mirrored and restored on boot",
+      },
       configSource: {
         credentials: diagnostic.credentials,
         repoEnvFileFound: diagnostic.repoEnvFileFound,
@@ -237,8 +262,12 @@ export function registerSystemTools(
       },
       summary: `mode ${app.env.APP_ENV}, credentials ${
         configured ? `present from ${keySource}` : "absent"
-      }, withdraw always disabled`,
-      remedy,
+      }, database ${database}, withdraw always disabled`,
+      remedy: persistence.degraded
+        ? `database unreachable since ${persistence.since}${
+            persistence.lastError === null ? "" : ` (${persistence.lastError})`
+          }; start it before relying on ${persistence.mirrors.join(",")} across a restart`
+        : remedy,
     });
   });
   handlers.tools.set("indodax_runtime_status", async () =>

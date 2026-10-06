@@ -11,6 +11,11 @@ import {
   attachStopPersistence,
 } from "@indodax-mcp/indodax-mcp/state-store";
 import { evaluateAlerts } from "@indodax-mcp/indodax-mcp/tools/alerts";
+import {
+  noteConfigured,
+  noteUnconfigured,
+  persistenceReport,
+} from "@indodax-mcp/indodax-mcp/persistence-state";
 import { evaluateStops } from "@indodax-mcp/indodax-mcp/tools/stop";
 import { registerMarketTools } from "@indodax-mcp/indodax-mcp/tools/market";
 import { registerAccountTools } from "@indodax-mcp/indodax-mcp/tools/account";
@@ -44,11 +49,18 @@ export function emptyHandlers(): ServerHandlers {
 
 export function buildIndodaxServer(env: AppEnv, diagnostic?: ConfigDiagnostic) {
   const app: AppServices = createApp(env, diagnostic);
-  void attachAuditPersistence(app);
-  void attachPaperPersistence(app);
-  void attachAlertPersistence(app);
-  void attachStopPersistence(app);
-  void attachDeadmanPersistence(app);
+  const MIRRORS = ["paper", "audit", "alerts", "stops", "deadman"] as const;
+  if (env.DATABASE_URL !== undefined) noteConfigured([...MIRRORS]);
+  else noteUnconfigured();
+  const health = {
+    /** Recompute the database and mirror components from live evidence. */
+    refresh: () => refreshPersistenceHealth(app),
+  };
+  void attachAuditPersistence(app, health);
+  void attachPaperPersistence(app, health);
+  void attachAlertPersistence(app, health);
+  void attachStopPersistence(app, health);
+  void attachDeadmanPersistence(app, health);
   app.health.set("configuration", { status: "healthy", detail: "environment parsed" });
   app.health.set("runtime", { status: "healthy", detail: "server composed" });
   app.health.set("mcpTransport", { status: "healthy", detail: "registry built" });
@@ -121,6 +133,43 @@ function startAutopoll(app: AppServices, server: ReturnType<typeof buildServer>)
     status: "healthy",
     detail: jobs.length > 0 ? `${jobs.join(",")} scheduled` : "no jobs scheduled",
   });
+}
+
+/**
+ * Recompute the persistence-dependent health components from live evidence.
+ *
+ * Runs after every mirror attaches and on every health read, so a database
+ * that dies after boot stops being reported as healthy. Without this the
+ * server could claim a durable mirror while every write was failing.
+ */
+function refreshPersistenceHealth(app: AppServices): void {
+  const report = persistenceReport();
+  if (!report.configured) {
+    app.health.set("database", {
+      status: "unknown",
+      detail: "no DATABASE_URL, memory only, a restart loses paper/audit/alerts/stops/deadman",
+    });
+    return;
+  }
+  if (report.state === "connected") {
+    app.health.set("database", {
+      status: "healthy",
+      detail: `reachable, mirroring ${report.mirrors.join(",")}`,
+    });
+    return;
+  }
+  app.health.set("database", {
+    status: "unhealthy",
+    detail:
+      `configured but unreachable since boot, mirroring ${report.mirrors.join(",")} has no effect, ` +
+      `a restart cannot restore ${report.mirrors.join(",")}` +
+      (report.lastError === null ? "" : ` (${report.lastError})`),
+  });
+}
+
+/** Exposed so the config surface reports the same truth as the health rollup. */
+export function durability(): ReturnType<typeof persistenceReport> {
+  return persistenceReport();
 }
 
 /**

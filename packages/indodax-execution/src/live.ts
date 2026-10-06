@@ -1,6 +1,7 @@
 import { OrderRejectedError, ValidationError, isAppError } from "@indodax-mcp/errors";
 import { asCompact, parseSymbolFlexible } from "@indodax-mcp/core";
 import { INDODAX_V2_BASE, type TapiV2Signer } from "@indodax-mcp/indodax-auth";
+import { describeEgress, egressAddresses } from "@indodax-mcp/indodax-execution/egress";
 import {
   OFFICIAL_V2_BUCKET,
   RateLimiter,
@@ -27,9 +28,9 @@ const REJECTION_REMEDIES: Readonly<Record<number, string>> = {
     "insufficient balance. next: call indodax_balances and compare free funds against " +
     "the amount locked by open orders, then lower the size or free funds before retrying",
   [-2015]:
-    "unauthorized IP address. next: add this server's public IP to the API key allowlist " +
-    "in the exchange dashboard, or use a key without IP restrictions; the request signature " +
-    "was accepted, so this is not a credentials or signing problem",
+    "unauthorized IP address. next: allowlist the egress address named in this message for the " +
+    "matching IP family in the exchange dashboard, or use a key without IP restrictions; " +
+    "the request signature was accepted, so this is not a credentials or signing problem",
   [-1021]:
     "invalid client order id. next: generate a fresh clientOrderId, because an id already " +
     "used on the exchange is rejected even when the previous order is gone",
@@ -61,20 +62,54 @@ function exchangePayloadFrom(error: unknown): ExchangePayload | null {
 }
 
 /**
+ * Translate a rejection, attaching the egress address when one is relevant.
+ *
+ * The lookup is awaited rather than fire-and-forget so the operator sees the
+ * address in the same error, and it never throws: a lookup failure leaves the
+ * message otherwise intact.
+ */
+async function rejectionFor(
+  action: string,
+  raw: ExchangePayload,
+): Promise<{ message: string; safeMetadata?: Record<string, unknown> }> {
+  let egress: string | null = null;
+  let metadata: Record<string, unknown> | undefined;
+  if (raw.code === -2015) {
+    const addresses = await egressAddresses();
+    egress = describeEgress(addresses);
+    metadata = {
+      exchangeCode: -2015,
+      reason: "ip_not_allowlisted",
+      egressIpv4: addresses.ipv4,
+      egressIpv6: addresses.ipv6,
+      guidance:
+        "allowlist the egress address for the family the exchange saw, or use a key without " +
+        "IP restrictions; the request signature was accepted",
+    };
+  }
+  const message = rejectionMessage(action, raw, egress);
+  return metadata === undefined ? { message } : { message, safeMetadata: metadata };
+}
+
+/**
  * Exchange rejections arrive as raw codes plus terse text (for example
  * code -2010 for insufficient balance). Keep the raw payload for
  * traceability, but translate the known-terse cases into the next action
  * so agents do not have to guess which balance or order is short.
  */
-function rejectionMessage(action: string, raw: ExchangePayload): string {
+function rejectionMessage(action: string, raw: ExchangePayload, egress: string | null): string {
   const code = typeof raw.code === "number" ? raw.code : null;
   const text = (raw.msg ?? JSON.stringify(raw)).slice(0, 200);
   const remedy = code === null ? undefined : REJECTION_REMEDIES[code];
   if (remedy !== undefined) {
     const prefix = `exchange rejected ${action}`;
+    // An IP rejection is unactionable without the address to allowlist, and the
+    // family that matters is whichever the exchange actually saw. A dual stack
+    // host that only allowlists IPv4 sees this even though IPv4 looks correct.
+    const egressNote = code === -2015 && egress !== null ? ` (${egress})` : "";
     return code === null
-      ? `${prefix}: ${remedy} (${text})`
-      : `${prefix} with code ${code}: ${remedy} (${text})`;
+      ? `${prefix}: ${remedy}${egressNote} (${text})`
+      : `${prefix} with code ${code}: ${remedy}${egressNote} (${text})`;
   }
   const text2 = JSON.stringify(raw).slice(0, 200);
   if (/insufficient/i.test(text2) && /balance|fund/i.test(text2)) {
@@ -167,12 +202,18 @@ export class LiveExecutor implements ExecutionBackend {
       // Recover the exchange payload here, otherwise the rejection reaches the
       // caller as a bare transport string with no code and no next action.
       const payload = exchangePayloadFrom(error);
-      if (payload !== null) throw OrderRejectedError(rejectionMessage("order", payload));
+      if (payload !== null) {
+        const translated = await rejectionFor("order", payload);
+        throw OrderRejectedError(translated.message, {
+          safeMetadata: translated.safeMetadata,
+        });
+      }
       throw error;
     }
     const code = (raw as { code?: number }).code;
     if (typeof code === "number" && code !== 0) {
-      throw OrderRejectedError(rejectionMessage("order", raw));
+      const translated = await rejectionFor("order", raw);
+      throw OrderRejectedError(translated.message, { safeMetadata: translated.safeMetadata });
     }
     const body = (raw as { data?: Record<string, unknown> }).data ?? raw;
     return {
@@ -209,12 +250,18 @@ export class LiveExecutor implements ExecutionBackend {
       raw = await this.signed<Record<string, unknown>>("DELETE", "/api/v2/order", params);
     } catch (error) {
       const payload = exchangePayloadFrom(error);
-      if (payload !== null) throw OrderRejectedError(rejectionMessage("cancel", payload));
+      if (payload !== null) {
+        const translated = await rejectionFor("cancel", payload);
+        throw OrderRejectedError(translated.message, {
+          safeMetadata: translated.safeMetadata,
+        });
+      }
       throw error;
     }
     const code = (raw as { code?: number }).code;
     if (typeof code === "number" && code !== 0) {
-      throw OrderRejectedError(rejectionMessage("cancel", raw));
+      const translated = await rejectionFor("cancel", raw);
+      throw OrderRejectedError(translated.message, { safeMetadata: translated.safeMetadata });
     }
     return true;
   }
