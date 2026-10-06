@@ -16,6 +16,16 @@ export interface RiskContextRequest {
   clientOrderId?: string | null | undefined;
   /** Quote-side sufficiency computed by the caller (paper balances, live pre-check). */
   balanceSufficient?: boolean | null | undefined;
+  /**
+   * Skip the inter-order cooldown for a continuation leg of one intent.
+   *
+   * The cooldown exists to slow down an agent submitting repeated separate
+   * orders. A single OCO bundle is one decision that must place several legs,
+   * so without this every leg after the first was refused and the bundle
+   * reported a half-protected position. Every other check, including limits,
+   * deadman, balance, and reconciliation, still runs per leg.
+   */
+  ignoreCooldown?: boolean | undefined;
 }
 
 /**
@@ -118,7 +128,10 @@ export async function resolveRiskContext(
     balanceSufficient: request.balanceSufficient ?? null,
     marketSuspended,
     positionNotional: openExposure(ledger.orders),
-    lastOrderAtMs: lastSubmitted.length > 0 ? Math.max(...lastSubmitted) : null,
+    lastOrderAtMs:
+      request.ignoreCooldown === true || lastSubmitted.length === 0
+        ? null
+        : Math.max(...lastSubmitted),
   };
 }
 

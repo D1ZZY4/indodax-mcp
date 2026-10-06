@@ -81,6 +81,12 @@ export interface LivePlacement {
   timeInForce?: "GTC" | "MOC" | "FOK" | undefined;
   stpMode?: "EXPIRE_TAKER" | "EXPIRE_MAKER" | "EXPIRE_BOTH" | undefined;
   acknowledged?: boolean | undefined;
+  /**
+   * Set for a continuation leg of one multi-leg intent such as an OCO bundle.
+   * It exempts only the inter-order cooldown; every other risk check still
+   * runs, so a leg cannot bypass limits, deadman, or the balance check.
+   */
+  ignoreCooldown?: boolean | undefined;
 }
 
 /**
@@ -153,6 +159,7 @@ export async function placeLiveOrder(app: AppServices, placement: LivePlacement)
       capability,
       pair: placement.pair,
       clientOrderId: order.clientOrderId,
+      ignoreCooldown: placement.ignoreCooldown === true,
     }),
   );
   if (decision.outcome !== "ALLOW") throw RiskDeniedError(decision.message);

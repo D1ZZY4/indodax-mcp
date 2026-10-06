@@ -15,6 +15,12 @@ export interface PaperPlacement {
   price?: number | undefined;
   quantity: number;
   clientOrderId?: string | undefined;
+  /**
+   * Set for a continuation leg of one multi-leg intent such as an OCO bundle.
+   * It exempts only the inter-order cooldown; limits, deadman, balance, and
+   * reconciliation are still enforced for this leg.
+   */
+  ignoreCooldown?: boolean | undefined;
 }
 
 /** Execution result plus the order type the caller requested. */
@@ -107,6 +113,7 @@ export async function placePaperOrder(
         notional,
         quantity,
       ),
+      ignoreCooldown: placement.ignoreCooldown === true,
     }),
   );
   if (decision.outcome !== "ALLOW") throw RiskDeniedError(decision.message);

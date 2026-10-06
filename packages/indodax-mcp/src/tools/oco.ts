@@ -3,6 +3,7 @@ import { ValidationError } from "@indodax-mcp/errors";
 import type { Registry } from "@indodax-mcp/mcp-registry";
 import type { ServerHandlers } from "@indodax-mcp/mcp-core";
 import { fail, ok, parseArgs } from "@indodax-mcp/indodax-mcp/respond";
+import { canonicalPair } from "@indodax-mcp/indodax-mcp/schemas";
 import { defineTool } from "@indodax-mcp/indodax-mcp/tools/define";
 import type { AppServices } from "@indodax-mcp/indodax-mcp/composition";
 import { placePaperOrder } from "@indodax-mcp/indodax-mcp/tools/paper";
@@ -52,6 +53,20 @@ function asMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
+/**
+ * The exchange id a placed leg came back with.
+ *
+ * Read defensively across both spellings the adapters use, because the link is
+ * what lets the stop release the quantity later. A missing id is not fatal:
+ * the stop still works, it just cannot pre-empt the take-profit.
+ */
+function extractExchangeOrderId(detail: Record<string, unknown>): string | null {
+  const value = detail.exchangeOrderId;
+  if (typeof value === "string" && value !== "") return value;
+  if (typeof value === "number") return String(value);
+  return null;
+}
+
 export function registerOcoTools(
   registry: Registry,
   handlers: ServerHandlers,
@@ -83,11 +98,24 @@ export function registerOcoTools(
       const groupId = args.clientOrderId ?? `oco-${Date.now().toString(36)}`;
       const legs: LegResult[] = [];
 
+      /**
+       * Every leg is one decision, so each leg after the first skips only the
+       * inter-order cooldown. The risk engine still evaluates limits, deadman,
+       * balance, and reconciliation for each leg individually, and the entry
+       * leg is still refused outright when it fails.
+       *
+       * `placedLegs` counts the entry too, so a bundle that opens a position
+       * and then places its take profit does not have that second leg refused
+       * by the cooldown the first leg just started.
+       */
+      let placedLegs = 0;
       const place = async (
         leg: string,
         price: number,
         label: "takeProfit" | "stop",
       ): Promise<void> => {
+        const continuation = placedLegs > 0;
+        placedLegs += 1;
         try {
           const result =
             mode === "live"
@@ -98,6 +126,7 @@ export function registerOcoTools(
                   price,
                   acknowledged: args.acknowledged,
                   clientOrderId: `${groupId}-${label}`.slice(0, 36),
+                  ignoreCooldown: continuation,
                 })
               : await placePaperOrder(app, {
                   pair: args.pair,
@@ -106,6 +135,7 @@ export function registerOcoTools(
                   quantity,
                   price,
                   clientOrderId: `${groupId}-${label}`.slice(0, 36),
+                  ignoreCooldown: continuation,
                 });
           legs.push({ leg, ok: true, detail: { ...result } });
         } catch (error) {
@@ -139,12 +169,25 @@ export function registerOcoTools(
             `entry leg was refused, so no protection was armed: ${asMessage(error)}`,
           );
         }
+        // Counted so the following take-profit leg is treated as a
+        // continuation of this same decision rather than a fresh submission.
+        placedLegs += 1;
       }
 
-      // Stops register first so a moving market cannot leave the leg with a
-      // take profit but no floor while these two calls are in flight.
+      // The take-profit is placed first so its exchange order id is known, and
+      // the stop is then registered linked to it.
+      //
+      // The link is what makes the pair survivable: a resting take-profit
+      // reserves the quantity, so an unlinked cut-loss on that same quantity
+      // is refused with -2010 every time it triggers. Registering the stop
+      // first instead would produce a stop that reported itself armed and
+      // could never place. Nothing is exposed in between, because a stop only
+      // fires inside an evaluateStops pass, not during this call.
+      await place("takeProfit", args.takeProfitPrice, "takeProfit");
+      const takeProfitLeg = legs.find((leg) => leg.leg === "takeProfit");
+      const linkedOrderId = takeProfitLeg?.ok ? extractExchangeOrderId(takeProfitLeg.detail) : null;
       const stop = app.stops.add({
-        pair: args.pair,
+        pair: canonicalPair(args.pair),
         side: args.side,
         quantity,
         stopPrice: args.stopPrice,
@@ -152,8 +195,8 @@ export function registerOcoTools(
         mode,
         ...(mode === "live" ? { acknowledgedAt: new Date().toISOString() } : {}),
         groupId,
+        ...(linkedOrderId === null ? {} : { linkedOrderId }),
       });
-      await place("takeProfit", args.takeProfitPrice, "takeProfit");
 
       const failed = legs.filter((leg) => !leg.ok);
       return ok({

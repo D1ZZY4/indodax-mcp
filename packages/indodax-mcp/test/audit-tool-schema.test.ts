@@ -15,6 +15,7 @@ const TOOL_MODULES = [
   "history",
   "market",
   "oco",
+  "oco-attach",
   "ops",
   "orders",
   "paper",

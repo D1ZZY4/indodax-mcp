@@ -37,6 +37,7 @@ import { registerSymbolTools } from "@indodax-mcp/indodax-mcp/tools/symbols";
 import { registerPositionTools } from "@indodax-mcp/indodax-mcp/tools/positions";
 import { registerRoundingTools } from "@indodax-mcp/indodax-mcp/tools/rounding";
 import { registerOcoTools } from "@indodax-mcp/indodax-mcp/tools/oco";
+import { registerOcoAttachTools } from "@indodax-mcp/indodax-mcp/tools/oco-attach";
 import { registerDeadmanTools } from "@indodax-mcp/indodax-mcp/tools/deadman";
 import { registerStopTools } from "@indodax-mcp/indodax-mcp/tools/stop";
 import { registerDocsTools } from "@indodax-mcp/indodax-mcp/tools/docs";
@@ -90,6 +91,7 @@ export function buildIndodaxServer(env: AppEnv, diagnostic?: ConfigDiagnostic) {
   registerPositionTools(registry, handlers, app);
   registerRoundingTools(registry, handlers, app);
   registerOcoTools(registry, handlers, app);
+  registerOcoAttachTools(registry, handlers, app);
   registerDeadmanTools(registry, handlers, app);
   registerStopTools(registry, handlers, app);
   registerDocsTools(registry, handlers, app);

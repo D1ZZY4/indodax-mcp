@@ -1,8 +1,8 @@
 import { z } from "zod";
+import Decimal from "decimal.js";
 import { ValidationError } from "@indodax-mcp/errors";
 import type { Registry } from "@indodax-mcp/mcp-registry";
 import type { ServerHandlers } from "@indodax-mcp/mcp-core";
-import { getTicker } from "@indodax-mcp/indodax-market";
 import { decimalOrNull } from "@indodax-mcp/core";
 import { fail, ok, parseArgs } from "@indodax-mcp/indodax-mcp/respond";
 import {
@@ -14,8 +14,21 @@ import {
 } from "@indodax-mcp/indodax-mcp/schemas";
 import { defineTool } from "@indodax-mcp/indodax-mcp/tools/define";
 import type { AppServices } from "@indodax-mcp/indodax-mcp/composition";
-import { placeLiveOrder } from "@indodax-mcp/indodax-mcp/tools/order-intent";
-import { placePaperOrder } from "@indodax-mcp/indodax-mcp/tools/paper";
+import { assessLiquidity, describeLock } from "@indodax-mcp/indodax-mcp/stop-liquidity";
+import { evaluateStops } from "@indodax-mcp/indodax-mcp/stop-trigger";
+
+/**
+ * The MCP surface for server-side stops: create, list, cancel, and check.
+ *
+ * Trigger evaluation lives in `stop-trigger` so the autopoll and this tool
+ * share one decision path.
+ */
+export {
+  evaluateStops,
+  isLiquidityBlock,
+  isRetryableStopFailure,
+} from "@indodax-mcp/indodax-mcp/stop-trigger";
+export type { StopFireResult } from "@indodax-mcp/indodax-mcp/stop-trigger";
 
 const STOP = {
   capability: "TRADE" as const,
@@ -43,136 +56,12 @@ const STOP_SHAPE = {
   groupId: z.string().min(1).max(36).optional(),
 };
 
-function crossed(side: "BUY" | "SELL", last: string, stopPrice: number): boolean {
-  const current = decimalOrNull(last);
-  const trigger = decimalOrNull(String(stopPrice));
-  if (current === null || trigger === null) return false;
-  return side === "SELL" ? current.lte(trigger) : current.gte(trigger);
-}
-
-export interface StopFireResult {
-  checked: number;
-  fired: {
-    id: string;
-    status: string;
-    price?: string;
-    reason?: string;
-    /** True when a later cycle could still succeed after the named remedy. */
-    retryable?: boolean;
-    /** The next action, present on a retryable failure. */
-    fix?: string;
-    cancelledSiblings?: string[];
-  }[];
-}
-
-/**
- * Whether a placement refusal can still be cleared by a later cycle.
- *
- * Local context refusals are the ones worth retrying: the price condition
- * already held, the stop never reached the exchange, and the position is
- * still unprotected. Anything the exchange itself refused is terminal,
- * because resubmitting the same order would only be refused again.
- */
-export function isRetryableStopFailure(reason: string): boolean {
-  if (/^denied: (STALE_ACCOUNT_STATE|STALE_MARKET_DATA)\b/.test(reason)) return true;
-  return /\b(COOLDOWN_ACTIVE)\b/.test(reason);
-}
-
-/** Cancel the open siblings of a fired stop (pseudo-OCO within one group). */
-function cancelOcoSiblings(app: AppServices, firedId: string, groupId: string): string[] {
-  const cancelled: string[] = [];
-  for (const sibling of app.stops.list()) {
-    if (sibling.id === firedId || sibling.groupId !== groupId || sibling.status !== "open") {
-      continue;
-    }
-    if (app.stops.cancel(sibling.id, `oco-cancelled by ${firedId}`)) {
-      cancelled.push(sibling.id);
-    }
-  }
-  return cancelled;
-}
-
-/** Shared trigger evaluation used by the tool and the optional autopoll job. */
-export async function evaluateStops(app: AppServices): Promise<StopFireResult> {
-  const fired: StopFireResult["fired"] = [];
-  for (const stop of app.stops.list()) {
-    let last: string | null = null;
-    try {
-      const ticker = await getTicker(app.publicClient, stop.pair);
-      const parsed = decimalOrNull(ticker.last);
-      last = parsed ? parsed.toString() : null;
-    } catch {
-      last = null;
-    }
-    if (last === null || !crossed(stop.side, last, stop.stopPrice)) continue;
-    try {
-      const result =
-        stop.mode === "live"
-          ? await placeLiveOrder(app, {
-              pair: stop.pair,
-              side: stop.side,
-              quantity: stop.quantity,
-              price: stop.limitPrice,
-              ...(stop.clientOrderId !== undefined ? { clientOrderId: stop.clientOrderId } : {}),
-              ...(stop.timeInForce !== undefined ? { timeInForce: stop.timeInForce } : {}),
-              ...(stop.stpMode !== undefined ? { stpMode: stop.stpMode } : {}),
-              acknowledged: true,
-            })
-          : await placePaperOrder(app, {
-              pair: stop.pair,
-              side: stop.side,
-              orderType: "LIMIT",
-              price: stop.limitPrice,
-              quantity: stop.quantity,
-              ...(stop.clientOrderId !== undefined ? { clientOrderId: stop.clientOrderId } : {}),
-            });
-      app.stops.mark(stop.id, "triggered", { result });
-      const entry: StopFireResult["fired"][number] = {
-        id: stop.id,
-        status: "triggered",
-        price: last,
-      };
-      if (stop.groupId !== undefined) {
-        const siblings = cancelOcoSiblings(app, stop.id, stop.groupId);
-        if (siblings.length > 0) entry.cancelledSiblings = siblings;
-      }
-      fired.push(entry);
-    } catch (error) {
-      const reason = error instanceof Error ? error.message : String(error);
-      /**
-       * A rejection that a later cycle could still clear must not retire the
-       * stop. A stop whose placement was refused because the account snapshot
-       * went stale is still armed protection: marking it failed removed it
-       * from the open list, so the loop saw no stop and the position stayed
-       * uncovered while the price kept moving. Such a stop stays open, keeps
-       * its protection, and is reported as retryable so the caller refreshes
-       * the account and runs the check again.
-       */
-      const retryable = isRetryableStopFailure(reason);
-      if (retryable) {
-        fired.push({
-          id: stop.id,
-          status: "retry",
-          price: last,
-          reason,
-          retryable: true,
-          fix: "refresh the account with indodax_account, then run indodax_stop_check again; this stop is still armed",
-        });
-        continue;
-      }
-      app.stops.mark(stop.id, "failed", { reason });
-      fired.push({ id: stop.id, status: "failed", reason, retryable: false });
-    }
-  }
-  return { checked: app.stops.list(true).length, fired };
-}
-
 const stopCreate = defineTool(
   {
     name: "indodax_stop_create",
     title: "Create stop",
     description:
-      "Server-side emulated stop, not exchange-native. Stores a trigger after a notional limit pre-check; nothing is placed until indodax_stop_check or the opt-in autopoll sees the stop price crossed. Stops that share groupId behave as one-cancels-the-other: when one fires, open siblings auto-cancel. Live needs acknowledged true plus the full live gate, recorded as acknowledgedAt. Args: pair, side, quantity, stopPrice, optional limitPrice defaulting to stopPrice, optional groupId for OCO linking.",
+      "Server-side emulated stop, not exchange-native. Stores a trigger after a notional limit pre-check; nothing is placed until indodax_stop_check or the opt-in autopoll sees the stop price crossed. Stops that share groupId behave as one-cancels-the-other: when one fires, open siblings auto-cancel. Live needs acknowledged true plus the full live gate, recorded as acknowledgedAt. For a live SELL it also checks the asset is actually free: a resting take-profit reserves the quantity it will sell, so a cut-loss on the same quantity would be refused with -2010 when it triggers. A blocked stop is still armed and the response carries a warning naming the locking order plus the fix. Args: pair, side, quantity, stopPrice, optional limitPrice defaulting to stopPrice, optional groupId for OCO linking.",
     ...STOP,
   },
   STOP_SHAPE,
@@ -248,6 +137,24 @@ export function registerStopTools(
           );
         }
       }
+      /**
+       * Live stops are checked against real free balance before they are armed.
+       *
+       * A resting take-profit reserves the quantity it will sell, so arming a
+       * cut-loss on that same quantity produced a stop that reported itself
+       * armed and then could never fire: the exchange refused it with -2010 the
+       * moment the price crossed. The stop is still created, because it is
+       * still the protection the operator asked for, but the response now
+       * states the lock and the fix instead of implying the stop is safe.
+       */
+      const liquidity =
+        mode === "live"
+          ? await assessLiquidity(app, {
+              pair: canonicalPair(args.pair),
+              side: args.side,
+              quantity: decimalOrNull(args.quantity) ?? new Decimal(0),
+            })
+          : { blocked: false, locked: null, fix: null };
       const stop = app.stops.add({
         pair: canonicalPair(args.pair),
         side: args.side,
@@ -261,7 +168,8 @@ export function registerStopTools(
         ...(args.groupId !== undefined ? { groupId: args.groupId } : {}),
         ...(mode === "live" ? { acknowledgedAt: new Date().toISOString() } : {}),
       });
-      return ok({
+      const warning = describeLock(liquidity);
+      const payload: Record<string, unknown> = {
         id: stop.id,
         status: stop.status,
         stop,
@@ -274,7 +182,19 @@ export function registerStopTools(
         totalStops: app.stops.list(true).length,
         summary: `stop ${stop.id} armed for ${stop.pair} ${stop.side} at ${stop.stopPrice}`,
         note: "Emulated server-side; fires only while this server runs via indodax_stop_check or autopoll.",
-      });
+      };
+      if (liquidity.locked !== null) {
+        payload.liquidity = {
+          blocked: true,
+          asset: liquidity.locked.asset,
+          required: liquidity.locked.required.toString(),
+          free: liquidity.locked.free.toString(),
+          reservations: liquidity.locked.reservations,
+        };
+        payload.warning = warning;
+        payload.remedy = liquidity.fix;
+      }
+      return ok(payload, warning === null ? [] : [warning]);
     } catch (error) {
       return fail(error);
     }
@@ -284,13 +204,30 @@ export function registerStopTools(
     try {
       const args = parseArgs(stopsList.inputSchema, raw);
       const stops = app.stops.list(args.history ?? false);
-      return ok({
+      const blocked = stops.filter((stop) => stop.status === "blocked");
+      const payload: Record<string, unknown> = {
         count: stops.length,
         open: stops.filter((stop) => stop.status === "open").length,
+        // Blocked stops are armed protection that could not place, so they are
+        // counted separately rather than folded into `open`: a stop that can
+        // never fire is not the same as one that can.
+        blocked: blocked.length,
         stops,
         pairs: [...new Set(stops.map((stop) => stop.pair))],
         summary: `${stops.length} stops listed`,
-      });
+      };
+      if (blocked.length > 0) {
+        payload.blockedStops = blocked.map((stop) => ({
+          id: stop.id,
+          pair: stop.pair,
+          quantity: stop.quantity,
+          reason: stop.blockedReason ?? stop.reason ?? null,
+          fix: stop.blockedFix ?? null,
+        }));
+        payload.note =
+          "a blocked stop is still armed protection whose placement was refused; it retries on the next check";
+      }
+      return ok(payload);
     } catch (error) {
       return fail(error);
     }
@@ -318,6 +255,7 @@ export function registerStopTools(
     try {
       const result = await evaluateStops(app);
       const retry = result.fired.filter((entry) => entry.retryable === true);
+      const blocked = result.fired.filter((entry) => entry.status === "blocked");
       return ok({
         ...result,
         openStops: app.stops.list().length,
@@ -326,19 +264,38 @@ export function registerStopTools(
         retryable: retry.length,
         retryableStops: retry.map((entry) => ({
           id: entry.id,
+          status: entry.status,
+          reason: entry.reason,
+          fix: entry.fix,
+        })),
+        /**
+         * Stops held up by a reserved quantity, reported on their own.
+         *
+         * This is the case that produced real losses: the stop triggered, the
+         * exchange refused it because a take-profit held the balance, and
+         * nothing said so at the time. Naming the blocking order is what turns
+         * a silent failure into an action the operator can take.
+         */
+        blocked: blocked.length,
+        blockedStops: blocked.map((entry) => ({
+          id: entry.id,
           reason: entry.reason,
           fix: entry.fix,
         })),
         protectionIntact:
-          retry.length > 0
-            ? "a stop crossed its price but was not placed; it is still open, refresh the account and check again"
-            : null,
+          blocked.length > 0
+            ? "a stop crossed its price and could not place because the quantity is reserved by another order; it stays armed and retries once that order is cancelled. use indodax_oco_attach to link the two automatically"
+            : retry.length > 0
+              ? "a stop crossed its price but was not placed; it is still open, refresh the account and check again"
+              : null,
         summary:
-          retry.length > 0
-            ? `${retry.length} stop(s) still armed after a refreshable failure of ${result.checked} checked`
-            : result.fired.length > 0
-              ? `${result.fired.length} stop(s) fired of ${result.checked} checked`
-              : `${result.checked} stops checked, none crossed`,
+          blocked.length > 0
+            ? `${blocked.length} stop(s) blocked by a reserved quantity, still armed, of ${result.checked} checked`
+            : retry.length > 0
+              ? `${retry.length} stop(s) still armed after a refreshable failure of ${result.checked} checked`
+              : result.fired.length > 0
+                ? `${result.fired.length} stop(s) fired of ${result.checked} checked`
+                : `${result.checked} stops checked, none crossed`,
       });
     } catch (error) {
       return fail(error);
