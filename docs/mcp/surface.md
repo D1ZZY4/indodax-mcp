@@ -12,7 +12,7 @@ The current SDK environment negotiates MCP protocol 2025-11-25.
 
 ## Surface
 
-The registry currently contains **84 tools**, **12 resources**, and **5 prompts**.
+The registry currently contains **88 tools**, **12 resources**, and **5 prompts**.
 
 | Area | Current role |
 | --- | --- |

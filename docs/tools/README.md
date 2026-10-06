@@ -5,9 +5,9 @@ shapes, errors, and worked usage. Start here, then open one area file.
 
 | Area | File | Tools |
 | --- | --- | --- |
-| Market | [market.md](market.md) | server_time, pairs, ticker, tickers_all, orderbook, trades, candles, price_increments, summaries, quote, search_symbols |
-| Account | [account.md](account.md) | account, balances, capabilities |
-| Orders | [orders.md](orders.md) | validate_order, propose_order, create_order, cancel_order |
+| Market | [market.md](market.md) | server_time, pairs, ticker, tickers_all, orderbook, trades, candles, price_increments, summaries, quote, search_symbols, round_order |
+| Account | [account.md](account.md) | account, balances, capabilities, positions_live |
+| Orders | [orders.md](orders.md) | validate_order, propose_order, create_order, cancel_order, oco_bundle |
 | Paper | [paper.md](paper.md) | paper_account, paper_status, paper_orders, paper_snapshots, paper_fills, paper_order, paper_fill, paper_cancel, paper_reset |
 | Portfolio | [portfolio.md](portfolio.md) | portfolio, positions, pnl, exposure |
 | Risk | [risk.md](risk.md) | risk_limits, risk_state, risk_evaluate |
@@ -20,7 +20,7 @@ shapes, errors, and worked usage. Start here, then open one area file.
 | History | [history.md](history.md) | open_orders, order, order_history, trade_history |
 | Operations | [ops.md](ops.md) | backtest_get, backtest_compare, strategy_validate, reconcile_trades, audit_risk, exposure, ws_reconnect, private_connect, private_disconnect |
 | Deadman | [deadman.md](deadman.md) | deadman_arm, deadman_status, deadman_disarm, deadman_heartbeat |
-| Stops | [stops.md](stops.md) | stop_create, stops, stop_cancel, stop_check |
+| Stops and OCO | [stops.md](stops.md) | stop_create, stops, stop_cancel, stop_check, oco_attach |
 | Meta | [docs.md](docs.md) | docs (this guide system itself) |
 
 Conventions used on every page: money serializes as strings, pair

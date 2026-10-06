@@ -111,6 +111,34 @@ Environment is per server process. The config package falls back to the reposito
 
 The current main application composition does not use PostgreSQL as its source of truth. Database health must therefore be evaluated separately from MCP application health until runtime wiring is completed.
 
+Read the per-store outcome rather than a single verdict. `indodax_config_status`
+returns `durability.stores` with an entry per mirror (`paper`, `audit`, `alerts`,
+`stops`, `deadman`) and each keeps its own evidence, so one store writing
+successfully never clears a failure belonging to another. A stop that a restart
+lost because its mirror never attached shows up as that one store reporting
+`failed` while the rest report `connected`.
+
+## Container deployment
+
+`deploy/docker/Dockerfile` builds the gateway image and copies `docs/` so
+`indodax_docs` can serve the per-area agent guides from inside the image. Without
+that copy the tool reports the guide pages are unavailable at runtime.
+
+`deploy/compose/docker-compose.yml` runs Postgres, applies the Drizzle
+migrations in a one-shot `migrate` service, and starts the gateway only after
+that service completes successfully. It waits on a Postgres healthcheck rather
+than a fixed delay, so first boot against an empty volume does not attach the
+mirrors to a database that has no tables yet.
+
+~~~bash
+cd deploy/compose && docker compose up --build
+~~~
+
+The gateway binds to `127.0.0.1` inside the container and is published on host
+port 8000. It carries no credentials by default: live reads and placement require
+`INDODAX_API_KEY` and `INDODAX_API_SECRET` in its environment, plus `APP_ENV=live`
+and `TRADE_ENABLED=true` for live placement.
+
 ## Incident handling
 
 When an operation is ambiguous:
