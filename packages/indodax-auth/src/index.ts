@@ -1,5 +1,7 @@
 import { createHmac } from "node:crypto";
 
+export * from "@indodax-mcp/indodax-auth/rejections";
+
 export const INDODAX_V2_BASE = "https://api.indodax.com";
 
 export function hmacSha256Hex(data: string, secret: string): string {

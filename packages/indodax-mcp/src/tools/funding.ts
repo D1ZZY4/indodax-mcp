@@ -2,8 +2,14 @@ import { z } from "zod";
 import { AuthenticationError, ValidationError } from "@indodax-mcp/errors";
 import type { Registry } from "@indodax-mcp/mcp-registry";
 import type { ServerHandlers } from "@indodax-mcp/mcp-core";
-import { INDODAX_V2_BASE, LegacyTapiSigner, nextNonce } from "@indodax-mcp/indodax-auth";
+import {
+  INDODAX_V2_BASE,
+  LegacyTapiSigner,
+  nextNonce,
+  translateReadError,
+} from "@indodax-mcp/indodax-auth";
 import { fetchWithRetry } from "@indodax-mcp/transport";
+import { egressHint } from "@indodax-mcp/transport/egress";
 import { fail, ok, parseArgs } from "@indodax-mcp/indodax-mcp/respond";
 import { defineTool } from "@indodax-mcp/indodax-mcp/tools/define";
 import type { AppServices } from "@indodax-mcp/indodax-mcp/composition";
@@ -52,20 +58,26 @@ async function v2Get(
   // Sign per attempt. The signature covers a timestamp the exchange validates
   // inside recvWindow, so a single signature reused across a retry burst would
   // expire and turn a transient failure into a permanent rejection.
-  const response = await fetchWithRetry(
-    `${V2_BASE}${path}`,
-    { headers: { "X-APIKEY": signer.key, Sign: "" } },
-    undefined,
-    undefined,
-    () => {
-      const query = signer.buildTimestampParams(params);
-      return {
-        url: `${V2_BASE}${path}?${query}`,
-        init: { headers: { "X-APIKEY": signer.key, Sign: signer.signQuery(query) } },
-      };
-    },
-  );
-  return response.json();
+  try {
+    const response = await fetchWithRetry(
+      `${V2_BASE}${path}`,
+      { headers: { "X-APIKEY": signer.key, Sign: "" } },
+      undefined,
+      undefined,
+      () => {
+        const query = signer.buildTimestampParams(params);
+        return {
+          url: `${V2_BASE}${path}?${query}`,
+          init: { headers: { "X-APIKEY": signer.key, Sign: signer.signQuery(query) } },
+        };
+      },
+    );
+    return response.json();
+  } catch (error) {
+    const translated = await translateReadError(error, `GET ${path}`, egressHint);
+    if (translated !== null) throw translated;
+    throw error;
+  }
 }
 
 const READ_AUTH = {

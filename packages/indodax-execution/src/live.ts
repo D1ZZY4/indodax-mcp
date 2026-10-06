@@ -1,7 +1,14 @@
-import { OrderRejectedError, ValidationError, isAppError } from "@indodax-mcp/errors";
+import { OrderRejectedError, ValidationError } from "@indodax-mcp/errors";
 import { asCompact, parseSymbolFlexible } from "@indodax-mcp/core";
-import { INDODAX_V2_BASE, type TapiV2Signer } from "@indodax-mcp/indodax-auth";
-import { describeEgress, egressAddresses } from "@indodax-mcp/indodax-execution/egress";
+import {
+  INDODAX_V2_BASE,
+  formatRejection,
+  translateExchangeError,
+  type ExchangePayload,
+  type TapiV2Signer,
+  type TranslatedRejection,
+} from "@indodax-mcp/indodax-auth";
+import { egressHint } from "@indodax-mcp/transport/egress";
 import {
   OFFICIAL_V2_BUCKET,
   RateLimiter,
@@ -17,143 +24,16 @@ import type {
 const V2_BASE = INDODAX_V2_BASE;
 
 /**
- * Verified exchange rejection codes and the action that resolves them.
- *
- * Only codes observed against the live API belong here. An unknown code falls
- * through to the message text rather than being guessed at, because a wrong
- * remedy sends an agent down the wrong path and costs real money.
- */
-const REJECTION_REMEDIES: Readonly<Record<number, string>> = {
-  [-2010]:
-    "insufficient balance. next: call indodax_balances and compare free funds against " +
-    "the amount locked by open orders, then lower the size or free funds before retrying",
-  [-2015]:
-    "unauthorized IP address. next: allowlist the egress address named in this message for the " +
-    "matching IP family in the exchange dashboard, or use a key without IP restrictions; " +
-    "the request signature was accepted, so this is not a credentials or signing problem",
-  [-1021]:
-    "invalid client order id. next: generate a fresh clientOrderId, because an id already " +
-    "used on the exchange is rejected even when the previous order is gone",
-};
-
-/**
- * Cancel outcomes the caller must be able to tell apart.
- *
- * A generic refusal on cancel leaves the caller unable to decide whether the
- * order is still working and needs another attempt, or already filled and must
- * not be cancelled again. Those need opposite follow-up actions, so the
- * distinction is named here rather than left to the operator.
- */
-const CANCEL_OUTCOMES: Readonly<Record<number, { reason: string; guidance: string }>> = {
-  [-2011]: {
-    reason: "order_not_found",
-    guidance:
-      "the exchange does not know this order id, so it is either already filled, already " +
-      "cancelled, or the id is wrong; check indodax_order_history before retrying",
-  },
-  [-2012]: {
-    reason: "order_already_completed",
-    guidance:
-      "the order is filled or cancelled already, so it cannot be cancelled; " +
-      "do not retry, read the final state from indodax_order or indodax_order_history",
-  },
-  [-2013]: {
-    reason: "order_not_found",
-    guidance:
-      "the exchange does not know this order id; confirm it with indodax_order_history " +
-      "before assuming the position is still open",
-  },
-};
-
-interface ExchangePayload {
-  code?: number;
-  msg?: string;
-}
-
-/**
- * Read the exchange error payload out of a transport failure.
- *
- * The exchange signals a business rejection with HTTP 4xx, so the retry helper
- * throws before the executor sees a body. The payload is recovered from the
- * error metadata instead of the message so the translation sees the real code.
- */
-function exchangePayloadFrom(error: unknown): ExchangePayload | null {
-  if (!isAppError(error)) return null;
-  const body = error.safeMetadata?.body;
-  if (typeof body !== "string" || body === "") return null;
-  try {
-    const parsed = JSON.parse(body) as unknown;
-    if (typeof parsed === "object" && parsed !== null) return parsed as ExchangePayload;
-  } catch {
-    // A non-JSON body carries no code; the caller keeps the transport error.
-  }
-  return null;
-}
-
-/**
- * Translate a rejection, attaching the egress address when one is relevant.
+ * Translate a rejection for an already-parsed payload, attaching the egress
+ * address when one is relevant.
  *
  * The lookup is awaited rather than fire-and-forget so the operator sees the
  * address in the same error, and it never throws: a lookup failure leaves the
  * message otherwise intact.
  */
-async function rejectionFor(
-  action: string,
-  raw: ExchangePayload,
-): Promise<{ message: string; safeMetadata?: Record<string, unknown> }> {
-  let egress: string | null = null;
-  let metadata: Record<string, unknown> | undefined;
-  if (raw.code === -2015) {
-    const addresses = await egressAddresses();
-    egress = describeEgress(addresses);
-    metadata = {
-      exchangeCode: -2015,
-      reason: "ip_not_allowlisted",
-      egressIpv4: addresses.ipv4,
-      egressIpv6: addresses.ipv6,
-      guidance:
-        "allowlist the egress address for the family the exchange saw, or use a key without " +
-        "IP restrictions; the request signature was accepted",
-    };
-  }
-  const message = rejectionMessage(action, raw, egress);
-  return metadata === undefined ? { message } : { message, safeMetadata: metadata };
-}
-
-/**
- * Exchange rejections arrive as raw codes plus terse text (for example
- * code -2010 for insufficient balance). Keep the raw payload for
- * traceability, but translate the known-terse cases into the next action
- * so agents do not have to guess which balance or order is short.
- */
-function rejectionMessage(action: string, raw: ExchangePayload, egress: string | null): string {
-  const code = typeof raw.code === "number" ? raw.code : null;
-  const text = (raw.msg ?? JSON.stringify(raw)).slice(0, 200);
-  const remedy = code === null ? undefined : REJECTION_REMEDIES[code];
-  if (remedy !== undefined) {
-    const prefix = `exchange rejected ${action}`;
-    // An IP rejection is unactionable without the address to allowlist, and the
-    // family that matters is whichever the exchange actually saw. A dual stack
-    // host that only allowlists IPv4 sees this even though IPv4 looks correct.
-    const egressNote = code === -2015 && egress !== null ? ` (${egress})` : "";
-    return code === null
-      ? `${prefix}: ${remedy}${egressNote} (${text})`
-      : `${prefix} with code ${code}: ${remedy}${egressNote} (${text})`;
-  }
-  const text2 = JSON.stringify(raw).slice(0, 200);
-  if (/insufficient/i.test(text2) && /balance|fund/i.test(text2)) {
-    return (
-      `exchange rejected ${action}: insufficient balance (${text2}). ` +
-      "next: check indodax_balances for free funds versus amounts locked in open orders, " +
-      "then lower the size or free funds before retrying"
-    );
-  }
-  const detail = code === null ? text2 : `code ${code}: ${text2}`;
-  return (
-    `exchange rejected ${action}: ${detail}. ` +
-    "next: treat this as an exchange rejection; inspect indodax_open_orders and indodax_account " +
-    "for state, and do not retry the same request unchanged"
-  );
+async function rejectionFor(action: string, raw: ExchangePayload): Promise<TranslatedRejection> {
+  const egress = raw.code === -2015 ? await egressHint() : null;
+  return formatRejection(action, raw, egress);
 }
 
 export interface LiveExecutorOptions {
@@ -230,9 +110,8 @@ export class LiveExecutor implements ExecutionBackend {
       // A rejection arrives as HTTP 4xx, so the retry helper throws first.
       // Recover the exchange payload here, otherwise the rejection reaches the
       // caller as a bare transport string with no code and no next action.
-      const payload = exchangePayloadFrom(error);
-      if (payload !== null) {
-        const translated = await rejectionFor("order", payload);
+      const translated = await translateExchangeError(error, "order", egressHint);
+      if (translated !== null) {
         throw OrderRejectedError(translated.message, {
           safeMetadata: translated.safeMetadata,
         });
@@ -278,9 +157,8 @@ export class LiveExecutor implements ExecutionBackend {
     try {
       raw = await this.signed<Record<string, unknown>>("DELETE", "/api/v2/order", params);
     } catch (error) {
-      const payload = exchangePayloadFrom(error);
-      if (payload !== null) {
-        const translated = await rejectionFor("cancel", payload);
+      const translated = await translateExchangeError(error, "cancel", egressHint);
+      if (translated !== null) {
         throw OrderRejectedError(translated.message, {
           safeMetadata: translated.safeMetadata,
         });
@@ -290,17 +168,9 @@ export class LiveExecutor implements ExecutionBackend {
     const code = (raw as { code?: number }).code;
     if (typeof code === "number" && code !== 0) {
       const translated = await rejectionFor("cancel", raw);
-      const outcome = code === null ? undefined : CANCEL_OUTCOMES[code];
-      throw OrderRejectedError(
-        outcome === undefined ? translated.message : `${translated.message}. ${outcome.guidance}`,
-        {
-          safeMetadata: {
-            ...translated.safeMetadata,
-            exchangeCode: code,
-            ...(outcome === undefined ? {} : { reason: outcome.reason, retryable: false }),
-          },
-        },
-      );
+      throw OrderRejectedError(translated.message, {
+        safeMetadata: translated.safeMetadata,
+      });
     }
     return true;
   }

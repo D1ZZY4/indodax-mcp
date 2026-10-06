@@ -235,7 +235,12 @@
     "packages/indodax-auth": {
       "name": "@indodax-mcp/indodax-auth",
       "version": "1.0.0",
+      "dependencies": {
+        "@indodax-mcp/errors": "workspace:*",
+        "@indodax-mcp/transport": "workspace:*",
+      },
       "devDependencies": {
+        "@indodax-mcp/errors": "workspace:*",
         "@types/node": "catalog:",
         "@vitest/coverage-v8": "catalog:",
         "bun-types": "catalog:",

@@ -1,10 +1,16 @@
 import { z } from "zod";
-import { ValidationError } from "@indodax-mcp/errors";
+import { OrderRejectedError, ValidationError } from "@indodax-mcp/errors";
 import Decimal from "decimal.js";
 import { decimalOrNull } from "@indodax-mcp/core";
 import type { FetchFn } from "@indodax-mcp/transport";
 import { OFFICIAL_V2_BUCKET, RateLimiter, fetchWithRetry } from "@indodax-mcp/transport";
-import { INDODAX_V2_BASE, type TapiV2Signer } from "@indodax-mcp/indodax-auth";
+import { egressHint } from "@indodax-mcp/transport/egress";
+import {
+  INDODAX_V2_BASE,
+  translateExchangeError,
+  translateReadError,
+  type TapiV2Signer,
+} from "@indodax-mcp/indodax-auth";
 import type { Capability } from "@indodax-mcp/core";
 
 export const V2_BASE = INDODAX_V2_BASE;
@@ -80,20 +86,50 @@ export class AccountClient {
     // validates inside recvWindow (5000ms), so a single signature reused
     // across a retry burst would expire and turn a transient failure into a
     // permanent timestamp rejection.
-    const response = await fetchWithRetry(
-      `${V2_BASE}${path}`,
-      { headers: { "X-APIKEY": signer.key, Sign: signer.signQuery("") } },
-      undefined,
-      this.options.fetchFn,
-      () => {
-        const query = signer.buildTimestampParams(params);
-        return {
-          url: `${V2_BASE}${path}?${query}`,
-          init: { headers: { "X-APIKEY": signer.key, Sign: signer.signQuery(query) } },
-        };
-      },
-    );
-    return (await response.json()) as T;
+    try {
+      const response = await fetchWithRetry(
+        `${V2_BASE}${path}`,
+        { headers: { "X-APIKEY": signer.key, Sign: signer.signQuery("") } },
+        undefined,
+        this.options.fetchFn,
+        () => {
+          const query = signer.buildTimestampParams(params);
+          return {
+            url: `${V2_BASE}${path}?${query}`,
+            init: { headers: { "X-APIKEY": signer.key, Sign: signer.signQuery(query) } },
+          };
+        },
+      );
+      return (await response.json()) as T;
+    } catch (error) {
+      // Reads keep their error code; only the message gains the exchange code,
+      // the reason, and the next action, so existing callers branching on the
+      // code see no change while agents stop guessing at raw transport text.
+      const translated = await translateReadError(error, `GET ${path}`, egressHint);
+      if (translated !== null) throw translated;
+      throw error;
+    }
+  }
+
+  /**
+   * Read one order, naming the outcome when the exchange does not know it.
+   *
+   * Looking up an id the exchange has never seen, or one it has already
+   * settled, is a normal answer rather than a transport fault, and the two
+   * call for opposite follow-ups: confirm the position, or stop looking. The
+   * raw payload distinguishes neither, so the shared vocabulary is applied
+   * here rather than left for the caller to decode.
+   */
+  private async lookupOrder(path: string, params: Record<string, string>): Promise<unknown> {
+    try {
+      return await this.signedGet(path, params);
+    } catch (error) {
+      const translated = await translateExchangeError(error, "order lookup", egressHint);
+      if (translated === null) throw error;
+      throw OrderRejectedError(translated.message, {
+        safeMetadata: translated.safeMetadata,
+      });
+    }
   }
 
   async openOrders(symbol?: string): Promise<unknown> {
@@ -106,7 +142,7 @@ export class AccountClient {
     const params: Record<string, string> = { symbol: symbol.toUpperCase() };
     if (orderId) params.orderId = orderId;
     if (clientOrderId) params.origClientOrderId = clientOrderId;
-    return this.signedGet("/api/v2/order", params);
+    return this.lookupOrder("/api/v2/order", params);
   }
 
   async orderHistories(options: HistoryOptions): Promise<unknown> {
@@ -124,12 +160,19 @@ export class AccountClient {
     const query = this.options.signer.buildTimestampParams(params);
     const signature = this.options.signer.signQuery(query);
     const url = `${V2_BASE}/api/v2/account?${query}`;
-    const response = await fetchWithRetry(
-      url,
-      { headers: { "X-APIKEY": this.options.signer.key, Sign: signature } },
-      undefined,
-      this.options.fetchFn,
-    );
+    let response: Response;
+    try {
+      response = await fetchWithRetry(
+        url,
+        { headers: { "X-APIKEY": this.options.signer.key, Sign: signature } },
+        undefined,
+        this.options.fetchFn,
+      );
+    } catch (error) {
+      const translated = await translateReadError(error, "GET /api/v2/account", egressHint);
+      if (translated !== null) throw translated;
+      throw error;
+    }
     const json: unknown = await response.json();
     const parsed = accountSchema.safeParse(json);
     if (!parsed.success) {

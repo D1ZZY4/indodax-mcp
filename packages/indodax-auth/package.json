@@ -13,8 +13,12 @@
     "format:check": "biome format .",
     "test:coverage": "vitest run --coverage"
   },
-  "dependencies": {},
+  "dependencies": {
+    "@indodax-mcp/errors": "workspace:*",
+    "@indodax-mcp/transport": "workspace:*"
+  },
   "devDependencies": {
+    "@indodax-mcp/errors": "workspace:*",
     "@types/node": "catalog:",
     "@vitest/coverage-v8": "catalog:",
     "bun-types": "catalog:",

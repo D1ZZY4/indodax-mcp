@@ -45,6 +45,73 @@ describe("indodax-account", () => {
     expect(seenHeaders.Sign).toHaveLength(64);
   });
 
+  it("names a missing order instead of surfacing raw transport text", async () => {
+    const fetchFn = (async () =>
+      new Response(JSON.stringify({ code: -2011, msg: "Order does not exist" }), {
+        status: 404,
+      })) as FetchFn;
+    const client = new AccountClient({ signer: new TapiV2Signer("k", "s"), fetchFn });
+    const error = await client.getOrder("btc_idr", "nope").then(
+      () => null,
+      (caught: unknown) => caught,
+    );
+    expect((error as { code?: string }).code).toBe("OrderRejectedError");
+    expect((error as Error).message).toContain("-2011");
+    expect((error as { safeMetadata?: { reason?: string } }).safeMetadata?.reason).toBe(
+      "order_not_found",
+    );
+  });
+
+  it("tells a completed order apart from a missing one", async () => {
+    const fetchFn = (async () =>
+      new Response(JSON.stringify({ code: -2012, msg: "Order already completed" }), {
+        status: 400,
+      })) as FetchFn;
+    const client = new AccountClient({ signer: new TapiV2Signer("k", "s"), fetchFn });
+    const error = await client.getOrder("btc_idr", "done").then(
+      () => null,
+      (caught: unknown) => caught,
+    );
+    expect((error as { safeMetadata?: { reason?: string } }).safeMetadata?.reason).toBe(
+      "order_already_completed",
+    );
+    expect((error as Error).message).toContain("do not retry");
+  });
+
+  it("still names an unknown order code instead of raw transport text", async () => {
+    const fetchFn = (async () =>
+      new Response(JSON.stringify({ code: -9999, msg: "Something novel" }), {
+        status: 400,
+      })) as FetchFn;
+    const client = new AccountClient({ signer: new TapiV2Signer("k", "s"), fetchFn });
+    const error = await client.getOrder("btc_idr", "weird").then(
+      () => null,
+      (caught: unknown) => caught,
+    );
+    expect((error as { code?: string }).code).toBe("OrderRejectedError");
+    expect((error as Error).message).toContain("-9999");
+    expect((error as Error).message).toContain("do not retry the same request unchanged");
+    expect((error as Error).message).not.toContain("unexpected HTTP");
+  });
+
+  it("keeps the read error code while adding the remedy", async () => {
+    const fetchFn = (async () =>
+      new Response(JSON.stringify({ code: -2015, msg: "Unauthorized IP address." }), {
+        status: 403,
+      })) as FetchFn;
+    const client = new AccountClient({ signer: new TapiV2Signer("k", "s"), fetchFn });
+    const error = await client.getAccount().then(
+      () => null,
+      (caught: unknown) => caught,
+    );
+    expect((error as { code?: string }).code).toBe("ExchangeApiError");
+    expect((error as Error).message).toContain("-2015");
+    expect((error as Error).message).toContain("allowlist");
+    expect((error as { safeMetadata?: { reason?: string } }).safeMetadata?.reason).toBe(
+      "ip_not_allowlisted",
+    );
+  });
+
   it("acquires the private rate-limit slot per call", async () => {
     const { RateLimiter } = await import("@indodax-mcp/transport");
     const fetchFn = (async () => new Response(JSON.stringify(ACCOUNT))) as FetchFn;

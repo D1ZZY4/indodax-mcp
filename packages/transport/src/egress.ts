@@ -23,17 +23,19 @@ let pending: Promise<EgressAddresses> | null = null;
 
 const TIMEOUT_MS = 2500;
 
+type FetchLike = (input: string, init?: RequestInit) => Promise<Response>;
+
 function extract(candidate: unknown, pattern: RegExp): string | null {
   if (typeof candidate !== "string") return null;
   const match = pattern.exec(candidate.trim());
   return match === null ? null : match[0];
 }
 
-async function query(url: string, pattern: RegExp): Promise<string | null> {
+async function query(fetchFn: FetchLike, url: string, pattern: RegExp): Promise<string | null> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
   try {
-    const response = await fetch(url, { signal: controller.signal });
+    const response = await fetchFn(url, { signal: controller.signal });
     if (!response.ok) return null;
     return extract(await response.text(), pattern);
   } catch {
@@ -43,10 +45,10 @@ async function query(url: string, pattern: RegExp): Promise<string | null> {
   }
 }
 
-async function resolve(): Promise<EgressAddresses> {
+async function resolve(fetchFn: FetchLike): Promise<EgressAddresses> {
   const [ipv4, ipv6] = await Promise.all([
-    query("https://api.ipify.org", /^(\d{1,3}(?:\.\d{1,3}){3})$/),
-    query("https://api6.ipify.org", /^[0-9a-f:]+$/i),
+    query(fetchFn, "https://api.ipify.org", /^(\d{1,3}(?:\.\d{1,3}){3})$/),
+    query(fetchFn, "https://api6.ipify.org", /^[0-9a-f:]+$/i),
   ]);
   return { ipv4, ipv6, fresh: true };
 }
@@ -55,11 +57,12 @@ async function resolve(): Promise<EgressAddresses> {
  * Egress addresses for the current host, resolved once per process.
  *
  * Never throws. A failure yields null values so the caller can still report
- * the rejection without them.
+ * the rejection without them. Pass a fetch implementation only in tests;
+ * production callers use the global fetch.
  */
-export async function egressAddresses(): Promise<EgressAddresses> {
+export async function egressAddresses(fetchFn: FetchLike = fetch): Promise<EgressAddresses> {
   if (cached !== null) return { ...cached, fresh: false };
-  pending ??= resolve()
+  pending ??= resolve(fetchFn)
     .then((result) => {
       // A partial answer is still worth caching; a total failure is not, so a
       // later call can try again once the network recovers.
@@ -87,8 +90,29 @@ export function describeEgress(addresses: EgressAddresses): string {
   return `this host reaches the exchange via ${parts.join(" and ")}; allowlist the matching family`;
 }
 
-/** Test seam. */
+/** Test seam: an availability observation must not leak between cases. */
 export function resetEgressCache(): void {
   cached = null;
   pending = null;
+}
+
+/** Egress hint shaped for rejection translation. Never throws. */
+export interface EgressHint {
+  note: string | null;
+  ipv4: string | null;
+  ipv6: string | null;
+}
+
+/**
+ * Resolve the hint for an IP rejection. Runs the lookup only when asked, so
+ * callers pay no network cost on rejections that need no address.
+ */
+export async function egressHint(fetchFn: FetchLike = fetch): Promise<EgressHint> {
+  const addresses = await egressAddresses(fetchFn);
+  const empty = addresses.ipv4 === null && addresses.ipv6 === null;
+  return {
+    note: empty ? null : describeEgress(addresses),
+    ipv4: addresses.ipv4,
+    ipv6: addresses.ipv6,
+  };
 }
