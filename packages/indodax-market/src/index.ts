@@ -5,6 +5,25 @@ import { decimalOrNull } from "@indodax-mcp/core";
 export interface MarketTicker extends TickerBody {
   symbol: SymbolParts;
   fetchedAt: string;
+  /** Lossless decimal text, unchanged, for financial arithmetic. */
+  last: string;
+  bid: string;
+  ask: string;
+  /**
+   * Numeric mirrors of last, bid, and ask. Present so a polling loop never has
+   * to parseFloat a decimal string, which is where NaN came from.
+   */
+  lastNum: number;
+  bidNum: number;
+  askNum: number;
+  /** Milliseconds since the exchange read this price, or null if unknown. */
+  ageMs: number | null;
+  /** Where the value came from, so a served cache is distinguishable. */
+  source: "live" | "cache";
+  /** True once the price is older than the cache window. */
+  stale: boolean;
+  /** Exchange server time in milliseconds, or null when not reported. */
+  serverTimeMs: number | null;
 }
 
 const STALE_AFTER_MS = 30_000;
@@ -25,12 +44,65 @@ export async function getTicker(client: PublicClient, pair: string): Promise<Mar
   const symbol = normalizePair(pair);
   const key = asPair(symbol);
   const cached = cache.get(key);
-  if (cached && Date.now() - cached.at < STALE_AFTER_MS) return cached.ticker;
+  if (cached && Date.now() - cached.at < STALE_AFTER_MS) {
+    return withFreshness(cached.ticker, "cache");
+  }
   const body = await client.ticker(key);
-  const ticker: MarketTicker = { ...body, symbol, fetchedAt: new Date().toISOString() };
-  if (decimalOrNull(ticker.last) === null) throw ValidationError(`ticker missing last for ${key}`);
-  cache.set(key, { ticker, at: Date.now() });
-  return ticker;
+  // Build the stored shape with freshness omitted, then attach it below; the
+  // stored row is the raw exchange body so age is always computed on read.
+  const stored = { ...body, symbol, fetchedAt: new Date().toISOString() };
+  if (decimalOrNull(stored.last) === null) throw ValidationError(`ticker missing last for ${key}`);
+  cache.set(key, { ticker: stored as MarketTicker, at: Date.now() });
+  return withFreshness(stored as MarketTicker, "live");
+}
+
+/**
+ * Attach the freshness a caller needs to tell a quiet market from a stale
+ * cache.
+ *
+ * A price that has not moved for several polling rounds is either an illiquid
+ * pair or a cache that stopped refreshing, and a bare price cannot tell those
+ * apart. Without `ageMs` and `stale` a caller either waits forever on a dead
+ * cache or abandons a genuinely quiet market.
+ */
+function withFreshness(ticker: MarketTicker, source: "live" | "cache"): MarketTicker {
+  const readAt = Date.parse(ticker.fetchedAt);
+  const ageMs = Number.isFinite(readAt) ? Math.max(0, Date.now() - readAt) : null;
+  return {
+    ...ticker,
+    /**
+     * Lossless numeric mirrors of the decimal strings. Financial callers had to
+     * parseFloat every field, and one missed parse silently produced NaN.
+     */
+    lastNum: Number(ticker.last),
+    bidNum: Number(ticker.buy),
+    askNum: Number(ticker.sell),
+    /**
+     * One naming set across market responses. `bid` and `ask` are what an order
+     * is priced against, and the ticker previously called them buy and sell.
+     */
+    bid: ticker.buy,
+    ask: ticker.sell,
+    last: ticker.last,
+    ageMs,
+    source,
+    stale: ageMs === null ? true : ageMs >= STALE_AFTER_MS,
+    serverTimeMs: parseServerTimeMs(ticker.server_time),
+  };
+}
+
+/**
+ * The exchange reports `server_time` in whole seconds while `fetchedAt` is
+ * milliseconds. Mixing the two made any age calculation off by a factor of a
+ * thousand, so the millisecond form is published explicitly.
+ */
+function parseServerTimeMs(value: string | number | undefined): number | null {
+  if (value === undefined) return null;
+  const parsed = decimalOrNull(value);
+  if (parsed === null) return null;
+  const asNumber = parsed.toNumber();
+  // Anything below this bound is not a plausible millisecond timestamp.
+  return asNumber < 1e11 ? Math.round(asNumber * 1000) : Math.round(asNumber);
 }
 
 export function cacheSize(): number {

@@ -4,6 +4,7 @@ import type { Registry } from "@indodax-mcp/mcp-registry";
 import type { ServerHandlers } from "@indodax-mcp/mcp-core";
 import { getTicker, toCompactPair } from "@indodax-mcp/indodax-market";
 import { fail, ok, parseArgs } from "@indodax-mcp/indodax-mcp/respond";
+import { decimalOrNull } from "@indodax-mcp/core";
 import { canonicalPair, pairArg } from "@indodax-mcp/indodax-mcp/schemas";
 import { defineTool } from "@indodax-mcp/indodax-mcp/tools/define";
 import type { AppServices } from "@indodax-mcp/indodax-mcp/composition";
@@ -22,6 +23,11 @@ function meta(name: string, description: string) {
     auditClass: "read" as const,
   };
 }
+
+/** Projection for a scan: name only the fields the caller asked for. */
+const TICKER_FIELDS = ["high", "low", "last", "buy", "sell", "vol_idr", "vol_btc"] as const;
+
+type TickerRow = Record<string, string | number | undefined>;
 
 const serverTime = defineTool(
   meta(
@@ -55,6 +61,16 @@ const tickersAll = defineTool(
   {
     quote: z.string().min(1).max(10).optional(),
     limit: z.number().int().min(1).max(500).optional(),
+    /**
+     * Minimum 24h quote volume. Scanning 475 pairs at once is heavy, and a
+     * volume floor is the cheapest way to cut the set before fetching detail.
+     */
+    minVolumeIdr: z.number().nonnegative().optional(),
+    /**
+     * Restrict each row to these fields. Omitting it keeps the full body for
+     * compatibility.
+     */
+    fields: z.array(z.enum(TICKER_FIELDS)).min(1).optional(),
   },
 );
 
@@ -141,15 +157,33 @@ export function registerMarketTools(
   handlers.tools.set("indodax_tickers_all", async (raw) => {
     try {
       const args = parseArgs(tickersAll.inputSchema, raw);
-      const all = await app.publicClient.tickerAll();
+      const all = (await app.publicClient.tickerAll()) as { tickers: Record<string, TickerRow> };
       const total = Object.keys(all.tickers).length;
-      let entries = Object.entries(all.tickers);
+      let entries: [string, TickerRow][] = Object.entries(all.tickers);
       if (args.quote !== undefined) {
         const wanted = args.quote.toLowerCase();
         entries = entries.filter(([pair]) => pair.toLowerCase().endsWith(`_${wanted}`));
       }
+      if (args.minVolumeIdr !== undefined) {
+        const floor = args.minVolumeIdr;
+        entries = entries.filter(([, body]) => {
+          const volume = decimalOrNull(body["vol_idr"] ?? "");
+          return volume !== null && volume.gte(floor);
+        });
+      }
       const limit = args.limit ?? (args.quote === undefined ? 100 : undefined);
       if (limit !== undefined) entries = entries.slice(0, limit);
+      if (args.fields !== undefined) {
+        const wanted = new Set<string>(args.fields);
+        entries = entries.map(([pair, body]): [string, TickerRow] => {
+          const row: TickerRow = { pair };
+          for (const field of TICKER_FIELDS) {
+            const value = body[field];
+            if (wanted.has(field) && value !== undefined) row[field] = value;
+          }
+          return [pair, row];
+        }) as typeof entries;
+      }
       return ok({
         count: entries.length,
         total,
@@ -233,14 +267,25 @@ export function registerMarketTools(
         args.to ?? now,
       );
       // Money always serializes as strings; the exchange sends OHLC numbers.
+      /**
+       * Lowercase field names with numeric mirrors, matching every other
+       * market response. The exchange capitalises these fields, which made one
+       * response the odd one out and forced a per-shape parser on the caller.
+       */
       return ok(
         bars.map((bar) => ({
-          Time: bar.Time,
-          Open: String(bar.Open),
-          High: String(bar.High),
-          Low: String(bar.Low),
-          Close: String(bar.Close),
-          Volume: String(bar.Volume),
+          time: bar.Time,
+          open: String(bar.Open),
+          high: String(bar.High),
+          low: String(bar.Low),
+          close: String(bar.Close),
+          volume: String(bar.Volume),
+          closeNum: Number(bar.Close),
+          openNum: Number(bar.Open),
+          highNum: Number(bar.High),
+          lowNum: Number(bar.Low),
+          volumeNum: Number(bar.Volume),
+          note: "money fields are decimal strings, the Num fields are lossy mirrors for charting only",
         })),
       );
     } catch (error) {

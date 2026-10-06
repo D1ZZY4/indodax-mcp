@@ -8,7 +8,7 @@ import {
   ValidationError,
 } from "@indodax-mcp/errors";
 import { ExecutionService } from "@indodax-mcp/indodax-execution";
-import { checkQuantityIncrement } from "@indodax-mcp/indodax-market";
+import { roundForPlacement } from "@indodax-mcp/indodax-mcp/tools/rounding";
 import type { Capability, ExecutionMode } from "@indodax-mcp/core";
 import { parseSymbolFlexible } from "@indodax-mcp/core";
 import type { TradeIntent } from "@indodax-mcp/indodax-trading";
@@ -129,7 +129,15 @@ export async function placeLiveOrder(app: AppServices, placement: LivePlacement)
     throw AuthenticationError("live execution needs API credentials");
   }
   const { intent, capability } = draftIntent(app, placement);
-  await checkQuantityIncrement(app.publicClient, placement.pair, placement.quantity);
+  // Round before proposal so the priced record, the risk verdict, and the
+  // exchange all see the same numbers. A rejection at the exchange for a
+  // precision rule is avoidable, and an avoidable rejection on a live order
+  // costs the position the stop was meant to protect.
+  const shaped = await roundForPlacement(app, placement.pair, placement.quantity, placement.price);
+  if (shaped.rounded !== null) {
+    intent.price = shaped.price === undefined ? null : String(shaped.price);
+    intent.quantityOrIdr = String(shaped.quantity);
+  }
   const proposal = app.trading.propose(intent);
   const order = app.trading.toOrder(proposal, {
     tenantId: app.tenantId,
@@ -193,7 +201,7 @@ export async function reviewHypothetical(app: AppServices, args: HypotheticalArg
   // warning so a proposal cannot look executable when placement would refuse it.
   let incrementWarning: string | null = null;
   try {
-    await checkQuantityIncrement(app.publicClient, args.pair, args.quantity);
+    await roundForPlacement(app, args.pair, args.quantity, args.price);
   } catch (error) {
     incrementWarning = error instanceof Error ? error.message : String(error);
   }

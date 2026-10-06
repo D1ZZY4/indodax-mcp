@@ -36,6 +36,35 @@ const REJECTION_REMEDIES: Readonly<Record<number, string>> = {
     "used on the exchange is rejected even when the previous order is gone",
 };
 
+/**
+ * Cancel outcomes the caller must be able to tell apart.
+ *
+ * A generic refusal on cancel leaves the caller unable to decide whether the
+ * order is still working and needs another attempt, or already filled and must
+ * not be cancelled again. Those need opposite follow-up actions, so the
+ * distinction is named here rather than left to the operator.
+ */
+const CANCEL_OUTCOMES: Readonly<Record<number, { reason: string; guidance: string }>> = {
+  [-2011]: {
+    reason: "order_not_found",
+    guidance:
+      "the exchange does not know this order id, so it is either already filled, already " +
+      "cancelled, or the id is wrong; check indodax_order_history before retrying",
+  },
+  [-2012]: {
+    reason: "order_already_completed",
+    guidance:
+      "the order is filled or cancelled already, so it cannot be cancelled; " +
+      "do not retry, read the final state from indodax_order or indodax_order_history",
+  },
+  [-2013]: {
+    reason: "order_not_found",
+    guidance:
+      "the exchange does not know this order id; confirm it with indodax_order_history " +
+      "before assuming the position is still open",
+  },
+};
+
 interface ExchangePayload {
   code?: number;
   msg?: string;
@@ -261,7 +290,17 @@ export class LiveExecutor implements ExecutionBackend {
     const code = (raw as { code?: number }).code;
     if (typeof code === "number" && code !== 0) {
       const translated = await rejectionFor("cancel", raw);
-      throw OrderRejectedError(translated.message, { safeMetadata: translated.safeMetadata });
+      const outcome = code === null ? undefined : CANCEL_OUTCOMES[code];
+      throw OrderRejectedError(
+        outcome === undefined ? translated.message : `${translated.message}. ${outcome.guidance}`,
+        {
+          safeMetadata: {
+            ...translated.safeMetadata,
+            exchangeCode: code,
+            ...(outcome === undefined ? {} : { reason: outcome.reason, retryable: false }),
+          },
+        },
+      );
     }
     return true;
   }

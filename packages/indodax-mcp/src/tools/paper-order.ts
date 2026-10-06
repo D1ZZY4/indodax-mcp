@@ -3,7 +3,8 @@ import { RiskDeniedError, ValidationError } from "@indodax-mcp/errors";
 import { parseSymbolFlexible } from "@indodax-mcp/core";
 import { ExecutionService } from "@indodax-mcp/indodax-execution";
 import type { ExecutionResult } from "@indodax-mcp/indodax-execution";
-import { checkQuantityIncrement, getTicker } from "@indodax-mcp/indodax-market";
+import { getTicker } from "@indodax-mcp/indodax-market";
+import { roundForPlacement } from "@indodax-mcp/indodax-mcp/tools/rounding";
 import { resolveRiskContext } from "@indodax-mcp/indodax-mcp/risk-context";
 import type { AppServices } from "@indodax-mcp/indodax-mcp/composition";
 
@@ -42,7 +43,9 @@ export async function placePaperOrder(
   if (app.deadman.shouldHaltLiveTrading()) {
     throw RiskDeniedError(`deadman ${app.deadman.snapshot().state} halts trading`);
   }
-  await checkQuantityIncrement(app.publicClient, placement.pair, placement.quantity);
+  const shaped = await roundForPlacement(app, placement.pair, placement.quantity, placement.price);
+  const quantity = new Decimal(String(shaped.quantity));
+  const shapedPrice = shaped.price === undefined ? undefined : shaped.price;
   let marketFillPrice: string | null = null;
   if ((placement.orderType ?? "LIMIT") === "MARKET") {
     try {
@@ -53,6 +56,8 @@ export async function placePaperOrder(
     }
   }
   const requestedType = placement.orderType ?? "LIMIT";
+  // Rounded values replace the originals everywhere downstream so the priced
+  // record and the fill use one consistent quantity.
   // A paper MARKET order resolves its price from the live ticker and then
   // settles immediately, so it is submitted through the executor as a LIMIT at
   // the resolved price. The requested type is preserved on the order record so
@@ -60,10 +65,9 @@ export async function placePaperOrder(
   const executorPrice =
     marketFillPrice !== null
       ? new Decimal(marketFillPrice)
-      : placement.price === undefined
+      : shapedPrice === undefined
         ? null
-        : new Decimal(String(placement.price));
-  const quantity = new Decimal(String(placement.quantity));
+        : new Decimal(String(shapedPrice));
   const notional = executorPrice === null ? null : executorPrice.mul(quantity);
   const ledger = app.paper.snapshot();
   const intent = {
