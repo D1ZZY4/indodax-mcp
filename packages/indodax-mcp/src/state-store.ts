@@ -8,8 +8,8 @@ import {
 import type { AppServices } from "@indodax-mcp/indodax-mcp/composition";
 import { persistenceCause, resolveBootSnapshot } from "@indodax-mcp/indodax-mcp/persist-error";
 import {
-  noteConnected,
-  noteFailure,
+  noteStoreConnected,
+  noteStoreFailure,
   noteWriteOutcome,
 } from "@indodax-mcp/indodax-mcp/persistence-state";
 
@@ -46,11 +46,11 @@ function attachSnapshot(
     if (!ready || repo === null) return;
     repo.save("local", snapshotNow()).then(
       () => {
-        noteWriteOutcome(true);
+        noteWriteOutcome(kind, true);
       },
       (error: unknown) => {
-        noteWriteOutcome(false);
-        noteFailure(persistenceCause(error));
+        noteWriteOutcome(kind, false);
+        noteStoreFailure(kind, persistenceCause(error));
         health.refresh();
         app.logger.warn(
           { error: String(error), cause: persistenceCause(error) },
@@ -85,14 +85,14 @@ function attachSnapshot(
       }
       repo = repository;
       ready = true;
-      noteConnected();
+      noteStoreConnected(kind);
       health.refresh();
       app.shutdownHooks.push(async () => {
         await close();
       });
       if (bootDirty) flush();
     } catch (error) {
-      noteFailure(persistenceCause(error));
+      noteStoreFailure(kind, persistenceCause(error));
       health.refresh();
       app.logger.warn(
         { error: String(error), cause: persistenceCause(error) },
@@ -190,11 +190,11 @@ export function attachDeadmanPersistence(app: AppServices, health: PersistenceHe
       })
       .then(
         () => {
-          noteWriteOutcome(true);
+          noteWriteOutcome("deadman", true);
         },
         (error: unknown) => {
-          noteWriteOutcome(false);
-          noteFailure(persistenceCause(error));
+          noteWriteOutcome("deadman", false);
+          noteStoreFailure("deadman", persistenceCause(error));
           health.refresh();
           app.logger.warn(
             { error: String(error), cause: persistenceCause(error) },
@@ -256,14 +256,14 @@ export function attachDeadmanPersistence(app: AppServices, health: PersistenceHe
       repo = repository;
       tenantId = tenant;
       ready = true;
-      noteConnected();
+      noteStoreConnected("deadman");
       health.refresh();
       app.shutdownHooks.push(async () => {
         await close();
       });
       if (bootDirty) flush();
     } catch (error) {
-      noteFailure(persistenceCause(error));
+      noteStoreFailure("deadman", persistenceCause(error));
       health.refresh();
       app.logger.warn(
         { error: String(error), cause: persistenceCause(error) },

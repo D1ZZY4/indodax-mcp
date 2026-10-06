@@ -30,6 +30,15 @@ export interface PersistenceReport {
    * state that silently lost stops on restart.
    */
   degraded: boolean;
+  /**
+   * Per-store outcome, so one store cannot speak for the others.
+   *
+   * The report is a rollup of independent mirrors, and a rollup that any
+   * single success can clear is not honest: a working audit append used to
+   * erase a stops mirror that had never attached, which is exactly the restart
+   * data loss this module exists to report.
+   */
+  stores: Record<string, "unknown" | "connected" | "failed">;
 }
 
 const report: PersistenceReport = {
@@ -39,6 +48,7 @@ const report: PersistenceReport = {
   since: new Date().toISOString(),
   lastError: null,
   degraded: false,
+  stores: {},
 };
 
 export function noteConfigured(mirrors: string[]): void {
@@ -53,23 +63,25 @@ export function noteUnconfigured(): void {
   report.state = "unconfigured";
   report.degraded = false;
   report.lastError = null;
+  report.stores = {};
 }
 
-/** Called once every mirror attaches successfully. */
-export function noteConnected(): void {
+/** Promote the rollup. Only reachable once no store is failing. */
+function noteConnected(): void {
   report.state = "connected";
   report.degraded = false;
   report.lastError = null;
 }
 
-export function noteFailure(cause: string): void {
+function noteFailure(cause: string): void {
   report.state = "failed";
   report.degraded = true;
   report.lastError = cause.slice(0, 200);
 }
 
-export function persistenceReport(): PersistenceReport {
-  return { ...report, mirrors: [...report.mirrors] };
+/** Defensive copy so a caller cannot mutate the module state it reads. */
+function persistenceReport(): PersistenceReport {
+  return { ...report, mirrors: [...report.mirrors], stores: { ...report.stores } };
 }
 
 /**
@@ -81,25 +93,49 @@ export function persistenceReport(): PersistenceReport {
  * at boot therefore reported a durable mirror while nothing was being written,
  * which is the failure this module exists to prevent.
  *
- * A failed write is the only reliable evidence, so the state is re-evaluated
- * whenever one is seen and until then it stays as observed.
+ * A failed write is the only reliable evidence, so each store keeps its own
+ * last outcome and the rollup is derived from those, never from a shared flag.
+ * A single shared flag let the first successful write clear a failure that
+ * belonged to a different store.
  */
-let lastWriteFailed = false;
-let lastWriteOk = false;
 
-export function noteWriteOutcome(ok: boolean): void {
-  if (ok) {
-    lastWriteOk = true;
-    lastWriteFailed = false;
-    return;
-  }
-  lastWriteFailed = true;
+/** Record a write outcome for one named mirror. */
+export function noteWriteOutcome(store: string, ok: boolean): void {
+  report.stores[store] = ok ? "connected" : "failed";
+  if (ok) return;
+  noteFailure("mirror write failed");
 }
 
-/** Refresh from the latest write evidence without clearing a known failure. */
+/** Record that one named mirror attached to the database. */
+export function noteStoreConnected(store: string): void {
+  report.stores[store] = "connected";
+  // Only promote the rollup when no store is failing. The first store to
+  // attach says nothing about the stores that have not reported yet, so the
+  // rollup waits for the boot sequence to finish rather than claiming
+  // durability from a single connection.
+  if (!anyStoreFailed()) noteConnected();
+}
+
+/** Record that one named mirror failed to attach or failed to write. */
+export function noteStoreFailure(store: string, cause: string): void {
+  report.stores[store] = "failed";
+  noteFailure(cause);
+}
+
+function anyStoreFailed(): boolean {
+  return Object.values(report.stores).some((state) => state === "failed");
+}
+
+/**
+ * Re-derive the rollup from per-store evidence.
+ *
+ * A store still marked failed keeps the rollup failed even when another store
+ * writes successfully, because a restart would lose only the first store's
+ * state while the report claimed everything was mirrored. The rollup clears
+ * once every store that reported a failure has written successfully again.
+ */
 export function refreshPersistenceState(): PersistenceReport {
-  if (lastWriteFailed) return persistenceReport();
-  if (lastWriteOk && report.state === "failed") {
+  if (report.state === "failed" && !anyStoreFailed()) {
     report.state = "connected";
     report.degraded = false;
     report.lastError = null;

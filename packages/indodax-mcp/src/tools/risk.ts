@@ -87,13 +87,19 @@ export function registerRiskTools(
     // state, so this read-only query can never be the thing that decides
     // whether trading is halted.
     const reconciliationHalted = checkPaperConsistency(app).state === "MISMATCH";
+    // A stale or expired deadman is a live-trading halt enforced by the engine,
+    // so it belongs in the halt verdict. Leaving it out reported halted=false
+    // while live placement was in fact refused with DEADMAN_UNKNOWN.
+    const deadmanHalted = deadman.state === "STALE" || deadman.state === "EXPIRED";
     const haltReason = app.policy.killSwitch
       ? "killSwitch"
       : app.policy.circuitBreaker
         ? "circuitBreaker"
         : reconciliationHalted
           ? "reconciliationHalted"
-          : null;
+          : deadmanHalted
+            ? `deadman${deadman.state}`
+            : null;
     return ok({
       killSwitch: app.policy.killSwitch,
       circuitBreaker: app.policy.circuitBreaker,
@@ -103,6 +109,9 @@ export function registerRiskTools(
       halted: haltReason !== null,
       haltReason,
       reconciliationHalted,
+      // Stated separately because DISARMED is an explicit opt-out that never
+      // blocks, while STALE and EXPIRED halt live trading.
+      deadmanHalted,
       summary:
         haltReason !== null
           ? `trading path closed by halt condition (${haltReason})`

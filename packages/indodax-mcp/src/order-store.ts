@@ -3,8 +3,8 @@ import type { ExecutionRequest, ExecutionResult } from "@indodax-mcp/indodax-exe
 import type { AppServices } from "@indodax-mcp/indodax-mcp/composition";
 import { persistenceCause, resolveBootSnapshot } from "@indodax-mcp/indodax-mcp/persist-error";
 import {
-  noteConnected,
-  noteFailure,
+  noteStoreConnected,
+  noteStoreFailure,
   noteWriteOutcome,
 } from "@indodax-mcp/indodax-mcp/persistence-state";
 import type { PersistenceHealth } from "@indodax-mcp/indodax-mcp/state-store";
@@ -33,11 +33,11 @@ export function attachPaperPersistence(app: AppServices, health: PersistenceHeal
     if (!ready || repo === null) return;
     repo.save(tenantId, paper.snapshot()).then(
       () => {
-        noteWriteOutcome(true);
+        noteWriteOutcome("paper", true);
       },
       (error: unknown) => {
-        noteWriteOutcome(false);
-        noteFailure(persistenceCause(error));
+        noteWriteOutcome("paper", false);
+        noteStoreFailure("paper", persistenceCause(error));
         health.refresh();
         app.logger.warn(
           { error: String(error), cause: persistenceCause(error) },
@@ -94,14 +94,14 @@ export function attachPaperPersistence(app: AppServices, health: PersistenceHeal
       repo = repository;
       tenantId = tenant;
       ready = true;
-      noteConnected();
+      noteStoreConnected("paper");
       health.refresh();
       app.shutdownHooks.push(async () => {
         await close();
       });
       if (bootDirty) flush();
     } catch (error) {
-      noteFailure(persistenceCause(error));
+      noteStoreFailure("paper", persistenceCause(error));
       health.refresh();
       app.logger.warn(
         { error: String(error), cause: persistenceCause(error) },
