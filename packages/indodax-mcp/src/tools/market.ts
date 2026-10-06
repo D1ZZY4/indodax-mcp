@@ -170,6 +170,14 @@ export function registerMarketTools(
       const levels = Math.min(100, Math.max(1, Math.floor(args.levels ?? 20)));
       const buy = book.buy.slice(0, levels);
       const sell = book.sell.slice(0, levels);
+      // Best bid and best ask are reported under the same names indodax_quote
+      // uses. Without them a caller has to derive the top of book itself, and
+      // the three spellings across ticker, orderbook, and quote invite a
+      // silent zero when a harness reads a field that is not present.
+      const bestBid = bestPrice(buy, "buy");
+      const bestAsk = bestPrice(sell, "sell");
+      const spread = spreadOf(buy, sell);
+      const mid = midOf(buy, sell);
       return ok({
         pair: canonicalPair(args.pair),
         levels,
@@ -177,9 +185,20 @@ export function registerMarketTools(
         sell,
         buyCount: buy.length,
         sellCount: sell.length,
-        spread: spreadOf(buy, sell),
-        mid: midOf(buy, sell),
+        bestBid: bestBid?.toString() ?? null,
+        bestAsk: bestAsk?.toString() ?? null,
+        bestBidQty: bestQty(buy, "buy")?.toString() ?? null,
+        bestAskQty: bestQty(sell, "sell")?.toString() ?? null,
+        spread,
+        spreadPct: spreadPctOf(bestBid, bestAsk),
+        mid,
+        // An empty side is an empty book, not a price of zero.
+        empty: buy.length === 0 || sell.length === 0,
         summary: `depth for ${canonicalPair(args.pair)} with ${buy.length} bid(s) and ${sell.length} ask(s)`,
+        note:
+          buy.length === 0 || sell.length === 0
+            ? "one side of the book is empty; bestBid and bestAsk are null for that side rather than zero"
+            : "bestBid and bestAsk match indodax_quote field names; use indodax_quote for a fill estimate before placing",
       });
     } catch (error) {
       return fail(error);
@@ -247,19 +266,46 @@ export function registerMarketTools(
 
 type DepthLevel = [string | number, string];
 
-function bestPrice(levels: DepthLevel[], side: "buy" | "sell"): Decimal | null {
-  let best: Decimal | null = null;
-  for (const [price] of levels) {
-    let value: Decimal;
+/**
+ * Price and size at the top of one side of the book.
+ *
+ * Both are computed together so a caller never has to re-scan the level list,
+ * and both return null on an empty or unreadable side rather than zero.
+ */
+function topOfBook(
+  levels: DepthLevel[],
+  side: "buy" | "sell",
+): { price: Decimal; quantity: Decimal } | null {
+  let best: { price: Decimal; quantity: Decimal } | null = null;
+  for (const [rawPrice, rawQuantity] of levels) {
+    let price: Decimal;
+    let quantity: Decimal;
     try {
-      value = new Decimal(String(price));
+      price = new Decimal(String(rawPrice));
+      quantity = new Decimal(String(rawQuantity));
     } catch {
       continue;
     }
-    if (!value.isFinite()) continue;
-    if (best === null || (side === "buy" ? value.gt(best) : value.lt(best))) best = value;
+    if (!price.isFinite() || !quantity.isFinite()) continue;
+    if (best === null || (side === "buy" ? price.gt(best.price) : price.lt(best.price))) {
+      best = { price, quantity };
+    }
   }
   return best;
+}
+
+function bestPrice(levels: DepthLevel[], side: "buy" | "sell"): Decimal | null {
+  return topOfBook(levels, side)?.price ?? null;
+}
+
+function bestQty(levels: DepthLevel[], side: "buy" | "sell"): Decimal | null {
+  return topOfBook(levels, side)?.quantity ?? null;
+}
+
+/** Spread as a percentage of the mid, or null when either side is empty. */
+function spreadPctOf(bestBid: Decimal | null, bestAsk: Decimal | null): string | null {
+  if (bestBid === null || bestAsk === null || bestBid.lte(0)) return null;
+  return bestAsk.minus(bestBid).div(bestAsk.plus(bestBid).div(2)).mul(100).toFixed(2);
 }
 
 function spreadOf(buy: DepthLevel[], sell: DepthLevel[]): string | null {
