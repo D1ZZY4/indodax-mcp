@@ -24,7 +24,8 @@ harness entry that starts the server separately from a genuinely missing key.
 
 Errors: `ValidationError` (shape, pair, missing live fields), `AuthorizationError`
 (live gate), `RiskDeniedError` (risk verdict), `OrderRejectedError` (paper
-funds or exchange rejection), `UnknownExecutionResultError` (non-retryable;
+funds or exchange rejection; exchange codes carry a `next:` remedy, for example
+`-2010` points at `indodax_balances` and `-2015` at the API key IP allowlist), `UnknownExecutionResultError` (non-retryable;
 live transport timeout or network failure with the client order id preserved.
 Reconcile before any retry).
 

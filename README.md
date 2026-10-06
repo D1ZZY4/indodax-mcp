@@ -108,7 +108,7 @@ Withdrawal has **no server-side grant path**.
 
 ## MCP surface
 
-The current server exposes 83 tools, 12 resources, and 5 prompts.
+The current server exposes 84 tools, 12 resources, and 5 prompts.
 
 Tool areas include market data, account reads, order validation and paper execution, stop orders emulated server-side, portfolio views, risk, strategies, backtests, alerts, reconciliation, audit, system status, funding reads, history, private channel, and WebSocket inspection.
 

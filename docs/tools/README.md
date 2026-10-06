@@ -5,7 +5,7 @@ shapes, errors, and worked usage. Start here, then open one area file.
 
 | Area | File | Tools |
 | --- | --- | --- |
-| Market | [market.md](market.md) | server_time, pairs, ticker, tickers_all, orderbook, trades, candles, price_increments, summaries, quote |
+| Market | [market.md](market.md) | server_time, pairs, ticker, tickers_all, orderbook, trades, candles, price_increments, summaries, quote, search_symbols |
 | Account | [account.md](account.md) | account, balances, capabilities |
 | Orders | [orders.md](orders.md) | validate_order, propose_order, create_order, cancel_order |
 | Paper | [paper.md](paper.md) | paper_account, paper_status, paper_orders, paper_snapshots, paper_fills, paper_order, paper_fill, paper_cancel, paper_reset |
@@ -40,5 +40,11 @@ enforced boundary.
 Pair contract: every tool accepts any common spelling (`btc_idr`,
 `BTCIDR`, `BTC/IDR`) on input, while stored state, comparisons, and
 responses always use the canonical lowercase `base_quote` form
-(`btc_idr`). Money arrives as JSON numbers on input and leaves as decimal
+(`btc_idr`). `indodax_search_symbols` resolves an unverified name against
+the live pair list before anything else is called, so a guessed ticker is
+reported as unknown instead of failing later.
+
+Top of book is named the same way everywhere: `indodax_orderbook` and
+`indodax_quote` both report `bestBid` and `bestAsk`, and both use `null`
+rather than `0` for an empty side. Money arrives as JSON numbers on input and leaves as decimal
 strings on output; never parse output money into floats for accounting.
