@@ -6,7 +6,6 @@ import { ValidationError } from "@indodax-mcp/errors";
 import { decimalOrNull } from "@indodax-mcp/core";
 import type { Registry } from "@indodax-mcp/mcp-registry";
 import type { ServerHandlers } from "@indodax-mcp/mcp-core";
-import { z } from "zod";
 import { fail, ok, parseArgs } from "@indodax-mcp/indodax-mcp/respond";
 import { defineTool } from "@indodax-mcp/indodax-mcp/tools/define";
 import type { AppServices } from "@indodax-mcp/indodax-mcp/composition";
@@ -67,7 +66,7 @@ function toDecimal(value: string | undefined): Decimal {
  * ask for.
  */
 async function findPair(
-  client: PublicClient,
+  _client: PublicClient,
   asset: string,
   pairs: { ticker_id?: string; base_currency?: string; traded_currency?: string }[],
 ): Promise<string | null> {

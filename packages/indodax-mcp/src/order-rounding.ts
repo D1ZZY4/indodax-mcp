@@ -33,7 +33,23 @@ export interface RoundingContext {
   /** Tick size for the price, when the pair publishes one. */
   priceIncrement: Decimal | null;
   pricePrecision: number | null;
-  /** Smallest tradable quantity. */
+  /**
+   * Smallest order size, in the base asset.
+   *
+   * The pair list names these two fields counter-intuitively, and the names
+   * are actively misleading:
+   *
+   *   `trade_min_base_currency`   is the minimum notional in FIAT. For
+   *                               btc_idr it reports 10000, which is
+   *                               rupiah, not bitcoin.
+   *   `trade_min_traded_currency` is the minimum quantity of the traded asset.
+   *                               For btc_idr it reports 6.54e-06, which is a
+   *                               plausible minimum BTC size.
+   *
+   * Reading them the usual way rejects every sane order, so the base currency
+   * field is treated as the notional floor and the traded currency field as
+   * the quantity floor.
+   */
   quantityMin: Decimal | null;
   /** Smallest notional in quote units. */
   tradeMinQuote: Decimal | null;
@@ -47,7 +63,7 @@ function roundDown(value: Decimal, step: Decimal | null): Decimal {
 }
 
 function roundPriceTo(value: Decimal, ctx: RoundingContext): Decimal {
-  if (ctx.priceIncrement !== null && ctx.priceIncrement.gt(0)) {
+  if (ctx.priceIncrement?.gt(0)) {
     return roundDown(value, ctx.priceIncrement);
   }
   // pricePrecision is a decimal place count. A tick of 10^-precision reproduces
@@ -75,7 +91,7 @@ export function roundOrder(
   const notes: string[] = [];
   let adjusted = false;
 
-  let finalQty = roundDown(qty, ctx.quantityIncrement);
+  const finalQty = roundDown(qty, ctx.quantityIncrement);
   if (!finalQty.eq(qty)) {
     adjusted = true;
     notes.push(`quantity ${qty.toString()} rounded down to the ${ctx.pair} increment`);
@@ -103,7 +119,7 @@ export function roundOrder(
       adjusted = true;
       notes.push(`price ${px.toString()} rounded down to the ${ctx.pair} price precision`);
     }
-    if (ctx.tradeMinQuote !== null && ctx.tradeMinQuote.gt(0)) {
+    if (ctx.tradeMinQuote?.gt(0)) {
       const notional = finalQty.mul(finalPrice);
       if (notional.lt(ctx.tradeMinQuote)) {
         throw ValidationError(
@@ -139,7 +155,7 @@ export function roundingContextFor(
     quantityIncrement: decimalOrNull(found.quantity_increment),
     priceIncrement: null,
     pricePrecision: found.price_precision === undefined ? null : Number(found.price_precision),
-    quantityMin: decimalOrNull(found.trade_min_base_currency),
-    tradeMinQuote: decimalOrNull(found.trade_min_traded_currency),
+    quantityMin: decimalOrNull(found.trade_min_traded_currency),
+    tradeMinQuote: decimalOrNull(found.trade_min_base_currency),
   };
 }

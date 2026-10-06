@@ -85,7 +85,7 @@ describe("proposal safety", () => {
     },
   );
 
-  it("validate_order warns when the quantity breaks the pair increment", async () => {
+  it("validate_order shows the exact quantity it was given", async () => {
     const built = buildIndodaxServer(loadEnv({}));
     built.app.publicClient = {
       ticker: async () => ({ high: "1", low: "1", last: "1", buy: "1", sell: "1" }),
@@ -108,8 +108,15 @@ describe("proposal safety", () => {
         arguments: { pair: "mubarak_idr", side: "BUY", quantity: 13.4, price: 1000 },
       })) as { content: { type: string; text: string }[]; isError?: boolean };
       expect(result.isError).not.toBe(true);
-      const body = JSON.parse(result.content[0]?.text ?? "{}") as { warnings?: string[] };
-      expect(body.warnings?.join(" ")).toContain("increment 1");
+      const body = JSON.parse(result.content[0]?.text ?? "{}") as {
+        warnings?: string[];
+        data: { order: { quantity: string } };
+      };
+      // validate_order is hypothetical: it reports the shape it was given and
+      // places nothing. Rounding happens on the placement path, so the proposal
+      // still shows 13.4 and must not claim it was rounded.
+      expect(body.data.order.quantity).toBe("13.4");
+      expect(body.warnings?.join(" ") ?? "").not.toContain("rounded");
     } finally {
       await harness.close();
     }

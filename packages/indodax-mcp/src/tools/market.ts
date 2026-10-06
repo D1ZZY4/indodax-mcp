@@ -167,8 +167,8 @@ export function registerMarketTools(
       if (args.minVolumeIdr !== undefined) {
         const floor = args.minVolumeIdr;
         entries = entries.filter(([, body]) => {
-          const volume = decimalOrNull(body["vol_idr"] ?? "");
-          return volume !== null && volume.gte(floor);
+          const volume = decimalOrNull(body.vol_idr ?? "");
+          return volume?.gte(floor);
         });
       }
       const limit = args.limit ?? (args.quote === undefined ? 100 : undefined);

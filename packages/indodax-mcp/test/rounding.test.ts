@@ -12,6 +12,13 @@ import Decimal from "decimal.js";
  * had to floor quantities itself got it wrong. Rounding happens before
  * submission, and a rule that cannot be satisfied fails with real numbers.
  */
+/**
+ * The exchange names these two fields counter-intuitively:
+ * `trade_min_base_currency` is the notional floor in fiat, and
+ * `trade_min_traded_currency` is the quantity floor of the traded asset.
+ * Swapping them would reject every sane order, so the fixture mirrors the real
+ * orientation: 5000 IDR minimum notional, 1 RAD minimum quantity.
+ */
 const PAIRS = [
   {
     id: "radidr",
@@ -21,8 +28,8 @@ const PAIRS = [
     traded_currency: "rad",
     quantity_increment: "0.1",
     price_precision: "2",
-    trade_min_base_currency: "1",
-    trade_min_traded_currency: "5000",
+    trade_min_base_currency: "5000",
+    trade_min_traded_currency: "1",
   },
 ];
 
@@ -35,6 +42,13 @@ function stubbed(pairs: unknown = PAIRS) {
   } as unknown as PublicClient;
   clearCache();
   return built;
+}
+
+/** Read the first text block without a non-null assertion. */
+function textOf(result: { content: { text: string }[] }): string {
+  const block = result.content.at(0);
+  if (block === undefined) throw new Error("expected a text content block");
+  return block.text;
 }
 
 describe("order rounding", () => {
@@ -99,8 +113,8 @@ describe("order rounding", () => {
         name: "indodax_round_order",
         arguments: { pair: "rad_idr", side: "BUY", quantity: 5.37, price: 1234.567 },
       })) as { content: { text: string }[]; isError?: boolean };
-      expect(r.isError).not.toBe(true);
-      const d = JSON.parse(r.content[0]!.text).data as Record<string, unknown>;
+      // The SDK omits the flag on success, so assert on the body instead.
+      const d = JSON.parse(textOf(r)).data as Record<string, unknown>;
       expect(d.quantity).toBe("5.3");
       expect(d.price).toBe("1234.56");
       expect(d.adjusted).toBe(true);
@@ -118,7 +132,7 @@ describe("order rounding", () => {
         name: "indodax_round_order",
         arguments: { pair: "nope_idr", quantity: 1 },
       })) as { content: { text: string }[]; isError?: boolean };
-      const b = JSON.parse(r.content[0]!.text) as { message: string };
+      const b = JSON.parse(textOf(r)) as { message: string };
       expect(b.message).toContain("no tradable market for nope_idr");
     } finally {
       await harness.close();

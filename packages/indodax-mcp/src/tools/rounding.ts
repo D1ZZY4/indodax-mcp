@@ -2,6 +2,7 @@ import { z } from "zod";
 import Decimal from "decimal.js";
 import { ValidationError } from "@indodax-mcp/errors";
 import { getPairsCached, clearCache } from "@indodax-mcp/indodax-market";
+import type { PairInfo } from "@indodax-mcp/indodax-client";
 import { parseSymbolFlexible, asPair } from "@indodax-mcp/core";
 import type { Registry } from "@indodax-mcp/mcp-registry";
 import type { ServerHandlers } from "@indodax-mcp/mcp-core";
@@ -57,7 +58,7 @@ export function registerRoundingTools(
       // The increment warning is written against the previous cache, so drop it
       // before reading the pair list for rounding.
       clearCache();
-      let pairs;
+      let pairs: PairInfo[];
       try {
         pairs = await getPairsCached(app.publicClient);
       } catch (error) {
@@ -130,7 +131,7 @@ export async function roundForPlacement(
   price: number | undefined;
   rounded: ReturnType<typeof roundOrder> | null;
 }> {
-  let pairs;
+  let pairs: PairInfo[];
   try {
     clearCache();
     pairs = await getPairsCached(app.publicClient);

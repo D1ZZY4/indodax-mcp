@@ -2,7 +2,6 @@ import type { AuditTrail } from "@indodax-mcp/indodax-audit";
 import { DrizzleAuditRepository, connectDatabase } from "@indodax-mcp/db";
 import type { AppServices } from "@indodax-mcp/indodax-mcp/composition";
 import { persistenceCause } from "@indodax-mcp/indodax-mcp/persist-error";
-import { noteConnected, noteFailure } from "@indodax-mcp/indodax-mcp/persistence-state";
 import type { PersistenceHealth } from "@indodax-mcp/indodax-mcp/state-store";
 
 /**
@@ -11,7 +10,7 @@ import type { PersistenceHealth } from "@indodax-mcp/indodax-mcp/state-store";
  * record is also appended to Postgres; a failing append is logged and
  * never breaks trading.
  */
-export function attachAuditPersistence(app: AppServices, health: PersistenceHealth): void {
+export function attachAuditPersistence(app: AppServices, _health: PersistenceHealth): void {
   const url = app.env.DATABASE_URL;
   if (!url) return;
   let repo: DrizzleAuditRepository;

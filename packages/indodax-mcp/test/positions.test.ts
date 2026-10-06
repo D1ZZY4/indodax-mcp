@@ -45,6 +45,13 @@ function stubbed(prices: Record<string, string>) {
   return built;
 }
 
+/** Read the first text block without a non-null assertion. */
+function textOf(result: { content: { text: string }[] }): string {
+  const block = result.content.at(0);
+  if (block === undefined) throw new Error("expected a text content block");
+  return block.text;
+}
+
 describe("live positions", () => {
   it("values a priced leg and withholds totals when a leg has no market", async () => {
     const { server } = stubbed({ rad_idr: "2000" });
@@ -62,7 +69,7 @@ describe("live positions", () => {
         unpricedReason: string | null;
         weightPct: string | null;
       }
-      const d = JSON.parse(r.content[0]!.text).data as {
+      const d = JSON.parse(textOf(r)).data as {
         legs: Leg[];
         totalIdr: string | null;
         incomplete: string[];
@@ -106,7 +113,7 @@ describe("live positions", () => {
         name: "indodax_positions_live",
         arguments: {},
       })) as { content: { text: string }[] };
-      const d = JSON.parse(r.content[0]!.text).data as {
+      const d = JSON.parse(textOf(r)).data as {
         totalIdr: string | null;
         legs: { asset: string; weightPct: string | null }[];
       };

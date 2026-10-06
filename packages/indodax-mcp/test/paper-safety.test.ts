@@ -205,7 +205,9 @@ describe("paper safety", () => {
     ).rejects.toThrow(/live market price/);
   });
 
-  it("rejects quantities below the pair increment with a suggestion", async () => {
+  it("rounds a quantity down to the pair increment instead of rejecting it", async () => {
+    // A polling loop was rejecting orders on precision itself and getting it
+    // wrong. Placement now rounds down to the increment, so 13.4 becomes 13.
     clearCache();
     const app = createApp(loadEnv({}));
     app.publicClient = {
@@ -221,9 +223,15 @@ describe("paper safety", () => {
         },
       ],
     } as unknown as PublicClient;
-    await expect(
-      placePaperOrder(app, { pair: "mubarak_idr", side: "BUY", price: 1000, quantity: 13.4 }),
-    ).rejects.toThrow(/increment 1.*such as 13/);
+    const placed = await placePaperOrder(app, {
+      pair: "mubarak_idr",
+      side: "BUY",
+      price: 1000,
+      quantity: 13.4,
+    });
+    expect(placed.accepted).toBe(true);
+    const record = app.paper.snapshot().orders.at(-1);
+    expect(record?.quantity).toBe("13");
   });
 
   it("sums unrealized pnl across same-pair open orders", async () => {
