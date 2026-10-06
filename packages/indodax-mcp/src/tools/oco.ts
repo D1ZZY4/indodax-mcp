@@ -63,16 +63,18 @@ export function registerOcoTools(
       const args = parseArgs(OCO.inputSchema, raw);
       const mode = args.mode ?? "paper";
 
-      // Both legs must sit on the same side of the entry, otherwise the pair
-      // would fire immediately and cancel itself.
-      if (args.side === "BUY" && args.stopPrice >= args.takeProfitPrice) {
+      /**
+       * A stop loss always sits below the take profit, on either side.
+       *
+       * Exiting a long or a short, the stop caps the loss and the target
+       * captures the gain, so stop below target holds for both BUY and SELL.
+       * Checking it per side with the SELL rule inverted rejected every
+       * correct SELL bundle, which is the side used to protect an existing
+       * position.
+       */
+      if (args.stopPrice >= args.takeProfitPrice) {
         throw ValidationError(
-          `for a BUY the stop must sit below the take profit, got stop ${args.stopPrice} and take profit ${args.takeProfitPrice}`,
-        );
-      }
-      if (args.side === "SELL" && args.stopPrice <= args.takeProfitPrice) {
-        throw ValidationError(
-          `for a SELL the stop must sit above the take profit, got stop ${args.stopPrice} and take profit ${args.takeProfitPrice}`,
+          `the stop must sit below the take profit on both sides, got stop ${args.stopPrice} and take profit ${args.takeProfitPrice}`,
         );
       }
 
