@@ -27,6 +27,7 @@ import { registerFundingTools } from "@indodax-mcp/indodax-mcp/tools/funding";
 import { registerHistoryTools } from "@indodax-mcp/indodax-mcp/tools/history";
 import { registerOpsTools } from "@indodax-mcp/indodax-mcp/tools/ops";
 import { registerQuoteTools } from "@indodax-mcp/indodax-mcp/tools/quote";
+import { registerSymbolTools } from "@indodax-mcp/indodax-mcp/tools/symbols";
 import { registerDeadmanTools } from "@indodax-mcp/indodax-mcp/tools/deadman";
 import { registerStopTools } from "@indodax-mcp/indodax-mcp/tools/stop";
 import { registerDocsTools } from "@indodax-mcp/indodax-mcp/tools/docs";
@@ -69,6 +70,7 @@ export function buildIndodaxServer(env: AppEnv, diagnostic?: ConfigDiagnostic) {
   registerHistoryTools(registry, handlers, app);
   registerOpsTools(registry, handlers, app);
   registerQuoteTools(registry, handlers, app);
+  registerSymbolTools(registry, handlers, app);
   registerDeadmanTools(registry, handlers, app);
   registerStopTools(registry, handlers, app);
   registerDocsTools(registry, handlers, app);

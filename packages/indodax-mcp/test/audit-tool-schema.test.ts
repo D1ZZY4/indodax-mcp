@@ -23,6 +23,7 @@ const TOOL_MODULES = [
   "risk",
   "stop",
   "strategy",
+  "symbols",
   "system",
 ];
 
