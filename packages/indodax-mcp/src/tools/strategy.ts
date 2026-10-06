@@ -118,12 +118,39 @@ export function registerStrategyTools(
       if (!symbol) throw ValidationError(`invalid pair: ${args.pair}`);
       const input = { symbol, closes: args.closes, window: args.window ?? 5 };
       const errors = validateSignalInput(input);
-      if (errors.length > 0) throw ValidationError(errors.join("; "));
-      const signal = evaluateMovingAverage(input);
-      if (!signal) throw ValidationError("need at least window closes");
+      // Shape faults (too few closes, non-positive prices) stay validation
+      // errors. A window wider than the available history is separated out,
+      // because that is a thin market rather than a bad request, and a
+      // screener needs it reported without an exception.
+      const shapeErrors = errors.filter((error) => error !== "window must fit inside closes");
+      if (shapeErrors.length > 0) throw ValidationError(shapeErrors.join("; "));
+      const signal = errors.length > 0 ? null : evaluateMovingAverage(input);
+      // A thin pair is a normal screener outcome, not a caller mistake. Report
+      // it in the success envelope with an explicit verdict so a scan over many
+      // pairs does not have to catch an error to learn the symbol has no signal
+      // yet, and never has to invent a strength of 0 for an absent signal.
+      if (!signal) {
+        return ok({
+          pair: `${symbol.base}_${symbol.quote}`,
+          symbol,
+          side: null,
+          strength: null,
+          reason: "not enough closes to evaluate this window",
+          verdict: "insufficient_data",
+          closes: args.closes.length,
+          window: input.window,
+          closesNeeded: input.window,
+          note:
+            `only ${args.closes.length} close(s) supplied but window ${input.window} needs at least ` +
+            `${input.window}; supply more closes with indodax_candles or lower window, and do not read ` +
+            "this as a neutral signal",
+          summary: `no signal for ${symbol.base}_${symbol.quote}: needs ${input.window} closes, got ${args.closes.length}`,
+        });
+      }
       return ok({
         ...signal,
         pair: `${signal.symbol.base}_${signal.symbol.quote}`,
+        verdict: "ok",
         closes: args.closes.length,
         window: input.window,
         summary: `${signal.side} signal with strength ${signal.strength} for ${signal.symbol.base}_${signal.symbol.quote}`,
