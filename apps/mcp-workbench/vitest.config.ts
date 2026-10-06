@@ -1,5 +1,7 @@
 import { defineConfig, mergeConfig } from "vitest/config";
-import viteConfig from "./vite.config";
+// The extension is required because Vite is moving to a native config loader
+// that does not resolve extensionless relative imports.
+import viteConfig from "./vite.config.ts";
 
 /**
  * Merges the application Vite config so the render environment and the browser
