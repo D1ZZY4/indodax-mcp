@@ -32,6 +32,49 @@ async function dataOf(call: Promise<unknown>) {
 }
 
 describe("market filters", () => {
+  it("returns only price and volume unless fields is asked for", async () => {
+    // The exchange sends the full body for roughly 475 pairs, which is enough
+    // to flood a harness context on one unfiltered scan.
+    const { server } = stubbed();
+    const harness = await withInMemoryServer(server);
+    try {
+      const data = (await dataOf(
+        harness.client.callTool({ name: "indodax_tickers_all", arguments: {} }),
+      )) as {
+        tickers: Record<string, Record<string, unknown>>;
+        fields: string[];
+      };
+      expect(data.fields).toEqual(["last", "vol_idr"]);
+      const row = data.tickers.btc_idr;
+      expect(row?.last).toBe("2");
+      expect(row?.high).toBeUndefined();
+      expect(row?.buy).toBeUndefined();
+      expect(row?.sell).toBeUndefined();
+    } finally {
+      await harness.close();
+    }
+  });
+
+  it("honours an explicit fields selection", async () => {
+    const { server } = stubbed();
+    const harness = await withInMemoryServer(server);
+    try {
+      const data = (await dataOf(
+        harness.client.callTool({
+          name: "indodax_tickers_all",
+          arguments: { fields: ["last", "buy", "sell"] },
+        }),
+      )) as { tickers: Record<string, Record<string, unknown>>; fields: string[] };
+      expect(data.fields).toEqual(["last", "buy", "sell"]);
+      const row = data.tickers.btc_idr;
+      expect(row?.buy).toBe("2");
+      expect(row?.sell).toBe("2");
+      expect(row?.high).toBeUndefined();
+    } finally {
+      await harness.close();
+    }
+  });
+
   it("filters tickers by quote and limits rows", async () => {
     const { server } = stubbed();
     const harness = await withInMemoryServer(server);

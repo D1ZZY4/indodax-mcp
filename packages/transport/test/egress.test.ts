@@ -69,8 +69,17 @@ describe("describeEgress", () => {
 });
 
 describe("egressHint", () => {
-  it("carries a null note when nothing resolved", async () => {
+  it("carries a null note and no CIDR when nothing resolved", async () => {
     const hint = await egressHint(stubFetch(null, null));
-    expect(hint).toEqual({ note: null, ipv4: null, ipv6: null });
+    expect(hint).toEqual({ note: null, ipv4: null, ipv6: null, cidrV4: null, cidrV6: null });
+  });
+
+  it("reports single-host CIDR blocks an exchange allowlist accepts", async () => {
+    const hint = await egressHint(stubFetch("203.0.113.7", "2001:db8::9"));
+    expect(hint.cidrV4).toBe("203.0.113.7/32");
+    expect(hint.cidrV6).toBe("2001:db8::9/128");
+    // The CIDR is named in the message, not only in the metadata.
+    expect(hint.note).toContain("203.0.113.7/32");
+    expect(hint.note).toContain("2001:db8::9/128");
   });
 });

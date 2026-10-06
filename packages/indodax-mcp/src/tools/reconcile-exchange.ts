@@ -56,8 +56,20 @@ export function localPaperFills(app: AppServices): {
     }));
 }
 
+/** One resting exchange order, carrying its real direction and size. */
+export interface ExchangeOpenOrder {
+  exchangeOrderId: string;
+  clientOrderId: string | null;
+  symbol: string | null;
+  /** BUY or SELL exactly as the exchange reports it. Never inferred. */
+  side: string | null;
+  price: string | null;
+  quantity: string | null;
+  state: string;
+}
+
 export interface ExchangeLegs {
-  openOrders: { exchangeOrderId: string; state: string }[];
+  openOrders: ExchangeOpenOrder[];
   fills: { state: string; checked: number; exchangeOnly: string[] };
   balances: BalanceRow[];
   unknownLegs: UnknownLeg[];
@@ -82,16 +94,33 @@ export async function readExchangeLegs(
   if (!account) throw new Error("exchange legs require an authenticated account client");
   const unknownLegs: UnknownLeg[] = [];
 
-  let openOrders: { exchangeOrderId: string; state: string }[] = [];
+  let openOrders: ExchangeOpenOrder[] = [];
   try {
     const rawOrders = await account.openOrders(symbol);
     if (!Array.isArray(rawOrders)) throw new Error("unexpected openOrders shape");
+    /**
+     * Carry the real side, price, and quantity rather than only an id.
+     *
+     * A summary that reported just `exchangeOrderId` gave a caller nothing to
+     * render a position from, so it inferred a side and produced a phantom
+     * SELL for an order that was actually a BUY. That reads as an unrequested
+     * live sell and is alarming in exactly the situation where calm matters.
+     */
     openOrders = rawOrders.map((item, index) => {
       const parsed = exchangeOrderSchema.safeParse(item);
       const id = parsed.success
         ? String(parsed.data.orderId ?? parsed.data.fullOrderId ?? `unknown-${index}`)
         : `unknown-${index}`;
-      return { exchangeOrderId: id, state: "OPEN" };
+      const side = typeof item.side === "string" ? item.side.toUpperCase() : null;
+      return {
+        exchangeOrderId: id,
+        clientOrderId: typeof item.clientOrderId === "string" ? item.clientOrderId : null,
+        symbol: typeof item.symbol === "string" ? item.symbol : null,
+        side,
+        price: item.price === undefined ? null : String(item.price),
+        quantity: item.origQty === undefined ? null : String(item.origQty),
+        state: typeof item.status === "string" ? item.status.toUpperCase() : "OPEN",
+      };
     });
   } catch (error) {
     unknownLegs.push({ leg: "openOrders", reason: legReason(error) });

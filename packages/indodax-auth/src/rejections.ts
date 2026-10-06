@@ -134,6 +134,10 @@ export function formatRejection(
     if (code === -2015 && egress !== null) {
       safeMetadata.egressIpv4 = egress.ipv4;
       safeMetadata.egressIpv6 = egress.ipv6;
+      // The exchange allowlist is a CIDR, so the address alone still leaves
+      // the operator guessing what to type into the dashboard.
+      safeMetadata.egressCidrV4 = egress.cidrV4;
+      safeMetadata.egressCidrV6 = egress.cidrV6;
     }
     return { message, safeMetadata };
   }

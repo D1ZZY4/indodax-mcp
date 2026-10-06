@@ -1,5 +1,11 @@
 import { z } from "zod";
-import Decimal from "decimal.js";
+import {
+  bestPrice,
+  bestQty,
+  midOf,
+  spreadOf,
+  spreadPctOf,
+} from "@indodax-mcp/indodax-mcp/market-book";
 import type { Registry } from "@indodax-mcp/mcp-registry";
 import type { ServerHandlers } from "@indodax-mcp/mcp-core";
 import { getTicker, toCompactPair } from "@indodax-mcp/indodax-market";
@@ -26,6 +32,17 @@ function meta(name: string, description: string) {
 
 /** Projection for a scan: name only the fields the caller asked for. */
 const TICKER_FIELDS = ["high", "low", "last", "buy", "sell", "vol_idr", "vol_btc"] as const;
+
+/**
+ * Default projection when `fields` is omitted.
+ *
+ * The exchange sends roughly 475 pairs, each with the full body, which is
+ * enough to flood a harness context on one unfiltered call. A scan almost
+ * always wants price and volume, so those are the default. Callers that need
+ * `high`, `low`, or the book still ask for them explicitly, and an explicit
+ * empty selection is not possible because the schema requires at least one.
+ */
+const TICKER_DEFAULT_FIELDS = ["last", "vol_idr"] as const;
 
 type TickerRow = Record<string, string | number | undefined>;
 
@@ -56,7 +73,7 @@ const ticker = defineTool(
 const tickersAll = defineTool(
   meta(
     "indodax_tickers_all",
-    "Read-only. All tickers in one call for scans. Args: optional quote filter like IDR, optional limit 1 to 500 default 100 when neither quote nor limit is given. Large output without filters is capped by the default.",
+    "Read-only. Tickers for scans. Args: optional quote filter like IDR, optional limit 1 to 500 default 100 when neither quote nor limit is given. Rows carry only last and vol_idr unless fields asks for more, because the exchange sends the full body for roughly 475 pairs. Args: optional fields array of high, low, last, buy, sell, vol_idr, vol_btc.",
   ),
   {
     quote: z.string().min(1).max(10).optional(),
@@ -173,25 +190,28 @@ export function registerMarketTools(
       }
       const limit = args.limit ?? (args.quote === undefined ? 100 : undefined);
       if (limit !== undefined) entries = entries.slice(0, limit);
-      if (args.fields !== undefined) {
-        const wanted = new Set<string>(args.fields);
-        entries = entries.map(([pair, body]): [string, TickerRow] => {
-          const row: TickerRow = { pair };
-          for (const field of TICKER_FIELDS) {
-            const value = body[field];
-            if (wanted.has(field) && value !== undefined) row[field] = value;
-          }
-          return [pair, row];
-        }) as typeof entries;
-      }
+      // The default projection keeps an unfiltered scan small; an explicit
+      // fields list is honoured as given, so nothing is silently hidden from a
+      // caller that asked for detail.
+      const projection = args.fields ?? [...TICKER_DEFAULT_FIELDS];
+      const wanted = new Set<string>(projection);
+      entries = entries.map(([pair, body]): [string, TickerRow] => {
+        const row: TickerRow = { pair };
+        for (const field of TICKER_FIELDS) {
+          const value = body[field];
+          if (wanted.has(field) && value !== undefined) row[field] = value;
+        }
+        return [pair, row];
+      }) as typeof entries;
       return ok({
         count: entries.length,
         total,
         quote: args.quote ?? null,
         limit: limit ?? null,
+        fields: projection,
         tickers: Object.fromEntries(entries),
         pairs: entries.map(([pair]) => pair),
-        summary: `${entries.length} ticker(s) of ${total} total${args.quote ? ` filtered by ${args.quote}` : ""}`,
+        summary: `${entries.length} ticker(s) of ${total} total${args.quote ? ` filtered by ${args.quote}` : ""}, fields ${projection.join(",")}`,
       });
     } catch (error) {
       return fail(error);
@@ -307,62 +327,4 @@ export function registerMarketTools(
       return fail(error);
     }
   });
-}
-
-type DepthLevel = [string | number, string];
-
-/**
- * Price and size at the top of one side of the book.
- *
- * Both are computed together so a caller never has to re-scan the level list,
- * and both return null on an empty or unreadable side rather than zero.
- */
-function topOfBook(
-  levels: DepthLevel[],
-  side: "buy" | "sell",
-): { price: Decimal; quantity: Decimal } | null {
-  let best: { price: Decimal; quantity: Decimal } | null = null;
-  for (const [rawPrice, rawQuantity] of levels) {
-    let price: Decimal;
-    let quantity: Decimal;
-    try {
-      price = new Decimal(String(rawPrice));
-      quantity = new Decimal(String(rawQuantity));
-    } catch {
-      continue;
-    }
-    if (!price.isFinite() || !quantity.isFinite()) continue;
-    if (best === null || (side === "buy" ? price.gt(best.price) : price.lt(best.price))) {
-      best = { price, quantity };
-    }
-  }
-  return best;
-}
-
-function bestPrice(levels: DepthLevel[], side: "buy" | "sell"): Decimal | null {
-  return topOfBook(levels, side)?.price ?? null;
-}
-
-function bestQty(levels: DepthLevel[], side: "buy" | "sell"): Decimal | null {
-  return topOfBook(levels, side)?.quantity ?? null;
-}
-
-/** Spread as a percentage of the mid, or null when either side is empty. */
-function spreadPctOf(bestBid: Decimal | null, bestAsk: Decimal | null): string | null {
-  if (bestBid === null || bestAsk === null || bestBid.lte(0)) return null;
-  return bestAsk.minus(bestBid).div(bestAsk.plus(bestBid).div(2)).mul(100).toFixed(2);
-}
-
-function spreadOf(buy: DepthLevel[], sell: DepthLevel[]): string | null {
-  const bestBid = bestPrice(buy, "buy");
-  const bestAsk = bestPrice(sell, "sell");
-  if (bestBid === null || bestAsk === null) return null;
-  return bestAsk.minus(bestBid).toString();
-}
-
-function midOf(buy: DepthLevel[], sell: DepthLevel[]): string | null {
-  const bestBid = bestPrice(buy, "buy");
-  const bestAsk = bestPrice(sell, "sell");
-  if (bestBid === null || bestAsk === null) return null;
-  return bestAsk.plus(bestBid).div(2).toString();
 }

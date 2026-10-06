@@ -85,9 +85,20 @@ export function describeEgress(addresses: EgressAddresses): string {
     return "the public egress addresses could not be resolved from this host";
   }
   const parts: string[] = [];
-  if (addresses.ipv4 !== null) parts.push(`IPv4 ${addresses.ipv4}`);
-  if (addresses.ipv6 !== null) parts.push(`IPv6 ${addresses.ipv6}`);
+  if (addresses.ipv4 !== null) parts.push(`IPv4 ${addresses.ipv4} (${cidr(addresses.ipv4, 32)})`);
+  if (addresses.ipv6 !== null) parts.push(`IPv6 ${addresses.ipv6} (${cidr(addresses.ipv6, 128)})`);
   return `this host reaches the exchange via ${parts.join(" and ")}; allowlist the matching family`;
+}
+
+/**
+ * Render a single-host CIDR block.
+ *
+ * Exchange allowlists are entered as CIDR, not as a bare address, so handing
+ * over `203.0.113.7` alone still leaves the operator guessing what to type.
+ * A /32 or /128 is the exact single host, which is what an allowlist wants.
+ */
+function cidr(address: string, prefix: 32 | 128): string {
+  return `${address}/${prefix}`;
 }
 
 /** Test seam: an availability observation must not leak between cases. */
@@ -101,6 +112,9 @@ export interface EgressHint {
   note: string | null;
   ipv4: string | null;
   ipv6: string | null;
+  /** Single-host CIDR blocks, the form an exchange allowlist expects. */
+  cidrV4: string | null;
+  cidrV6: string | null;
 }
 
 /**
@@ -114,5 +128,7 @@ export async function egressHint(fetchFn: FetchLike = fetch): Promise<EgressHint
     note: empty ? null : describeEgress(addresses),
     ipv4: addresses.ipv4,
     ipv6: addresses.ipv6,
+    cidrV4: addresses.ipv4 === null ? null : cidr(addresses.ipv4, 32),
+    cidrV6: addresses.ipv6 === null ? null : cidr(addresses.ipv6, 128),
   };
 }

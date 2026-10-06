@@ -15,7 +15,13 @@ function httpError(status: number, body: unknown) {
   });
 }
 
-const stubEgress = async () => ({ note: "IPv4 1.2.3.4", ipv4: "1.2.3.4", ipv6: null });
+const stubEgress = async () => ({
+  note: "this host reaches the exchange via IPv4 1.2.3.4 (1.2.3.4/32); allowlist the matching family",
+  ipv4: "1.2.3.4",
+  ipv6: null,
+  cidrV4: "1.2.3.4/32",
+  cidrV6: null,
+});
 
 describe("outcomeFor", () => {
   it("names every verified code", () => {
@@ -67,7 +73,7 @@ describe("formatRejection", () => {
 });
 
 describe("translateExchangeError", () => {
-  it("attaches the resolved egress address to an IP rejection", async () => {
+  it("attaches the resolved egress address and allowlist CIDR to an IP rejection", async () => {
     const translated = await translateExchangeError(
       httpError(403, { code: -2015, msg: "Unauthorized IP address." }),
       "order",
@@ -79,6 +85,9 @@ describe("translateExchangeError", () => {
       exchangeCode: -2015,
       reason: "ip_not_allowlisted",
       egressIpv4: "1.2.3.4",
+      // The allowlist form, so nothing has to be derived by hand.
+      egressCidrV4: "1.2.3.4/32",
+      egressCidrV6: null,
     });
   });
 
