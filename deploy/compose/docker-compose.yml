@@ -7,12 +7,35 @@ services:
       POSTGRES_DB: indodax
     ports: ["5432:5432"]
     volumes: ["pgdata:/var/lib/postgresql/data"]
+    # The migrate step waits for this, so the server never attaches to a
+    # database that is still refusing connections on first boot.
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U indodax -d indodax"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+  # Applies the Drizzle migrations once before the server starts. Without this
+  # step a fresh volume left every mirror attaching to a database with no
+  # tables, which surfaced as "configured but unreachable" persistence.
+  migrate:
+    build: ../..
+    command: ["bun", "packages/db/src/migrate.ts"]
+    environment:
+      DATABASE_URL: postgresql://indodax:indodax@postgres:5432/indodax
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
   mcp-http:
     build: ../..
     ports: ["8000:8000"]
     environment:
       DATABASE_URL: postgresql://indodax:indodax@postgres:5432/indodax
-    depends_on: ["postgres"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
 
 volumes:
   pgdata:

@@ -17,7 +17,6 @@
     "@types/node": "catalog:",
     "@vitest/coverage-v8": "catalog:",
     "bun-types": "catalog:",
-    "fast-check": "catalog:",
     "vitest": "catalog:"
   },
   "exports": {
