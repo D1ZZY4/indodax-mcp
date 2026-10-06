@@ -2,7 +2,11 @@ import { DrizzlePaperLedgerRepository, connectDatabase } from "@indodax-mcp/db";
 import type { ExecutionRequest, ExecutionResult } from "@indodax-mcp/indodax-execution";
 import type { AppServices } from "@indodax-mcp/indodax-mcp/composition";
 import { persistenceCause, resolveBootSnapshot } from "@indodax-mcp/indodax-mcp/persist-error";
-import { noteConnected, noteFailure } from "@indodax-mcp/indodax-mcp/persistence-state";
+import {
+  noteConnected,
+  noteFailure,
+  noteWriteOutcome,
+} from "@indodax-mcp/indodax-mcp/persistence-state";
 import type { PersistenceHealth } from "@indodax-mcp/indodax-mcp/state-store";
 
 /**
@@ -27,14 +31,20 @@ export function attachPaperPersistence(app: AppServices, health: PersistenceHeal
   let bootDirty = false;
   const flush = (): void => {
     if (!ready || repo === null) return;
-    repo.save(tenantId, paper.snapshot()).catch((error: unknown) => {
-      noteFailure(persistenceCause(error));
-      health.refresh();
-      app.logger.warn(
-        { error: String(error), cause: persistenceCause(error) },
-        "paper persistence failed, keeping memory ledger",
-      );
-    });
+    repo.save(tenantId, paper.snapshot()).then(
+      () => {
+        noteWriteOutcome(true);
+      },
+      (error: unknown) => {
+        noteWriteOutcome(false);
+        noteFailure(persistenceCause(error));
+        health.refresh();
+        app.logger.warn(
+          { error: String(error), cause: persistenceCause(error) },
+          "paper persistence failed, keeping memory ledger",
+        );
+      },
+    );
   };
   const persist = (): void => {
     bootDirty = true;

@@ -71,3 +71,38 @@ export function noteFailure(cause: string): void {
 export function persistenceReport(): PersistenceReport {
   return { ...report, mirrors: [...report.mirrors] };
 }
+
+/**
+ * A mirror that connected once does not prove it is connected now.
+ *
+ * The pool keeps established sockets alive, so a database that dies after
+ * boot leaves every write succeeding against a server that is gone until the
+ * pool happens to recycle the socket. Reporting the connection state captured
+ * at boot therefore reported a durable mirror while nothing was being written,
+ * which is the failure this module exists to prevent.
+ *
+ * A failed write is the only reliable evidence, so the state is re-evaluated
+ * whenever one is seen and until then it stays as observed.
+ */
+let lastWriteFailed = false;
+let lastWriteOk = false;
+
+export function noteWriteOutcome(ok: boolean): void {
+  if (ok) {
+    lastWriteOk = true;
+    lastWriteFailed = false;
+    return;
+  }
+  lastWriteFailed = true;
+}
+
+/** Refresh from the latest write evidence without clearing a known failure. */
+export function refreshPersistenceState(): PersistenceReport {
+  if (lastWriteFailed) return persistenceReport();
+  if (lastWriteOk && report.state === "failed") {
+    report.state = "connected";
+    report.degraded = false;
+    report.lastError = null;
+  }
+  return persistenceReport();
+}

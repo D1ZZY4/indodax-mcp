@@ -2,6 +2,7 @@ import type { AuditTrail } from "@indodax-mcp/indodax-audit";
 import { DrizzleAuditRepository, connectDatabase } from "@indodax-mcp/db";
 import type { AppServices } from "@indodax-mcp/indodax-mcp/composition";
 import { persistenceCause } from "@indodax-mcp/indodax-mcp/persist-error";
+import { noteFailure, noteWriteOutcome } from "@indodax-mcp/indodax-mcp/persistence-state";
 import type { PersistenceHealth } from "@indodax-mcp/indodax-mcp/state-store";
 
 /**
@@ -10,7 +11,7 @@ import type { PersistenceHealth } from "@indodax-mcp/indodax-mcp/state-store";
  * record is also appended to Postgres; a failing append is logged and
  * never breaks trading.
  */
-export function attachAuditPersistence(app: AppServices, _health: PersistenceHealth): void {
+export function attachAuditPersistence(app: AppServices, health: PersistenceHealth): void {
   const url = app.env.DATABASE_URL;
   if (!url) return;
   let repo: DrizzleAuditRepository;
@@ -31,7 +32,7 @@ export function attachAuditPersistence(app: AppServices, _health: PersistenceHea
   });
   const trail: AuditTrail = app.audit;
   const record = trail.record.bind(trail);
-  trail.record = (entry) => {
+  trail.record = (entry: Parameters<typeof record>[0]) => {
     record(entry);
     const stored = trail.list().at(-1);
     if (!stored) return;
@@ -44,11 +45,21 @@ export function attachAuditPersistence(app: AppServices, _health: PersistenceHea
         result: stored.result,
         reason: stored.reason,
       })
-      .catch((error: unknown) => {
-        app.logger.warn(
-          { error: String(error), cause: persistenceCause(error) },
-          "audit persistence failed, keeping memory trail",
-        );
-      });
+      .then(
+        () => {
+          noteWriteOutcome(true);
+        },
+        (error: unknown) => {
+          // Audit is the mirror most likely to write often, so a failure here is
+          // the earliest evidence that the pool is writing nowhere.
+          noteWriteOutcome(false);
+          noteFailure(persistenceCause(error));
+          health.refresh();
+          app.logger.warn(
+            { error: String(error), cause: persistenceCause(error) },
+            "audit persistence failed, keeping memory trail",
+          );
+        },
+      );
   };
 }

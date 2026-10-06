@@ -7,7 +7,11 @@ import {
 } from "@indodax-mcp/db";
 import type { AppServices } from "@indodax-mcp/indodax-mcp/composition";
 import { persistenceCause, resolveBootSnapshot } from "@indodax-mcp/indodax-mcp/persist-error";
-import { noteConnected, noteFailure } from "@indodax-mcp/indodax-mcp/persistence-state";
+import {
+  noteConnected,
+  noteFailure,
+  noteWriteOutcome,
+} from "@indodax-mcp/indodax-mcp/persistence-state";
 
 /**
  * Recompute health after a mirror settles. Passed in so this module does not
@@ -40,14 +44,20 @@ function attachSnapshot(
     kind === "alerts" ? app.alerts.list(true) : app.stops.list(true);
   const flush = (): void => {
     if (!ready || repo === null) return;
-    repo.save("local", snapshotNow()).catch((error: unknown) => {
-      noteFailure(persistenceCause(error));
-      health.refresh();
-      app.logger.warn(
-        { error: String(error), cause: persistenceCause(error) },
-        `${kind} persistence failed`,
-      );
-    });
+    repo.save("local", snapshotNow()).then(
+      () => {
+        noteWriteOutcome(true);
+      },
+      (error: unknown) => {
+        noteWriteOutcome(false);
+        noteFailure(persistenceCause(error));
+        health.refresh();
+        app.logger.warn(
+          { error: String(error), cause: persistenceCause(error) },
+          `${kind} persistence failed`,
+        );
+      },
+    );
   };
   save(() => {
     bootDirty = true;
@@ -178,14 +188,20 @@ export function attachDeadmanPersistence(app: AppServices, health: PersistenceHe
         pairs: status.pairs,
         countdownMs: status.countdownMs,
       })
-      .catch((error: unknown) => {
-        noteFailure(persistenceCause(error));
-        health.refresh();
-        app.logger.warn(
-          { error: String(error), cause: persistenceCause(error) },
-          "deadman persistence failed, keeping memory switch",
-        );
-      });
+      .then(
+        () => {
+          noteWriteOutcome(true);
+        },
+        (error: unknown) => {
+          noteWriteOutcome(false);
+          noteFailure(persistenceCause(error));
+          health.refresh();
+          app.logger.warn(
+            { error: String(error), cause: persistenceCause(error) },
+            "deadman persistence failed, keeping memory switch",
+          );
+        },
+      );
   };
   const persist = (): void => {
     bootDirty = true;

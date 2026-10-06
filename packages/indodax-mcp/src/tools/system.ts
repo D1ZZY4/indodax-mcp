@@ -6,7 +6,7 @@ import type { ServerHandlers } from "@indodax-mcp/mcp-core";
 import { fail, ok, parseArgs } from "@indodax-mcp/indodax-mcp/respond";
 import { pairArg } from "@indodax-mcp/indodax-mcp/schemas";
 import { defineTool } from "@indodax-mcp/indodax-mcp/tools/define";
-import { persistenceReport } from "@indodax-mcp/indodax-mcp/persistence-state";
+import { refreshPersistenceState } from "@indodax-mcp/indodax-mcp/persistence-state";
 import type { AppServices } from "@indodax-mcp/indodax-mcp/composition";
 
 const SYSTEM = {
@@ -222,7 +222,10 @@ export function registerSystemTools(
       : keySource === "absent" && secretSource === "absent"
         ? "this process received no INDODAX_API_KEY or INDODAX_API_SECRET; export them in the environment of the process that starts this server, or add a repository .env beside the workspace"
         : `partial credentials: INDODAX_API_KEY from ${keySource}, INDODAX_API_SECRET from ${secretSource}; both are required`;
-    const persistence = persistenceReport();
+    // Re-evaluated per read rather than captured at boot: the pool can keep
+    // writing into a server that has gone away, so the only honest signal is the
+    // most recent write outcome.
+    const persistence = refreshPersistenceState();
     const database =
       persistence.state === "connected"
         ? "connected"

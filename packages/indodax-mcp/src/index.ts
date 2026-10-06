@@ -11,10 +11,11 @@ import {
   attachStopPersistence,
 } from "@indodax-mcp/indodax-mcp/state-store";
 import { evaluateAlerts } from "@indodax-mcp/indodax-mcp/tools/alerts";
+import type { PersistenceReport } from "@indodax-mcp/indodax-mcp/persistence-state";
 import {
   noteConfigured,
   noteUnconfigured,
-  persistenceReport,
+  refreshPersistenceState,
 } from "@indodax-mcp/indodax-mcp/persistence-state";
 import { evaluateStops } from "@indodax-mcp/indodax-mcp/tools/stop";
 import { registerMarketTools } from "@indodax-mcp/indodax-mcp/tools/market";
@@ -149,7 +150,7 @@ function startAutopoll(app: AppServices, server: ReturnType<typeof buildServer>)
  * server could claim a durable mirror while every write was failing.
  */
 function refreshPersistenceHealth(app: AppServices): void {
-  const report = persistenceReport();
+  const report = refreshPersistenceState();
   if (!report.configured) {
     app.health.set("database", {
       status: "unknown",
@@ -174,8 +175,8 @@ function refreshPersistenceHealth(app: AppServices): void {
 }
 
 /** Exposed so the config surface reports the same truth as the health rollup. */
-export function durability(): ReturnType<typeof persistenceReport> {
-  return persistenceReport();
+export function durability(): PersistenceReport {
+  return refreshPersistenceState();
 }
 
 /**
