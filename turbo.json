@@ -27,7 +27,18 @@
     },
     "start": {
       "cache": false,
-      "persistent": true
+      "persistent": true,
+      "passThroughEnv": [
+        "INDODAX_API_KEY",
+        "INDODAX_API_SECRET",
+        "APP_ENV",
+        "TRADE_ENABLED",
+        "WITHDRAW_ENABLED",
+        "DATABASE_URL",
+        "MCP_PORT",
+        "STOP_AUTOPOLL_MS",
+        "ALERT_AUTOPOLL_MS"
+      ]
     },
     "lint": {},
     "format": {
