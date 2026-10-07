@@ -56,7 +56,7 @@ Run MCP over Streamable HTTP:
 bun apps/mcp-http/src/main.ts
 ~~~
 
-The HTTP server binds to 127.0.0.1 and defaults to port 8000; override with MCP_PORT.
+The HTTP server binds to 127.0.0.1 and defaults to port 8000; override with MCP_HOST and MCP_PORT. Compose sets MCP_HOST=0.0.0.0 so the published host port can reach the container gateway.
 
 Both transports use the same server registry and handler set. The current SDK environment negotiates MCP protocol 2025-11-25.
 
@@ -71,7 +71,7 @@ INDODAX_API_SECRET=your_api_secret_here
 # INDODAX_WS_TOKEN=your_ws_token_here
 ~~~
 
-Server configuration also supports DATABASE_URL, MCP_PORT, APP_ENV, TRADE_ENABLED, and WITHDRAW_ENABLED. See [.env.example](.env.example) and the [documentation index](docs/README.md).
+Server configuration also supports DATABASE_URL, MCP_HOST, MCP_PORT, APP_ENV, TRADE_ENABLED, and WITHDRAW_ENABLED. See [.env.example](.env.example) and the [documentation index](docs/README.md).
 
 Never commit real credentials. **Rotate an exchange key immediately** if it is exposed.
 
@@ -95,7 +95,7 @@ The live branch is gated, not closed:
 flowchart TD
     Intent["Live intent"] --> Ack{"Acknowledged?"}
     Ack -->|"No"| Deny1["DENY"]
-    Ack -->|"Yes"| Policy{"APP_ENV=live plus policy?"}
+    Ack -->|"Yes"| Policy{"APP_ENV=live, TRADE_ENABLED, credentials, plus policy?"}
     Policy -->|"No"| Deny2["DENY"]
     Policy -->|"Yes"| Risk{"Risk ALLOW?"}
     Risk -->|"No"| Deny3["DENY or HALT"]

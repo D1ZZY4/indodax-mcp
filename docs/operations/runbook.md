@@ -134,8 +134,11 @@ mirrors to a database that has no tables yet.
 cd deploy/compose && docker compose up --build
 ~~~
 
-The gateway binds to `127.0.0.1` inside the container and is published on host
-port 8000. It carries no credentials by default: live reads and placement require
+The gateway defaults to `127.0.0.1:8000` on a host run and is published on host
+port 8000 from compose. The compose gateway sets `MCP_HOST=0.0.0.0` because a
+process bound to loopback inside the container never receives the
+bridge-forwarded host connection. Override with `MCP_HOST` and `MCP_PORT`.
+It carries no credentials by default: live reads and placement require
 `INDODAX_API_KEY` and `INDODAX_API_SECRET` in its environment, plus `APP_ENV=live`
 and `TRADE_ENABLED=true` for live placement.
 
