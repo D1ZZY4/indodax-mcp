@@ -1,5 +1,11 @@
 import { z } from "zod";
-import { AuthenticationError, ValidationError } from "@indodax-mcp/errors";
+import {
+  AuthenticationError,
+  AuthorizationError,
+  ValidationError,
+  isAppError,
+  type AppError,
+} from "@indodax-mcp/errors";
 import type { Registry } from "@indodax-mcp/mcp-registry";
 import type { ServerHandlers } from "@indodax-mcp/mcp-core";
 import {
@@ -16,6 +22,63 @@ import type { AppServices } from "@indodax-mcp/indodax-mcp/composition";
 
 const V1_BASE = "https://indodax.com/tapi";
 const V2_BASE = INDODAX_V2_BASE;
+
+/**
+ * One vocabulary for every funding denial.
+ *
+ * Four funding tools can fail four different ways for one trade-only key:
+ * an empty-but-ok read, a coin-history code, a legacy key-version refusal,
+ * and denied-by-design withdrawal. A harness cannot branch on four prose
+ * shapes, so every grant-shaped failure below carries the same
+ * FUNDING_UNAUTHORIZED reason with the refusing tool named. IP allowlist
+ * refusals keep their own richer remedy and are never relabeled.
+ */
+function fundingUnauthorized(tool: string, detail: string, cause: unknown): AppError {
+  const prior = isAppError(cause) ? cause.safeMetadata : undefined;
+  const correlationId = isAppError(cause) ? cause.correlationId : undefined;
+  return AuthorizationError(
+    `FUNDING_UNAUTHORIZED: ${tool} refused (${detail}). next: use an exchange key ` +
+      "with a funding grant for funding reads, or treat funding as unavailable for " +
+      "this key; market, paper, and trade paths are unaffected",
+    {
+      ...(correlationId !== undefined ? { correlationId } : {}),
+      safeMetadata: {
+        ...prior,
+        reason: "FUNDING_UNAUTHORIZED",
+        haveGrant: false,
+        needGrant: "exchange key with funding grant",
+        tool,
+      },
+    },
+  );
+}
+
+/**
+ * Wrap a grant-shaped funding failure, preserving richer errors untouched.
+ *
+ * IP allowlist refusals already name the egress address and the dashboard
+ * action, and parameter mistakes name the right tool, so neither is
+ * relabeled: only access-denied-shaped failures without that guidance become
+ * FUNDING_UNAUTHORIZED.
+ */
+function asFundingGrantDenial(tool: string, error: unknown): unknown {
+  const message = error instanceof Error ? error.message : String(error);
+  if (/allowlist/i.test(message)) return error;
+  if (!/access denied|not authorized|unauthori[sz]ed|forbidden|permission denied/i.test(message)) {
+    return error;
+  }
+  return fundingUnauthorized(tool, message.slice(0, 160), error);
+}
+
+/** Crypto-only coin endpoints reject fiat codes at the exchange. Say so first. */
+function rejectFiatCoin(tool: string, coin: string | undefined): void {
+  if (coin !== undefined && coin.toUpperCase() === "IDR") {
+    throw ValidationError(
+      `${tool} covers crypto only; for IDR use indodax_fiat_history instead of a coin code`,
+      { safeMetadata: { reason: "FIAT_USE_FIAT_HISTORY", coin: coin.toUpperCase(), tool } },
+    );
+  }
+}
 
 async function legacyPost(
   app: AppServices,
@@ -43,7 +106,19 @@ async function legacyPost(
     body,
   });
   const json = (await response.json()) as { success?: number; return?: unknown; error?: string };
-  if (json.success !== 1) throw ValidationError(`exchange: ${json.error ?? "unknown v1 error"}`);
+  if (json.success !== 1) {
+    const cause = json.error ?? "unknown v1 error";
+    // The legacy compatibility path rejects newer key versions outright.
+    // That is a grant-shaped refusal, not a parameter mistake.
+    if (/access denied/i.test(cause)) {
+      throw fundingUnauthorized(
+        "indodax_withdraw_fee",
+        `the exchange denied this API key version (${cause.slice(0, 120)})`,
+        ValidationError(`exchange: ${cause}`),
+      );
+    }
+    throw ValidationError(`exchange: ${cause}`);
+  }
   return json.return;
 }
 
@@ -140,7 +215,7 @@ const withdrawFee = defineTool(
     name: "indodax_withdraw_fee",
     title: "Withdraw fee",
     description:
-      "Read-only, needs credentials. Quote the withdrawal fee for one currency. Args: currency required.",
+      "Read-only, needs credentials. Quote the withdrawal fee for one currency. A legacy key-version refusal surfaces as FUNDING_UNAUTHORIZED with the refusing tool named. Args: currency required.",
     ...READ_AUTH,
   },
   { currency: z.string().min(1) },
@@ -160,6 +235,7 @@ export function registerFundingTools(
   handlers.tools.set("indodax_withdraw_history", async (raw) => {
     try {
       const args = parseArgs(withdrawHistory.inputSchema, raw);
+      rejectFiatCoin("indodax_withdraw_history", args.coin);
       const params = args.coin ? { coin: args.coin.toUpperCase() } : {};
       const history = (await v2Get(app, "/api/v2/capital/withdraw/history", params)) as unknown[];
       const list = Array.isArray(history) ? history : [];
@@ -170,12 +246,13 @@ export function registerFundingTools(
         summary: `${list.length} withdrawal record(s)`,
       });
     } catch (error) {
-      return fail(error);
+      return fail(asFundingGrantDenial("indodax_withdraw_history", error));
     }
   });
   handlers.tools.set("indodax_deposit_history", async (raw) => {
     try {
       const args = parseArgs(depositHistory.inputSchema, raw);
+      rejectFiatCoin("indodax_deposit_history", args.coin);
       const params = args.coin ? { coin: args.coin.toUpperCase() } : {};
       const history = (await v2Get(app, "/api/v2/capital/deposit/hisrec", params)) as unknown[];
       const list = Array.isArray(history) ? history : [];
@@ -186,7 +263,7 @@ export function registerFundingTools(
         summary: `${list.length} deposit record(s)`,
       });
     } catch (error) {
-      return fail(error);
+      return fail(asFundingGrantDenial("indodax_deposit_history", error));
     }
   });
   handlers.tools.set("indodax_fiat_history", async () => {
@@ -199,12 +276,13 @@ export function registerFundingTools(
         summary: `${list.length} fiat order(s) in the last 30 days`,
       });
     } catch (error) {
-      return fail(error);
+      return fail(asFundingGrantDenial("indodax_fiat_history", error));
     }
   });
   handlers.tools.set("indodax_deposit_address", async (raw) => {
     try {
       const args = parseArgs(depositAddress.inputSchema, raw);
+      rejectFiatCoin("indodax_deposit_address", args.coin);
       const addresses = (await v2Get(app, "/api/v2/capital/deposit/address/list", {
         coin: args.coin.toUpperCase(),
         network: args.network.toUpperCase(),
@@ -215,13 +293,18 @@ export function registerFundingTools(
         network: args.network.toUpperCase(),
         count: list.length,
         addresses: list,
+        // The read itself succeeded, so listing is permitted. Generation is
+        // a separate step the server does not expose: an empty list means no
+        // address was generated yet, not a silent permission failure (which
+        // would have failed above as FUNDING_UNAUTHORIZED instead).
+        permitted: true,
         summary:
           list.length > 0
             ? `${list.length} deposit address(es) for ${args.coin.toUpperCase()} on ${args.network.toUpperCase()}`
             : `no address generated yet for ${args.coin.toUpperCase()} on ${args.network.toUpperCase()}`,
       });
     } catch (error) {
-      return fail(error);
+      return fail(asFundingGrantDenial("indodax_deposit_address", error));
     }
   });
   handlers.tools.set("indodax_withdraw_fee", async (raw) => {
@@ -234,7 +317,7 @@ export function registerFundingTools(
         summary: `withdrawal fee quote for ${args.currency.toLowerCase()}`,
       });
     } catch (error) {
-      return fail(error);
+      return fail(asFundingGrantDenial("indodax_withdraw_fee", error));
     }
   });
 }

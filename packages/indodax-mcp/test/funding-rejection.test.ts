@@ -73,4 +73,79 @@ describe("funding rejection translation", () => {
       await harness.close();
     }
   });
+
+  it("unifies a legacy key-version refusal as FUNDING_UNAUTHORIZED", async () => {
+    stubFetch(
+      () =>
+        new Response(
+          JSON.stringify({ success: 0, error: "Access denied for this API key version" }),
+        ),
+    );
+    const { server } = liveApp();
+    const harness = await withInMemoryServer(server);
+    try {
+      const result = (await harness.client.callTool({
+        name: "indodax_withdraw_fee",
+        arguments: { currency: "btc" },
+      })) as { content: { text: string }[]; isError?: boolean };
+      expect(result.isError).toBe(true);
+      const body = JSON.parse(result.content[0]?.text ?? "{}") as {
+        code: string;
+        message: string;
+        safeMetadata?: { reason?: string; haveGrant?: boolean; tool?: string };
+      };
+      expect(body.message).toContain("FUNDING_UNAUTHORIZED");
+      expect(body.safeMetadata?.reason).toBe("FUNDING_UNAUTHORIZED");
+      expect(body.safeMetadata?.haveGrant).toBe(false);
+      expect(body.safeMetadata?.tool).toBe("indodax_withdraw_fee");
+    } finally {
+      await harness.close();
+    }
+  });
+
+  it("keeps IP refusals on their richer remedy instead of relabeling them", async () => {
+    const { server } = liveApp();
+    const harness = await withInMemoryServer(server);
+    try {
+      const failure = await errorOf(harness, "indodax_withdraw_history", { coin: "btc" });
+      expect(failure.message).toContain("allowlist");
+      expect(failure.message).not.toContain("FUNDING_UNAUTHORIZED");
+    } finally {
+      await harness.close();
+    }
+  });
+
+  it("redirects fiat coin codes to fiat history before any network call", async () => {
+    const { server } = liveApp();
+    const harness = await withInMemoryServer(server);
+    try {
+      const failure = await errorOf(harness, "indodax_deposit_history", { coin: "idr" });
+      expect(failure.code).toBe("ValidationError");
+      expect(failure.message).toContain("indodax_fiat_history");
+    } finally {
+      await harness.close();
+    }
+  });
+
+  it("marks a successful address list as permitted reads", async () => {
+    stubFetch(() => new Response(JSON.stringify([])));
+    const { server } = liveApp();
+    const harness = await withInMemoryServer(server);
+    try {
+      const result = (await harness.client.callTool({
+        name: "indodax_deposit_address",
+        arguments: { coin: "BTC", network: "BTC" },
+      })) as { content: { text: string }[]; isError?: boolean };
+      expect(result.isError).not.toBe(true);
+      const data = (
+        JSON.parse(result.content[0]?.text ?? "{}") as {
+          data: { permitted: boolean; count: number };
+        }
+      ).data;
+      expect(data.permitted).toBe(true);
+      expect(data.count).toBe(0);
+    } finally {
+      await harness.close();
+    }
+  });
 });
