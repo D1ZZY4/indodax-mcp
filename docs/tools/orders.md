@@ -49,15 +49,21 @@ document, not this page.
 ## OCO bundle
 
 `indodax_oco_bundle` places a position and its protection in one call:
-optional `entryPrice`, then a required `takeProfitPrice` and `stopPrice`, plus
-a required `stopPrice` below the take profit on both sides.
+optional `entryPrice`, then a required `takeProfitPrice` and `stopPrice`
+with the stop on the loss side of the target for the exit direction
+(below the target for SELL exits, above it for BUY exits).
 
 | Tool | Parameters | Response `data` | Notes |
 | --- | --- | --- | --- |
-| `indodax_oco_bundle` | `pair`, `side` BUY/SELL, `quantity`, optional `entryPrice`, required `takeProfitPrice`, required `stopPrice`, `mode` paper/live?, `acknowledged`?, `clientOrderId`? | `{ pair, side, mode, quantity, groupId, entry, stopId, legs, partial, status, note, summary, remedy }` | Every leg reports its own outcome, so a partial result is visible rather than assumed. The stop registers before the take-profit leg is placed, so the leg has a floor while the other call is in flight. Legs after the first skip only the inter-order cooldown, because they are one decision; limits, deadman, balance, and reconciliation are still enforced per leg. The take-profit it places reserves the quantity, so the stop is linked to it and cancels it before firing. |
+| `indodax_oco_bundle` | `pair`, `side` BUY/SELL naming the position direction, `quantity`, optional `entryPrice`, required `takeProfitPrice`, required `stopPrice`, `mode` paper/live?, `acknowledged`?, `clientOrderId`? | `{ pair, side, exitSide, mode, quantity, groupId, entry, stopId, legs, partial, status, note, summary, remedy }` | Every leg reports its own outcome with its side, so a partial result is visible rather than assumed. With `entryPrice` the entry follows `side` and both exits oppose it; without `entryPrice` the legs follow `side` to protect an already-open position. Every leg notional is validated before anything is placed, so an undersized stop refuses the whole bundle instead of arming unprotectable legs. The take-profit is placed before the stop registers, so the stop links to the resting order id. Legs after the first skip only the inter-order cooldown, because they are one decision; limits, deadman, balance, and reconciliation are still enforced per leg. The take-profit it places reserves the quantity, so the stop is linked to it and cancels it before firing. |
 
 When the entry leg itself is refused the whole call fails and nothing is
 armed, so a rejected entry never leaves a dangling stop.
+
+Side example a harness can assert: `side: BUY` with `entryPrice` yields
+exactly one `BUY` (entry) plus a `SELL` take profit and a `SELL` stop, with
+`exitSide: SELL` at the top level. A `SELL` entry mirrors it: one `SELL` in,
+two `BUY` legs out. Never two legs in the entry direction.
 
 The take-profit it places reserves the quantity, so a manual cut-loss on the
 same size would be refused with `-2010`. Link an existing resting take-profit

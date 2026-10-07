@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { ValidationError } from "@indodax-mcp/errors";
+import { decimalOrNull } from "@indodax-mcp/core";
 import type { Registry } from "@indodax-mcp/mcp-registry";
 import type { ServerHandlers } from "@indodax-mcp/mcp-core";
 import { fail, ok, parseArgs } from "@indodax-mcp/indodax-mcp/respond";
@@ -25,7 +26,7 @@ const OCO = defineTool(
     name: "indodax_oco_bundle",
     title: "OCO bundle",
     description:
-      "Mutating. Place a position with its take profit and stop in one call, linked so whichever fires first cancels the other. That replaces three separate calls per position and removes the window where a leg is entered but unprotected. Args: pair, side BUY/SELL, quantity, optional entryPrice, required takeProfitPrice, required stopPrice, optional mode paper/live and acknowledged. Take profit and stop are server-side orders: they only act while this server runs. Every leg reports its own outcome, so a partial result is visible instead of assumed.",
+      "Mutating. Place a position with its take profit and stop in one call, linked so whichever fires first cancels the other. That replaces three separate calls per position and removes the window where a leg is entered but unprotected. Args: pair, side BUY/SELL naming the position direction, quantity, optional entryPrice, required takeProfitPrice, required stopPrice, optional mode paper/live and acknowledged. With entryPrice, the entry follows side and the take profit plus stop exit opposite (BUY entry yields SELL take profit and SELL stop); without entryPrice the legs follow side to protect an already-open position. Every leg notional is validated before anything is placed, so an undersized stop refuses the whole bundle instead of arming unprotectable legs. Every leg reports its own outcome with its side, so a partial result is visible instead of assumed.",
     capability: "TRADE",
     riskClass: "mutation",
     environmentRequirement: "any",
@@ -67,6 +68,46 @@ function extractExchangeOrderId(detail: Record<string, unknown>): string | null 
   return null;
 }
 
+/** The side that closes a position opened in the given direction. */
+function oppositeSide(side: "BUY" | "SELL"): "BUY" | "SELL" {
+  return side === "BUY" ? "SELL" : "BUY";
+}
+
+/**
+ * Refuse the whole bundle when any leg cannot satisfy the notional limits.
+ *
+ * Runs before the first placement so a bundle never opens a position it
+ * cannot protect: an undersized stop would otherwise arm silently and fail
+ * at trigger time. Each leg is checked at the rounded bundle quantity,
+ * matching what each leg would actually place.
+ */
+function validateBundleNotionals(
+  app: AppServices,
+  quantity: number,
+  legs: { leg: string; price: number }[],
+): void {
+  const qty = decimalOrNull(String(quantity));
+  if (qty === null || !qty.gt(0)) throw ValidationError("bundle quantity must be positive");
+  for (const { leg, price } of legs) {
+    const px = decimalOrNull(String(price));
+    if (px === null || !px.gt(0)) throw ValidationError(`${leg} leg price must be positive`);
+    const notional = qty.mul(px);
+    if (notional.lt(app.limits.minOrderNotional)) {
+      throw ValidationError(
+        `${leg} leg notional ${notional.toString()} is below minimum ` +
+          `${app.limits.minOrderNotional.toString()} (MIN_ORDER_SIZE); the bundle cannot ` +
+          "protect this size, so nothing was placed",
+      );
+    }
+    if (notional.gt(app.limits.maxOrderNotional)) {
+      throw ValidationError(
+        `${leg} leg notional ${notional.toString()} exceeds maximum ` +
+          `${app.limits.maxOrderNotional.toString()} (MAX_ORDER_SIZE); nothing was placed`,
+      );
+    }
+  }
+}
+
 export function registerOcoTools(
   registry: Registry,
   handlers: ServerHandlers,
@@ -79,22 +120,43 @@ export function registerOcoTools(
       const mode = args.mode ?? "paper";
 
       /**
-       * A stop loss always sits below the take profit, on either side.
+       * Which side closes the position.
        *
-       * Exiting a long or a short, the stop caps the loss and the target
-       * captures the gain, so stop below target holds for both BUY and SELL.
-       * Checking it per side with the SELL rule inverted rejected every
-       * correct SELL bundle, which is the side used to protect an existing
-       * position.
+       * With an entry leg, side names the position being opened (BUY opens a
+       * long), so both exits must oppose it: a BUY entry yields a SELL take
+       * profit and a SELL stop. Placing the exits in the entry direction
+       * doubled the position instead of protecting it. Without an entry leg
+       * the bundle protects an already-open position, so the legs follow
+       * side itself (SELL exits close a long, BUY exits close a short).
        */
-      if (args.stopPrice >= args.takeProfitPrice) {
+      const exitSide = args.entryPrice === undefined ? args.side : oppositeSide(args.side);
+
+      /**
+       * The stop sits on the loss side of the take profit, judged from the
+       * exits: below the target when exiting SELL, above it when exiting BUY.
+       */
+      if (exitSide === "SELL" && args.stopPrice >= args.takeProfitPrice) {
         throw ValidationError(
-          `the stop must sit below the take profit on both sides, got stop ${args.stopPrice} and take profit ${args.takeProfitPrice}`,
+          `with SELL exits the stop must sit below the take profit, got stop ${args.stopPrice} and take profit ${args.takeProfitPrice}`,
+        );
+      }
+      if (exitSide === "BUY" && args.stopPrice <= args.takeProfitPrice) {
+        throw ValidationError(
+          `with BUY exits the stop must sit above the take profit, got stop ${args.stopPrice} and take profit ${args.takeProfitPrice}`,
         );
       }
 
       const shaped = await roundForPlacement(app, args.pair, args.quantity, args.entryPrice);
       const quantity = shaped.quantity;
+      // Every leg notional is validated before anything is placed. A stop
+      // that cannot satisfy the pair minimum would otherwise arm silently and
+      // fail at trigger time, leaving the position exactly as unprotected as
+      // having no stop while reporting protection.
+      validateBundleNotionals(app, quantity, [
+        ...(args.entryPrice === undefined ? [] : [{ leg: "entry", price: args.entryPrice }]),
+        { leg: "takeProfit", price: args.takeProfitPrice },
+        { leg: "stop", price: args.stopPrice },
+      ]);
       const groupId = args.clientOrderId ?? `oco-${Date.now().toString(36)}`;
       const legs: LegResult[] = [];
 
@@ -121,7 +183,7 @@ export function registerOcoTools(
             mode === "live"
               ? await placeLiveOrder(app, {
                   pair: args.pair,
-                  side: args.side,
+                  side: exitSide,
                   quantity,
                   price,
                   acknowledged: args.acknowledged,
@@ -130,23 +192,27 @@ export function registerOcoTools(
                 })
               : await placePaperOrder(app, {
                   pair: args.pair,
-                  side: args.side,
+                  side: exitSide,
                   orderType: "LIMIT",
                   quantity,
                   price,
                   clientOrderId: `${groupId}-${label}`.slice(0, 36),
                   ignoreCooldown: continuation,
                 });
-          legs.push({ leg, ok: true, detail: { ...result } });
+          legs.push({ leg, ok: true, detail: { ...result, side: exitSide } });
         } catch (error) {
-          legs.push({ leg, ok: false, detail: { code: "Rejected", message: asMessage(error) } });
+          legs.push({
+            leg,
+            ok: false,
+            detail: { code: "Rejected", message: asMessage(error), side: exitSide },
+          });
         }
       };
 
       let entry: Record<string, unknown> | null = null;
       if (args.entryPrice !== undefined) {
         try {
-          entry =
+          const placed =
             mode === "live"
               ? ((await placeLiveOrder(app, {
                   pair: args.pair,
@@ -164,6 +230,7 @@ export function registerOcoTools(
                   price: args.entryPrice,
                   clientOrderId: groupId,
                 })) as unknown as Record<string, unknown>);
+          entry = { ...placed, side: args.side };
         } catch (error) {
           throw ValidationError(
             `entry leg was refused, so no protection was armed: ${asMessage(error)}`,
@@ -188,7 +255,7 @@ export function registerOcoTools(
       const linkedOrderId = takeProfitLeg?.ok ? extractExchangeOrderId(takeProfitLeg.detail) : null;
       const stop = app.stops.add({
         pair: canonicalPair(args.pair),
-        side: args.side,
+        side: exitSide,
         quantity,
         stopPrice: args.stopPrice,
         limitPrice: args.stopPrice,
@@ -202,6 +269,7 @@ export function registerOcoTools(
       return ok({
         pair: args.pair,
         side: args.side,
+        exitSide,
         mode,
         quantity,
         groupId,
@@ -217,7 +285,7 @@ export function registerOcoTools(
             : `protection incomplete (${failed.map((leg) => leg.leg).join(", ")}); the position is not fully hedged until those are placed`,
         summary:
           failed.length === 0
-            ? `OCO bundle placed for ${args.pair}: entry ${args.side} ${quantity}, take profit ${args.takeProfitPrice}, stop ${args.stopPrice}`
+            ? `OCO bundle placed for ${args.pair}: entry ${args.side} ${quantity}, take profit ${exitSide} ${args.takeProfitPrice}, stop ${exitSide} ${args.stopPrice}`
             : `OCO bundle partial for ${args.pair}: ${failed.map((leg) => leg.leg).join(", ")} refused`,
         remedy:
           failed.length === 0

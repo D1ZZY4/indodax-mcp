@@ -12,7 +12,9 @@ type Harness = Awaited<ReturnType<typeof withInMemoryServer>>;
 interface OcoData {
   status: string;
   partial: boolean;
-  legs: { leg: string; ok: boolean; detail: { message?: string } }[];
+  exitSide: "BUY" | "SELL";
+  legs: { leg: string; ok: boolean; detail: { message?: string; side?: string } }[];
+  entry: { side?: string } | null;
   stopId: string | null;
 }
 
@@ -42,6 +44,28 @@ function stubbed(mutate?: (app: AppServices) => void) {
 }
 
 /**
+ * Paper economics for these tests: the ledger starts with 100M IDR and 1 BTC,
+ * and the minimum notional is 10000. Quantity 0.5 keeps every leg affordable
+ * on both sides (BUY needs quote, SELL needs base) and above the minimum.
+ */
+const QTY = 0.5;
+const ENTRY = 30000;
+const TAKE_PROFIT = 45000;
+const STOP = 25000;
+
+function bundleArgs(extra: Record<string, unknown> = {}) {
+  return {
+    pair: "btc_idr",
+    side: "BUY",
+    quantity: QTY,
+    entryPrice: ENTRY,
+    takeProfitPrice: TAKE_PROFIT,
+    stopPrice: STOP,
+    ...extra,
+  };
+}
+
+/**
  * The bundle places several legs from one decision, so the 5s inter-order
  * cooldown used to refuse every leg after the first. That produced the exact
  * half-protected outcome the tool exists to prevent: an open position with no
@@ -52,14 +76,7 @@ describe("oco bundle leg placement", () => {
     const built = stubbed();
     const harness = await withInMemoryServer(built.server);
     try {
-      const data = await dataOf(harness, "indodax_oco_bundle", {
-        pair: "btc_idr",
-        side: "BUY",
-        quantity: 10,
-        entryPrice: 1000,
-        takeProfitPrice: 1500,
-        stopPrice: 800,
-      });
+      const data = await dataOf(harness, "indodax_oco_bundle", bundleArgs());
       expect(data.status).toBe("complete");
       expect(data.partial).toBe(false);
       expect(data.legs.every((leg) => leg.ok)).toBe(true);
@@ -70,19 +87,109 @@ describe("oco bundle leg placement", () => {
     }
   });
 
-  it("places the take profit when there is no entry leg", async () => {
+  it("exits opposite the entry: one BUY in, two SELLs out", async () => {
+    // Regression for a live incident where the take-profit leg copied the
+    // entry side and doubled the long instead of closing it. A BUY bundle
+    // must produce exactly 1 BUY (entry) plus a SELL take profit and a SELL
+    // stop, never 2 BUYs.
     const built = stubbed();
     const harness = await withInMemoryServer(built.server);
     try {
-      const data = await dataOf(harness, "indodax_oco_bundle", {
-        pair: "btc_idr",
-        side: "BUY",
-        quantity: 10,
-        takeProfitPrice: 1500,
-        stopPrice: 800,
-      });
+      const data = await dataOf(harness, "indodax_oco_bundle", bundleArgs());
+      expect(data.exitSide).toBe("SELL");
+      expect(data.entry?.side).toBe("BUY");
+      const takeProfit = data.legs.find((leg) => leg.leg === "takeProfit");
+      expect(takeProfit?.detail.side).toBe("SELL");
+      const orders = built.app.paper.openOrders();
+      expect(orders.filter((order) => order.side === "BUY")).toHaveLength(1);
+      expect(orders.filter((order) => order.side === "SELL")).toHaveLength(1);
+      expect(built.app.stops.list().at(0)?.side).toBe("SELL");
+    } finally {
+      await harness.close();
+    }
+  });
+
+  it("mirrors a short the other way: one SELL in, two BUYs out", async () => {
+    const built = stubbed();
+    const harness = await withInMemoryServer(built.server);
+    try {
+      const data = await dataOf(
+        harness,
+        "indodax_oco_bundle",
+        bundleArgs({ side: "SELL", entryPrice: ENTRY, takeProfitPrice: 20000, stopPrice: 35000 }),
+      );
       expect(data.status).toBe("complete");
+      expect(data.exitSide).toBe("BUY");
+      expect(data.entry?.side).toBe("SELL");
+      const takeProfit = data.legs.find((leg) => leg.leg === "takeProfit");
+      expect(takeProfit?.detail.side).toBe("BUY");
+      const orders = built.app.paper.openOrders();
+      expect(orders.filter((order) => order.side === "SELL")).toHaveLength(1);
+      expect(orders.filter((order) => order.side === "BUY")).toHaveLength(1);
+      expect(built.app.stops.list().at(0)?.side).toBe("BUY");
+    } finally {
+      await harness.close();
+    }
+  });
+
+  it("refuses the whole bundle when the stop cannot meet the minimum", async () => {
+    // A stop at 15000 on 0.5 units is 7500 notional, below the 10000 floor.
+    // Arming it anyway would report protection that fails at trigger time,
+    // so the bundle must refuse before the entry opens a naked position.
+    const built = stubbed();
+    const harness = await withInMemoryServer(built.server);
+    try {
+      const failure = await harness.client.callTool({
+        name: "indodax_oco_bundle",
+        arguments: bundleArgs({ stopPrice: 15000 }),
+      });
+      expect(failure.isError).toBe(true);
+      const body = JSON.parse(
+        (failure.content as { type: string; text: string }[])[0]?.text ?? "{}",
+      ) as { message: string };
+      expect(body.message).toContain("stop leg notional");
+      expect(body.message).toContain("MIN_ORDER_SIZE");
+      expect(built.app.paper.openOrders()).toHaveLength(0);
+      expect(built.app.stops.list(true)).toHaveLength(0);
+    } finally {
+      await harness.close();
+    }
+  });
+
+  it("requires the stop on the loss side of the take profit per exit direction", async () => {
+    const built = stubbed();
+    const harness = await withInMemoryServer(built.server);
+    try {
+      const failure = await harness.client.callTool({
+        name: "indodax_oco_bundle",
+        arguments: bundleArgs({ side: "SELL", takeProfitPrice: TAKE_PROFIT, stopPrice: 800 }),
+      });
+      expect(failure.isError).toBe(true);
+      const body = JSON.parse(
+        (failure.content as { type: string; text: string }[])[0]?.text ?? "{}",
+      ) as { message: string };
+      expect(body.message).toContain("BUY exits");
+    } finally {
+      await harness.close();
+    }
+  });
+
+  it("places the take profit when there is no entry leg", async () => {
+    // Without an entry the legs follow side to protect an already-open
+    // position: SELL exits close a long, so the stop still sits below target.
+    const built = stubbed();
+    const harness = await withInMemoryServer(built.server);
+    try {
+      const data = await dataOf(
+        harness,
+        "indodax_oco_bundle",
+        bundleArgs({ side: "SELL", entryPrice: undefined }),
+      );
+      expect(data.status).toBe("complete");
+      expect(data.exitSide).toBe("SELL");
       expect(built.app.paper.openOrders()).toHaveLength(1);
+      expect(built.app.paper.openOrders().at(0)?.side).toBe("SELL");
+      expect(built.app.stops.list().at(0)?.side).toBe("SELL");
     } finally {
       await harness.close();
     }
@@ -97,14 +204,7 @@ describe("oco bundle leg placement", () => {
     try {
       const failure = await harness.client.callTool({
         name: "indodax_oco_bundle",
-        arguments: {
-          pair: "btc_idr",
-          side: "BUY",
-          quantity: 10,
-          entryPrice: 1000,
-          takeProfitPrice: 1500,
-          stopPrice: 800,
-        },
+        arguments: bundleArgs(),
       });
       expect(failure.isError).toBe(true);
       const body = JSON.parse(
@@ -120,18 +220,11 @@ describe("oco bundle leg placement", () => {
   it("still enforces the balance check on a continuation leg", async () => {
     const built = stubbed((app) => {
       const paper = app.paper as unknown as { ledger: { balances: Record<string, string> } };
-      paper.ledger.balances.idr = "11000";
+      paper.ledger.balances.btc = "0";
     });
     const harness = await withInMemoryServer(built.server);
     try {
-      const data = await dataOf(harness, "indodax_oco_bundle", {
-        pair: "btc_idr",
-        side: "BUY",
-        quantity: 10,
-        entryPrice: 1000,
-        takeProfitPrice: 1500,
-        stopPrice: 800,
-      });
+      const data = await dataOf(harness, "indodax_oco_bundle", bundleArgs());
       expect(data.partial).toBe(true);
       const failed = data.legs.find((leg) => !leg.ok);
       expect(failed?.detail.message).toContain("INSUFFICIENT_BALANCE");
@@ -147,19 +240,14 @@ describe("oco bundle leg placement", () => {
     const built = stubbed();
     const harness = await withInMemoryServer(built.server);
     try {
-      const data = await dataOf(harness, "indodax_oco_bundle", {
-        pair: "btc_idr",
-        side: "BUY",
-        quantity: 10,
-        entryPrice: 1000,
-        takeProfitPrice: 1500,
-        stopPrice: 800,
-      });
+      const data = await dataOf(harness, "indodax_oco_bundle", bundleArgs());
       expect(data.status).toBe("complete");
       const stop = built.app.stops.list().at(0);
       expect(stop?.linkedOrderId).toBeTruthy();
       // The linked id is the take-profit that actually rests on the ledger.
-      const paperOrder = built.app.paper.openOrders().find((order) => order.price === "1500");
+      const paperOrder = built.app.paper
+        .openOrders()
+        .find((order) => order.price === String(TAKE_PROFIT));
       expect(stop?.linkedOrderId).toBe(paperOrder?.exchangeOrderId);
     } finally {
       await harness.close();
@@ -169,18 +257,11 @@ describe("oco bundle leg placement", () => {
   it("still arms the stop when the take-profit leg is refused", async () => {
     const built = stubbed((app) => {
       const paper = app.paper as unknown as { ledger: { balances: Record<string, string> } };
-      paper.ledger.balances.idr = "11000";
+      paper.ledger.balances.btc = "0";
     });
     const harness = await withInMemoryServer(built.server);
     try {
-      const data = await dataOf(harness, "indodax_oco_bundle", {
-        pair: "btc_idr",
-        side: "BUY",
-        quantity: 10,
-        entryPrice: 1000,
-        takeProfitPrice: 1500,
-        stopPrice: 800,
-      });
+      const data = await dataOf(harness, "indodax_oco_bundle", bundleArgs());
       expect(data.partial).toBe(true);
       // No take-profit rests, so there is nothing to link and the stop still
       // protects the position it just opened.
@@ -199,16 +280,14 @@ describe("oco bundle leg placement", () => {
     const built = stubbed();
     const harness = await withInMemoryServer(built.server);
     try {
-      await dataOf(harness, "indodax_oco_bundle", {
-        pair: "BTCIDR",
-        side: "BUY",
-        quantity: 10,
-        takeProfitPrice: 1500,
-        stopPrice: 800,
-      });
+      await dataOf(
+        harness,
+        "indodax_oco_bundle",
+        bundleArgs({ pair: "BTCIDR", side: "SELL", entryPrice: undefined }),
+      );
       await harness.client.callTool({
         name: "indodax_stop_create",
-        arguments: { pair: "BTC/IDR", side: "SELL", quantity: 10, stopPrice: 1000 },
+        arguments: { pair: "BTC/IDR", side: "SELL", quantity: QTY, stopPrice: STOP },
       });
       const pairs = new Set(built.app.stops.list(true).map((stop) => stop.pair));
       expect([...pairs]).toEqual(["btc_idr"]);
