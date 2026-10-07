@@ -8,9 +8,9 @@ Use the official MCP SDK v2 family for server and client behavior.
 
 The current repository uses:
 
-- @modelcontextprotocol/server 2.3.0
-- @modelcontextprotocol/core 2.3.0
-- @modelcontextprotocol/client 2.3.0
+- @modelcontextprotocol/server 2.3.1
+- @modelcontextprotocol/core 2.3.1
+- @modelcontextprotocol/client 2.3.1
 - @modelcontextprotocol/hono 2.0.2
 
 The current environment negotiates **MCP protocol `2025-11-25`**.

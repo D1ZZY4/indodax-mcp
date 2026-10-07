@@ -4,7 +4,7 @@ This page records material differences between earlier build requirements and th
 
 | Area | Requested or expected | Current state | Reason | Impact |
 | --- | --- | --- | --- | --- |
-| MCP protocol | 2026-07-28 | 2025-11-25 negotiated | Current installed SDK 2.3.0 supports 2025-11-25 as the available protocol maximum in this build | Current clients use the negotiated version |
+| MCP protocol | 2026-07-28 | 2025-11-25 negotiated | Current installed SDK 2.3.1 supports 2025-11-25 as the available protocol maximum in this build | Current clients use the negotiated version |
 | TypeScript | latest stable | 7.x line | Verified against the installed toolchain; `vite-env.d.ts` covers CSS side-effect imports under the stricter module resolution | Toolchain currency |
 | Vite React plugin | earlier v5 expectation | v6 line | Vite 8 compatibility requires the newer plugin line | No functional regression |
 | PostgreSQL service | system PostgreSQL | embedded PostgreSQL for dev/test where needed | Build environment may not provide a local PostgreSQL service | Development setup only |
