@@ -58,6 +58,7 @@ describe("stdio transport", () => {
         "pair",
         "price",
         "quantity",
+        "riskBudget",
         "side",
         "stpMode",
         "timeInForce",
