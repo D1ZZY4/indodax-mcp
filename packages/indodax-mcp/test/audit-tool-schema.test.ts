@@ -27,6 +27,8 @@ const TOOL_MODULES = [
   "risk",
   "rounding",
   "stop",
+  "stop-check",
+  "stop-create",
   "strategy",
   "symbols",
   "system",
@@ -83,6 +85,7 @@ describe("handler input schemas never exceed the advertised schema", () => {
             "ops-exposure.ts",
             "paper-order.ts",
             "reconcile-exchange.ts",
+            "stop-shared.ts",
           ].includes(file),
       )
       .map((file) => file.replace(/\.ts$/, ""));

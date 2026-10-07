@@ -167,3 +167,68 @@ describe("stop orders", () => {
     }
   });
 });
+
+describe("percent stops and minimum refusal", () => {
+  it("anchors percentDown to the live price for a SELL stop", async () => {
+    const { server, app } = buildIndodaxServer(loadEnv({}));
+    app.publicClient = stubTicker("100000");
+    clearCache();
+    const harness = await withInMemoryServer(server);
+    try {
+      const created = await harness.client.callTool({
+        name: "indodax_stop_create",
+        arguments: { pair: "btc_idr", side: "SELL", quantity: 0.5, percentDown: 5 },
+      });
+      expect(created.isError).not.toBe(true);
+      const text = (created.content as { type: string; text: string }[])[0]?.text ?? "{}";
+      const stop = (JSON.parse(text) as { data: { stop: { stopPrice: number } } }).data.stop;
+      expect(stop.stopPrice).toBe(95000);
+    } finally {
+      await harness.close();
+      clearCache();
+    }
+  });
+
+  it("rejects a mismatched percent direction instead of arming backwards", async () => {
+    const { server } = buildIndodaxServer(loadEnv({}));
+    const harness = await withInMemoryServer(server);
+    try {
+      const denied = await harness.client.callTool({
+        name: "indodax_stop_create",
+        arguments: { pair: "btc_idr", side: "SELL", quantity: 0.5, percentUp: 5 },
+      });
+      expect(denied.isError).toBe(true);
+      const text = (denied.content as { type: string; text: string }[])[0]?.text ?? "{}";
+      expect(text).toContain("percentUp only arms BUY stops");
+    } finally {
+      await harness.close();
+    }
+  });
+
+  it("refuses a sub-minimum stop with shortfall math instead of arming it", async () => {
+    // A 0.05 BTC stop at 95000 is 4750 notional against the 10000 floor.
+    // Arming it would report protection that fails at trigger time.
+    const { server, app } = buildIndodaxServer(loadEnv({}));
+    app.publicClient = stubTicker("100000");
+    clearCache();
+    const harness = await withInMemoryServer(server);
+    try {
+      const denied = await harness.client.callTool({
+        name: "indodax_stop_create",
+        arguments: { pair: "btc_idr", side: "SELL", quantity: 0.05, percentDown: 5 },
+      });
+      expect(denied.isError).toBe(true);
+      const body = JSON.parse(
+        (denied.content as { type: string; text: string }[])[0]?.text ?? "{}",
+      ) as { message: string; safeMetadata?: { reason?: string; minQuantity?: string } };
+      expect(body.message).toContain("UNDERMINIMUM_STOP");
+      expect(body.message).toContain("5250");
+      expect(body.safeMetadata?.reason).toBe("UNDERMINIMUM_STOP");
+      expect(body.safeMetadata?.minQuantity).toBeTruthy();
+      expect(app.stops.list(true)).toHaveLength(0);
+    } finally {
+      await harness.close();
+      clearCache();
+    }
+  });
+});
