@@ -113,7 +113,17 @@ export function registerOcoAttachTools(
         throw ValidationError(`open order ${wanted} has no symbol and cannot be linked`);
       }
       const pair = canonicalPair(target.symbol);
-      const side = args.side ?? (target.side === "BUY" ? "BUY" : "SELL");
+      // Never guess the side: a resting row without a readable side used to
+      // fall through to SELL, so a BUY order displayed and linked as a SELL.
+      const reported = target.side?.toUpperCase();
+      const resolvedSide =
+        args.side ?? (reported === "BUY" ? "BUY" : reported === "SELL" ? "SELL" : undefined);
+      if (resolvedSide === undefined) {
+        throw ValidationError(
+          `open order ${wanted} reports no usable side; pass side explicitly as BUY or SELL`,
+        );
+      }
+      const side = resolvedSide;
       if (target.side !== undefined && target.side.toUpperCase() !== side) {
         throw ValidationError(
           `open order ${wanted} is a ${target.side} order, so the linked stop must be ${target.side} too`,

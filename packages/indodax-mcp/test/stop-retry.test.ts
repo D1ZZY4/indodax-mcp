@@ -132,3 +132,55 @@ describe("stop retry", () => {
     }
   });
 });
+
+describe("attach side resolution", () => {
+  function attachedApp(resting: Record<string, unknown>) {
+    const built = buildIndodaxServer(loadEnv({ INDODAX_API_KEY: "k", INDODAX_API_SECRET: "s" }));
+    built.app.accountClient = {
+      openOrders: async () => [resting],
+      getAccount: async () => ({ balances: [] }),
+    } as unknown as AccountClient;
+    return built;
+  }
+
+  const RESTING = {
+    orderId: "99",
+    clientOrderId: "tp-9",
+    symbol: "HONEYIDR",
+    price: "5000",
+    origQty: "10",
+    executedQty: "0",
+    status: "OPEN",
+  };
+
+  it("reads a lowercase resting side instead of defaulting to SELL", async () => {
+    const built = attachedApp({ ...RESTING, side: "buy" });
+    const harness = await withInMemoryServer(built.server);
+    try {
+      const result = (await harness.client.callTool({
+        name: "indodax_oco_attach",
+        arguments: { orderId: "99", stopPrice: 4000, acknowledged: true },
+      })) as { content: { text: string }[]; isError?: boolean };
+      expect(result.isError).not.toBe(true);
+      const data = (JSON.parse(textOf(result)) as { data: Record<string, unknown> }).data;
+      expect(data.side).toBe("BUY");
+    } finally {
+      await harness.close();
+    }
+  });
+
+  it("refuses to guess when the resting order reports no side", async () => {
+    const built = attachedApp({ ...RESTING });
+    const harness = await withInMemoryServer(built.server);
+    try {
+      const result = (await harness.client.callTool({
+        name: "indodax_oco_attach",
+        arguments: { orderId: "99", stopPrice: 4000, acknowledged: true },
+      })) as { content: { text: string }[]; isError?: boolean };
+      expect(result.isError).toBe(true);
+      expect(textOf(result)).toContain("no usable side");
+    } finally {
+      await harness.close();
+    }
+  });
+});
