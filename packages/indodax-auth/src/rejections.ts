@@ -61,6 +61,12 @@ export const ORDER_OUTCOME_REMEDIES: Readonly<Record<number, RejectionOutcome>> 
       "invalid client order id. next: generate a fresh clientOrderId, because an id already " +
       "used on the exchange is rejected even when the previous order is gone",
   },
+  [-1121]: {
+    reason: "invalid_symbol",
+    guidance:
+      "unknown trading symbol. next: resolve the pair with indodax_search_symbols and pass " +
+      "a listed pair spelling such as w3f_idr; the client already normalizes common spellings",
+  },
 };
 
 export function outcomeFor(code: number | null): RejectionOutcome | undefined {

@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { OrderRejectedError, ValidationError } from "@indodax-mcp/errors";
 import Decimal from "decimal.js";
-import { decimalOrNull } from "@indodax-mcp/core";
+import { asCompact, decimalOrNull, parseSymbolFlexible } from "@indodax-mcp/core";
 import type { FetchFn } from "@indodax-mcp/transport";
 import { OFFICIAL_V2_BUCKET, RateLimiter, fetchWithRetry } from "@indodax-mcp/transport";
 import { egressHint } from "@indodax-mcp/transport/egress";
@@ -14,6 +14,21 @@ import {
 import type { Capability } from "@indodax-mcp/core";
 
 export const V2_BASE = INDODAX_V2_BASE;
+
+/**
+ * Exchange wire spelling for a user-supplied symbol.
+ *
+ * Every other tool accepts any common spelling and normalizes per endpoint,
+ * but these authenticated reads used to uppercase the raw input, so w3f_idr
+ * went out as W3F_IDR and the exchange answered -1121 Invalid symbol.
+ * Unparseable input passes through unchanged so the exchange still reports
+ * genuinely unknown symbols instead of this client inventing a rejection.
+ */
+function exchangeSymbol(symbol: string): string {
+  const parsed = parseSymbolFlexible(symbol);
+  if (!parsed) return symbol;
+  return asCompact(parsed);
+}
 
 const balanceSchema = z.object({
   asset: z.string(),
@@ -134,12 +149,12 @@ export class AccountClient {
 
   async openOrders(symbol?: string): Promise<unknown> {
     const params: Record<string, string> = {};
-    if (symbol) params.symbol = symbol.toUpperCase();
+    if (symbol) params.symbol = exchangeSymbol(symbol).toUpperCase();
     return this.signedGet("/api/v2/openOrders", params);
   }
 
   async getOrder(symbol: string, orderId?: string, clientOrderId?: string): Promise<unknown> {
-    const params: Record<string, string> = { symbol: symbol.toUpperCase() };
+    const params: Record<string, string> = { symbol: exchangeSymbol(symbol).toUpperCase() };
     if (orderId) params.orderId = orderId;
     if (clientOrderId) params.origClientOrderId = clientOrderId;
     return this.lookupOrder("/api/v2/order", params);
@@ -172,7 +187,9 @@ export class AccountClient {
 }
 
 function historyParams(options: HistoryOptions): Record<string, string> {
-  const params: Record<string, string> = { symbol: options.symbol.toLowerCase() };
+  // History endpoints take the lowercase compact spelling (w3fidr), while
+  // order endpoints above take uppercase (W3FIDR).
+  const params: Record<string, string> = { symbol: exchangeSymbol(options.symbol).toLowerCase() };
   const limit = Math.min(1000, Math.max(10, Math.floor(options.limit ?? 100)));
   params.limit = String(limit);
   if (options.startTime !== undefined) params.startTime = String(options.startTime);

@@ -29,6 +29,8 @@ describe("outcomeFor", () => {
     expect(outcomeFor(-2015)?.reason).toBe("ip_not_allowlisted");
     expect(outcomeFor(-2011)?.reason).toBe("order_not_found");
     expect(outcomeFor(-2012)?.reason).toBe("order_already_completed");
+    expect(outcomeFor(-1121)?.reason).toBe("invalid_symbol");
+    expect(guidanceFor(-1121)).toContain("indodax_search_symbols");
   });
 
   it("returns undefined for unknown and null codes", () => {

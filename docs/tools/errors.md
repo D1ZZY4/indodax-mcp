@@ -18,6 +18,7 @@ as validation failures with corrected arguments. Branch on `code` and the
 | `ip_not_allowlisted` (`reason`, exchange code `-2015`) | The exchange confirmed an unauthorized IP. | Same allowlist action as above; the signature itself was accepted. |
 | `insufficient_balance` (`reason`, exchange code `-2010`) | The quantity is not free, often reserved by a resting take-profit. | Check `indodax_balances` versus open orders; link the stop with `indodax_oco_attach` so the trigger releases the quantity first. |
 | `order_not_found` (`reason`, codes `-2011`, `-2013`) | The exchange does not know the order id. | Confirm with `indodax_order_history` before assuming the position is open. |
+| `invalid_symbol` (`reason`, code `-1121`) | Unknown trading symbol. | Resolve with `indodax_search_symbols` and pass a listed spelling such as `w3f_idr`; common spellings are normalized per endpoint. |
 | `order_already_completed` (`reason`, code `-2012`) | The order already filled or cancelled. | Do not retry; read final state from `indodax_order` or history. |
 | `STALE_MARKET_DATA`, `STALE_ACCOUNT_STATE`, `COOLDOWN_ACTIVE` | Retryable local context refusals on stops. | Refresh with `indodax_account` (account) or wait out the cooldown, then `indodax_stop_check` again; blocked stops also retry via `indodax_stop_retry`. |
 | `UnknownExecutionResultError` | Timeout or dropped connection after a live submission. | Treat as unknown, reconcile against exchange order and trade state, and never blindly resubmit. |

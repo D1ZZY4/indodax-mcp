@@ -145,3 +145,32 @@ describe("indodax-account", () => {
     expect(timestampCalls).toBeGreaterThanOrEqual(2);
   });
 });
+
+describe("indodax-account symbol normalization", () => {
+  async function seenUrl(
+    call: (client: AccountClient) => Promise<unknown>,
+  ): Promise<string> {
+    let seen = "";
+    const fetchFn = (async (input: string) => {
+      seen = String(input);
+      return new Response(JSON.stringify(ACCOUNT));
+    }) as FetchFn;
+    const client = new AccountClient({ signer: new TapiV2Signer("k", "s"), fetchFn });
+    await call(client).catch(() => null);
+    return seen;
+  }
+
+  it("sends the uppercase compact spelling for order reads", async () => {
+    expect(await seenUrl((client) => client.getOrder("w3f_idr", "1"))).toContain("symbol=W3FIDR");
+    expect(await seenUrl((client) => client.openOrders("w3f_idr"))).toContain("symbol=W3FIDR");
+  });
+
+  it("sends the lowercase compact spelling for history reads", async () => {
+    expect(await seenUrl((client) => client.orderHistories({ symbol: "W3F_IDR" }))).toContain(
+      "symbol=w3fidr",
+    );
+    expect(await seenUrl((client) => client.myTrades({ symbol: "w3f_idr" }))).toContain(
+      "symbol=w3fidr",
+    );
+  });
+});
