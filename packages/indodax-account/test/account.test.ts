@@ -147,9 +147,7 @@ describe("indodax-account", () => {
 });
 
 describe("indodax-account symbol normalization", () => {
-  async function seenUrl(
-    call: (client: AccountClient) => Promise<unknown>,
-  ): Promise<string> {
+  async function seenUrl(call: (client: AccountClient) => Promise<unknown>): Promise<string> {
     let seen = "";
     const fetchFn = (async (input: string) => {
       seen = String(input);
