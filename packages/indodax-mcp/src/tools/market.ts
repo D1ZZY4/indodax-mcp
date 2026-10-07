@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { ValidationError } from "@indodax-mcp/errors";
 import {
   bestPrice,
   bestQty,
@@ -8,9 +9,9 @@ import {
 } from "@indodax-mcp/indodax-mcp/market-book";
 import type { Registry } from "@indodax-mcp/mcp-registry";
 import type { ServerHandlers } from "@indodax-mcp/mcp-core";
-import { getTicker, toCompactPair } from "@indodax-mcp/indodax-market";
+import { getTicker, isPairTradable, toCompactPair } from "@indodax-mcp/indodax-market";
 import { fail, ok, parseArgs } from "@indodax-mcp/indodax-mcp/respond";
-import { passesScreen, screenValues } from "@indodax-mcp/indodax-mcp/screen";
+import { flowOf, pairUnavailableMessage, screenValues } from "@indodax-mcp/indodax-mcp/screen";
 import { canonicalPair, pairArg } from "@indodax-mcp/indodax-mcp/schemas";
 import { defineTool } from "@indodax-mcp/indodax-mcp/tools/define";
 import type { AppServices } from "@indodax-mcp/indodax-mcp/composition";
@@ -29,23 +30,6 @@ function meta(name: string, description: string) {
     auditClass: "read" as const,
   };
 }
-
-/** Projection for a scan: name only the fields the caller asked for. */
-const TICKER_FIELDS = ["high", "low", "last", "buy", "sell", "vol_idr", "vol_btc"] as const;
-
-/**
- * Default projection when `fields` is omitted.
- *
- * Screening needs range (high/low/last), spread (buy/sell), and volume
- * (vol_idr) in one call, so those six ride by default. An explicit `fields`
- * list is still honoured as given for callers counting every byte. Rows also
- * carry derived `rangePct`, `pos`, and `spreadPct` whenever their inputs are
- * usable, so a harness sorts and filters candidates without re-parsing
- * decimals per row.
- */
-const TICKER_DEFAULT_FIELDS = ["last", "high", "low", "buy", "sell", "vol_idr"] as const;
-
-type TickerRow = Record<string, string | number | undefined>;
 
 const serverTime = defineTool(
   meta(
@@ -69,36 +53,6 @@ const ticker = defineTool(
     "Read-only. Live last price and 24h stats for one pair. Args: pair like btc_idr.",
   ),
   { pair: pairArg },
-);
-
-const tickersAll = defineTool(
-  meta(
-    "indodax_tickers_all",
-    "Read-only. Screening-ready tickers. Args: optional quote filter like IDR, optional limit 1 to 500 default 100 when neither quote nor limit is given (limit caps returned rows, total is the universe size). Rows carry last, high, low, buy, sell, and vol_idr by default plus derived rangePct, pos, and spreadPct when computable. Args: optional fields array of high, low, last, buy, sell, vol_idr, vol_btc; optional minVolumeIdr floor on vol_idr; optional minRangePct floor on 24h range; optional maxSpreadPct cap; optional minPos/maxPos bounds on position inside the range.",
-  ),
-  {
-    quote: z.string().min(1).max(10).optional(),
-    limit: z.number().int().min(1).max(500).optional(),
-    /**
-     * Minimum 24h quote volume. Scanning 475 pairs at once is heavy, and a
-     * volume floor is the cheapest way to cut the set before fetching detail.
-     * Applies to vol_idr rows; use it with quote IDR screening.
-     */
-    minVolumeIdr: z.number().nonnegative().optional(),
-    /** Minimum 24h range percent of the low. Rows without a usable range fail. */
-    minRangePct: z.number().nonnegative().optional(),
-    /** Maximum spread percent of the bid. Rows without a usable spread fail. */
-    maxSpreadPct: z.number().nonnegative().optional(),
-    /** Minimum position of last inside high/low (0 to 1). */
-    minPos: z.number().min(0).max(1).optional(),
-    /** Maximum position of last inside high/low (0 to 1). */
-    maxPos: z.number().min(0).max(1).optional(),
-    /**
-     * Restrict each row to these fields. Derived rangePct, pos, and spreadPct
-     * ride along whenever their inputs are usable.
-     */
-    fields: z.array(z.enum(TICKER_FIELDS)).min(1).optional(),
-  },
 );
 
 const orderbook = defineTool(
@@ -144,7 +98,6 @@ const MARKET_TOOLS = [
   serverTime,
   pairs,
   ticker,
-  tickersAll,
   orderbook,
   tradesTool,
   candles,
@@ -168,7 +121,11 @@ export function registerMarketTools(
   });
   handlers.tools.set("indodax_pairs", async () => {
     try {
-      return ok(await app.publicClient.pairs());
+      const listed = await app.publicClient.pairs();
+      // A suspended or maintenance market stays listed but refuses orders and
+      // often serves an orderbook without bid/ask levels. Flag it here so a
+      // screener skips it before spending calls on it.
+      return ok(listed.map((info) => ({ ...info, tradable: isPairTradable(info) })));
     } catch (error) {
       return fail(error);
     }
@@ -176,63 +133,17 @@ export function registerMarketTools(
   handlers.tools.set("indodax_ticker", async (raw) => {
     try {
       const args = parseArgs(ticker.inputSchema, raw);
-      return ok(await getTicker(app.publicClient, args.pair));
-    } catch (error) {
-      return fail(error);
-    }
-  });
-  handlers.tools.set("indodax_tickers_all", async (raw) => {
-    try {
-      const args = parseArgs(tickersAll.inputSchema, raw);
-      const all = (await app.publicClient.tickerAll()) as { tickers: Record<string, TickerRow> };
-      const total = Object.keys(all.tickers).length;
-      let entries: [string, TickerRow][] = Object.entries(all.tickers);
-      if (args.quote !== undefined) {
-        const wanted = args.quote.toLowerCase();
-        entries = entries.filter(([pair]) => pair.toLowerCase().endsWith(`_${wanted}`));
-      }
-      // All screening bounds combine with AND: a candidate must pass every
-      // active floor or cap. Rows that cannot produce a needed value fail the
-      // bound instead of passing silently as a false candidate.
-      entries = entries.filter(([, body]) =>
-        passesScreen(body as Record<string, unknown>, {
-          ...(args.minVolumeIdr === undefined ? {} : { minVolumeIdr: args.minVolumeIdr }),
-          ...(args.minRangePct === undefined ? {} : { minRangePct: args.minRangePct }),
-          ...(args.maxSpreadPct === undefined ? {} : { maxSpreadPct: args.maxSpreadPct }),
-          ...(args.minPos === undefined ? {} : { minPos: args.minPos }),
-          ...(args.maxPos === undefined ? {} : { maxPos: args.maxPos }),
-        }),
-      );
-      // Matched counts every row that passed the filters; count counts the
-      // rows actually returned after the limit cap. Total is the universe the
-      // exchange sent before any filtering.
-      const matched = entries.length;
-      const limit = args.limit ?? (args.quote === undefined ? 100 : undefined);
-      if (limit !== undefined) entries = entries.slice(0, limit);
-      const projection = args.fields ?? [...TICKER_DEFAULT_FIELDS];
-      const wanted = new Set<string>(projection);
-      entries = entries.map(([pair, body]): [string, TickerRow] => {
-        const row: TickerRow = { pair };
-        for (const field of TICKER_FIELDS) {
-          const value = body[field];
-          if (wanted.has(field) && value !== undefined) row[field] = value;
-        }
-        const screened = screenValues(body as Record<string, unknown>);
-        if (screened.rangePct !== null) row.rangePct = screened.rangePct;
-        if (screened.pos !== null) row.pos = screened.pos;
-        if (screened.spreadPct !== null) row.spreadPct = screened.spreadPct;
-        return [pair, row];
-      }) as typeof entries;
+      const snapshot = await getTicker(app.publicClient, args.pair);
+      // Same derived fields as bulk rows so a single-pair read screens with
+      // the same numbers: range and position from high/low/last, spread from
+      // bid/ask. Depth in quote currency still needs indodax_orderbook or
+      // indodax_quote, which read the live book instead of guessing it.
+      const screened = screenValues(snapshot as unknown as Record<string, unknown>);
       return ok({
-        count: entries.length,
-        matched,
-        total,
-        quote: args.quote ?? null,
-        limit: limit ?? null,
-        fields: projection,
-        tickers: Object.fromEntries(entries),
-        pairs: entries.map(([pair]) => pair),
-        summary: `${entries.length} ticker(s) returned of ${matched} matched of ${total} total${args.quote ? ` filtered by ${args.quote}` : ""}, fields ${projection.join(",")}`,
+        ...snapshot,
+        rangePct: screened.rangePct,
+        pos: screened.pos,
+        spreadPct: screened.spreadPct,
       });
     } catch (error) {
       return fail(error);
@@ -241,7 +152,23 @@ export function registerMarketTools(
   handlers.tools.set("indodax_orderbook", async (raw) => {
     try {
       const args = parseArgs(orderbook.inputSchema, raw);
-      const book = await app.publicClient.depth(toCompactPair(args.pair));
+      let book: { buy: [string | number, string][]; sell: [string | number, string][] };
+      try {
+        book = (await app.publicClient.depth(toCompactPair(args.pair))) as typeof book;
+      } catch (error) {
+        // A delisted, suspended, or razor-thin market answers depth without
+        // bid/ask arrays. The raw shape error names array paths, which reads
+        // as a bug in the caller. Name the market and the verification step
+        // so the harness skips it instead of retrying a market that cannot
+        // quote.
+        const cause = error instanceof Error ? error.message : String(error);
+        if (/unexpected shape from \/api\/depth\//.test(cause)) {
+          throw ValidationError(pairUnavailableMessage(args.pair, cause), {
+            safeMetadata: { pair: args.pair, reason: "PAIR_UNAVAILABLE" },
+          });
+        }
+        throw error;
+      }
       const levels = Math.min(100, Math.max(1, Math.floor(args.levels ?? 20)));
       const buy = book.buy.slice(0, levels);
       const sell = book.sell.slice(0, levels);
@@ -285,13 +212,18 @@ export function registerMarketTools(
       const args = parseArgs(tradesTool.inputSchema, raw);
       const tradeRows = await app.publicClient.trades(toCompactPair(args.pair));
       const sliced = args.limit === undefined ? tradeRows : tradeRows.slice(0, args.limit);
+      // Taker-flow summary in the response so a screening loop does not fetch
+      // 100 trades per candidate and count sides by hand.
+      const flow = flowOf(sliced.map((trade) => (trade.type === "buy" ? "buy" : "sell")));
       return ok({
         pair: canonicalPair(args.pair),
         count: sliced.length,
         total: tradeRows.length,
         limit: args.limit ?? null,
         trades: sliced,
-        summary: `${sliced.length} recent trade(s) for ${canonicalPair(args.pair)}`,
+        flow,
+        ...(flow.flowWarning === null ? {} : { flowWarning: flow.flowWarning }),
+        summary: `${sliced.length} recent trade(s) for ${canonicalPair(args.pair)} (${flow.buyCount} buys)`,
       });
     } catch (error) {
       return fail(error);

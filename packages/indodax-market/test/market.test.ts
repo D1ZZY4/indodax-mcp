@@ -6,6 +6,7 @@ import {
   clearCache,
   getTicker,
   isMarketSuspended,
+  isPairTradable,
   normalizePair,
   toCompactPair,
 } from "@indodax-mcp/indodax-market";
@@ -193,5 +194,14 @@ describe("indodax-market", () => {
       vi.useRealTimers();
       clearCache();
     }
+  });
+});
+
+describe("pair tradability", () => {
+  it("marks suspended and maintenance rows as untradable", () => {
+    expect(isPairTradable({})).toBe(true);
+    expect(isPairTradable({ is_market_suspended: 1 })).toBe(false);
+    expect(isPairTradable({ is_maintenance: true })).toBe(false);
+    expect(isPairTradable({ is_market_suspended: "0", is_maintenance: "false" })).toBe(true);
   });
 });

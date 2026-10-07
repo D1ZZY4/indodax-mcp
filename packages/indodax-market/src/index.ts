@@ -186,6 +186,21 @@ function matchSuspended(pairs: PairInfo[], wanted: Set<string>): boolean | null 
   return flagOn(found.is_market_suspended) || flagOn(found.is_maintenance);
 }
 
+/**
+ * Whether one pair-list row describes a tradable market.
+ *
+ * A suspended or maintenance market stays listed by the exchange but refuses
+ * orders and often serves an orderbook shape without bid/ask levels. Naming
+ * it up front keeps a screener from spending calls on a market that cannot
+ * trade.
+ */
+export function isPairTradable(info: {
+  is_maintenance?: boolean | number | string | undefined;
+  is_market_suspended?: boolean | number | string | undefined;
+}): boolean {
+  return !flagOn(info.is_market_suspended) && !flagOn(info.is_maintenance);
+}
+
 function findPair(pairs: PairInfo[], pair: string): PairInfo | null {
   const symbol = parseSymbolFlexible(pair);
   if (!symbol) return null;

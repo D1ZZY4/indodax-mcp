@@ -14,6 +14,7 @@ const TOOL_MODULES = [
   "funding",
   "history",
   "market",
+  "market-scan",
   "oco",
   "oco-attach",
   "ops",

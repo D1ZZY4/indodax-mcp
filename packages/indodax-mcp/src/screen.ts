@@ -95,3 +95,52 @@ export function passesScreen(body: Record<string, unknown>, filters: ScreenFilte
   }
   return true;
 }
+
+export interface FlowSummary {
+  buyCount: number;
+  sellCount: number;
+  /** Share of buys in sampled trades, 0 to 1 with 3 decimals. Null when empty. */
+  buyRatio: number | null;
+  /** Present when one side dominates the sample (below 0.2 or above 0.8). */
+  flowWarning: string | null;
+}
+
+/**
+ * Taker-flow summary for a page of public trades.
+ *
+ * A loop that fetches 100 trades per candidate and counts sides by hand pays
+ * the full context cost plus a manual loop per pair. One summary answers the
+ * only question screening asks: is this tape one-sided. Ratios on samples
+ * below 10 trades stay unflagged because a thin sample cannot carry that
+ * verdict.
+ */
+export function flowOf(types: ("buy" | "sell")[]): FlowSummary {
+  const buyCount = types.filter((side) => side === "buy").length;
+  const sellCount = types.length - buyCount;
+  if (types.length === 0) return { buyCount: 0, sellCount: 0, buyRatio: null, flowWarning: null };
+  const buyRatio = Math.round((buyCount / types.length) * 1000) / 1000;
+  let flowWarning: string | null = null;
+  if (types.length >= 10 && buyRatio < 0.2) {
+    flowWarning = `seller-dominated tape: ${buyCount} buys of ${types.length} sampled trades`;
+  } else if (types.length >= 10 && buyRatio > 0.8) {
+    flowWarning = `buyer-dominated tape: ${buyCount} buys of ${types.length} sampled trades`;
+  }
+  return { buyCount, sellCount, buyRatio, flowWarning };
+}
+
+/**
+ * Explain an unreadable orderbook as an unavailable market.
+ *
+ * A delisted or halted pair answers depth with a shape that has no bid/ask
+ * arrays, which surfaces as a raw shape error naming array paths. That text
+ * invites a retry of a market that cannot trade. Name the pair, the likely
+ * cause, and the verification step instead.
+ */
+export function pairUnavailableMessage(pair: string, cause: string): string {
+  return (
+    `PAIR_UNAVAILABLE: no usable orderbook for ${pair} (${cause.slice(0, 120)}). ` +
+    "The market may be delisted, suspended, or too thin to quote. " +
+    "Verify with indodax_search_symbols and check tradable on indodax_pairs " +
+    "before retrying; do not treat this as a transient network failure."
+  );
+}
