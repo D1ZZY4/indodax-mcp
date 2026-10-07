@@ -34,6 +34,11 @@ describe("config", () => {
     expect(env.DATABASE_URL).toBeUndefined();
   });
 
+  it("parses the HTTP bind address with a safe loopback default", () => {
+    expect(loadEnv({}).MCP_HOST).toBeUndefined();
+    expect(loadEnv({ MCP_HOST: "0.0.0.0" }).MCP_HOST).toBe("0.0.0.0");
+  });
+
   it("finds and parses a .env file above the caller", () => {
     const root = mkdtempSync(join(tmpdir(), "cfg-test-"));
     mkdirSync(join(root, "packages", "config", "src"), { recursive: true });

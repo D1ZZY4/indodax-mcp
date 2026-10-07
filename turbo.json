@@ -36,6 +36,7 @@
         "WITHDRAW_ENABLED",
         "DATABASE_URL",
         "MCP_PORT",
+        "MCP_HOST",
         "STOP_AUTOPOLL_MS",
         "ALERT_AUTOPOLL_MS"
       ]

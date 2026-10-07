@@ -31,6 +31,9 @@ services:
     ports: ["8000:8000"]
     environment:
       DATABASE_URL: postgresql://indodax:indodax@postgres:5432/indodax
+      # The gateway defaults to loopback. Inside a container loopback is not
+      # reachable from the published host port, so bind all interfaces here.
+      MCP_HOST: 0.0.0.0
     depends_on:
       postgres:
         condition: service_healthy

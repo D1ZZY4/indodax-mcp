@@ -54,6 +54,8 @@ describe("config_status explains a credential that never arrived", () => {
       const data = body.data as {
         credentialsConfigured: boolean;
         remedy: string;
+        mcpHost: string;
+        mcpPort: number;
         configSource: { credentials: Record<string, string> };
       };
       expect(data.credentialsConfigured).toBe(true);
@@ -61,6 +63,10 @@ describe("config_status explains a credential that never arrived", () => {
       expect(data.remedy).toContain("process-env");
       // Values must never be echoed back over MCP.
       expect(JSON.stringify(body)).not.toContain("unit-test-secret");
+      // The gateway bind address is observable so a container misbind is
+      // visible from the tool output itself.
+      expect(data.mcpHost).toBe("127.0.0.1");
+      expect(data.mcpPort).toBe(8000);
     } finally {
       await harness.close();
     }

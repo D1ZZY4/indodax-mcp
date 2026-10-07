@@ -11,6 +11,7 @@ const serverSchema = {
   INDODAX_WS_TOKEN: z.string().min(1).optional(),
   DATABASE_URL: z.string().min(1).optional(),
   MCP_PORT: z.coerce.number().int().positive().optional(),
+  MCP_HOST: z.string().min(1).optional(),
   APP_ENV: z.enum(["development", "paper", "live"]).default("paper"),
   TRADE_ENABLED: z.stringbool().optional(),
   // Parsed for compatibility only. Withdrawal stays denied in application
@@ -27,6 +28,7 @@ export interface AppEnv {
   INDODAX_WS_TOKEN?: string | undefined;
   DATABASE_URL?: string | undefined;
   MCP_PORT?: number | undefined;
+  MCP_HOST?: string | undefined;
   APP_ENV: "development" | "paper" | "live";
   TRADE_ENABLED?: boolean | undefined;
   WITHDRAW_ENABLED?: boolean | undefined;
@@ -87,6 +89,7 @@ function diagnoseSource(
     otherVariablesPresent: [
       "DATABASE_URL",
       "MCP_PORT",
+      "MCP_HOST",
       "APP_ENV",
       "TRADE_ENABLED",
       "WITHDRAW_ENABLED",

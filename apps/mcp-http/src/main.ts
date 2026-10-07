@@ -9,6 +9,10 @@ const { env, diagnostic } = loadConfig();
 const logger = createLogger({ service: "mcp-http" });
 const { registry, app: services, createServer } = buildIndodaxServer(env, diagnostic);
 const port = env.MCP_PORT ?? 8000;
+// Default loopback keeps a bare host run private. Containers must set
+// MCP_HOST=0.0.0.0 because a process bound to 127.0.0.1 inside the container
+// never receives the bridge-forwarded host connection.
+const host = env.MCP_HOST ?? "127.0.0.1";
 
 // Each Streamable HTTP request needs a fresh MCP server instance sharing
 // the same application services. Reusing one instance fails the SDK guard
@@ -21,11 +25,11 @@ app.get("/health", (c) =>
 
 const server = Bun.serve({
   port,
-  hostname: "127.0.0.1",
+  hostname: host,
   fetch: app.fetch,
 });
 
-logger.info(`mcp http listening on ${port} with ${registry.listTools().length} tools`);
+logger.info(`mcp http listening on ${host}:${port} with ${registry.listTools().length} tools`);
 
 function shutdown(): void {
   void (async () => {

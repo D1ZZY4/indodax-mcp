@@ -238,6 +238,7 @@ export function registerSystemTools(
       tradeEnabled: app.env.TRADE_ENABLED ?? false,
       withdrawEnabled: false,
       mcpPort: app.env.MCP_PORT ?? 8000,
+      mcpHost: app.env.MCP_HOST ?? "127.0.0.1",
       rateLimitRps: app.env.INDODAX_RATE_LIMIT ?? null,
       stopAutopollMs: app.env.STOP_AUTOPOLL_MS ?? null,
       alertAutopollMs: app.env.ALERT_AUTOPOLL_MS ?? null,
