@@ -9,5 +9,5 @@ runtime, so instructions stay identical between the repository and the MCP.
 
 Pages: `market`, `account`, `orders`, `paper`, `portfolio`, `risk`,
 `strategy`, `alerts`, `reconcile`, `audit`, `system`, `funding`, `history`,
-`ops`, `deadman`, `stops`, `docs`. See [README](README.md) for the tool
+`ops`, `deadman`, `stops`, `errors`, `docs`. See [README](README.md) for the tool
 tables behind each page.

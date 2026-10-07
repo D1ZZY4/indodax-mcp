@@ -26,6 +26,7 @@ const PAGES = [
   "ops",
   "deadman",
   "stops",
+  "errors",
   "docs",
 ] as const;
 

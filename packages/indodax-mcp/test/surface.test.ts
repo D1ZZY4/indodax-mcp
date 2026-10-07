@@ -315,11 +315,16 @@ describe("indodax-mcp surface", () => {
     try {
       const index = await bodyOf(harness.client.callTool({ name: "indodax_docs", arguments: {} }));
       expect((index.data as { pages: string[] }).pages).toContain("market");
+      expect((index.data as { pages: string[] }).pages).toContain("errors");
       const page = await harness.client.callTool({
         name: "indodax_docs",
         arguments: { page: "risk" },
       });
       expect(page.isError).not.toBe(true);
+      const errors = await bodyOf(
+        harness.client.callTool({ name: "indodax_docs", arguments: { page: "errors" } }),
+      );
+      expect((errors.data as { markdown: string }).markdown).toContain("FUNDING_UNAUTHORIZED");
       const evil = await harness.client.callTool({
         name: "indodax_docs",
         arguments: { page: "../../package" },
