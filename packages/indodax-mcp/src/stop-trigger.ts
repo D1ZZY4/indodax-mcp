@@ -30,7 +30,12 @@ export interface StopFireResult {
   fired: {
     id: string;
     status: string;
+    /** Market last price at the crossing. Compare with triggerPrice for slippage. */
     price?: string;
+    /** The stopPrice setting that armed this trigger. */
+    triggerPrice?: number;
+    /** The limit price the placement used. */
+    limitPrice?: number;
     reason?: string;
     /** True when a later cycle could still succeed after the named remedy. */
     retryable?: boolean;
@@ -202,11 +207,13 @@ export async function evaluateStops(app: AppServices): Promise<StopFireResult> {
               quantity: stop.quantity,
               ...(stop.clientOrderId !== undefined ? { clientOrderId: stop.clientOrderId } : {}),
             });
-      app.stops.mark(stop.id, "triggered", { result });
+      app.stops.mark(stop.id, "triggered", { result, triggeredPrice: last });
       const entry: StopFireResult["fired"][number] = {
         id: stop.id,
         status: "triggered",
         price: last,
+        triggerPrice: stop.stopPrice,
+        limitPrice: stop.limitPrice,
       };
       if (released.length > 0) entry.cancelledLinkedOrders = released;
       if (stop.groupId !== undefined) {
@@ -231,6 +238,8 @@ export async function evaluateStops(app: AppServices): Promise<StopFireResult> {
           id: stop.id,
           status: "retry",
           price: last,
+          triggerPrice: stop.stopPrice,
+          limitPrice: stop.limitPrice,
           reason,
           retryable: true,
           fix: "refresh the account with indodax_account, then run indodax_stop_check again; this stop is still armed",
@@ -258,14 +267,24 @@ export async function evaluateStops(app: AppServices): Promise<StopFireResult> {
           id: stop.id,
           status: "blocked",
           price: last,
+          triggerPrice: stop.stopPrice,
+          limitPrice: stop.limitPrice,
           reason,
           retryable: true,
           fix: blocked,
         });
         continue;
       }
-      app.stops.mark(stop.id, "failed", { reason });
-      fired.push({ id: stop.id, status: "failed", reason, retryable: false });
+      app.stops.mark(stop.id, "failed", { reason, triggeredPrice: last });
+      fired.push({
+        id: stop.id,
+        status: "failed",
+        price: last,
+        triggerPrice: stop.stopPrice,
+        limitPrice: stop.limitPrice,
+        reason,
+        retryable: false,
+      });
     }
   }
   return { checked: open.length, fired };

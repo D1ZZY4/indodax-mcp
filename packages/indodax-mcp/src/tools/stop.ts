@@ -92,10 +92,21 @@ const stopCheck = defineTool(
     name: "indodax_stop_check",
     title: "Check stops",
     description:
-      "Mutating when triggers fire. Evaluate open stops against live prices and execute crossed ones as LIMIT orders through risk. A fired stop auto-cancels open siblings in its OCO group. Paper fills nothing by itself; use indodax_paper_fill after.",
+      "Mutating when triggers fire. Evaluate open stops against live prices and execute crossed ones as LIMIT orders through risk. Blocked stops retry automatically on every pass and on the opt-in autopoll. A fired stop auto-cancels open siblings in its OCO group. Paper fills nothing by itself; use indodax_paper_fill after.",
     ...STOP,
   },
   {},
+);
+
+const stopRetry = defineTool(
+  {
+    name: "indodax_stop_retry",
+    title: "Retry stop",
+    description:
+      "Mutating when the trigger fires. Re-arm one blocked stop and re-evaluate it against the live price immediately instead of waiting for the next stop_check or autopoll pass. Args: id required. Only a blocked stop needs this; open stops already evaluate on every check.",
+    ...STOP,
+  },
+  { id: z.string().min(1) },
 );
 
 export function registerStopTools(
@@ -107,6 +118,7 @@ export function registerStopTools(
   registry.registerTool(stopsList);
   registry.registerTool(stopCancel);
   registry.registerTool(stopCheck);
+  registry.registerTool(stopRetry);
 
   handlers.tools.set("indodax_stop_create", async (raw) => {
     try {
@@ -296,6 +308,40 @@ export function registerStopTools(
               : result.fired.length > 0
                 ? `${result.fired.length} stop(s) fired of ${result.checked} checked`
                 : `${result.checked} stops checked, none crossed`,
+      });
+    } catch (error) {
+      return fail(error);
+    }
+  });
+
+  handlers.tools.set("indodax_stop_retry", async (raw) => {
+    try {
+      const args = parseArgs(stopRetry.inputSchema, raw);
+      const existing = app.stops.list(true).find((stop) => stop.id === args.id) ?? null;
+      if (existing === null) throw ValidationError(`stop ${args.id} not found`);
+      if (existing.status !== "blocked") {
+        throw ValidationError(
+          `stop ${args.id} is ${existing.status}, not blocked; only a blocked stop ` +
+            "needs a retry because open stops already evaluate on every stop_check",
+        );
+      }
+      // Clear the recorded block so this pass judges the live state, not the
+      // previous refusal. When the quantity is still reserved the stop blocks
+      // again with a fresh assessment instead of hanging on stale evidence.
+      app.stops.unblock(args.id);
+      const result = await evaluateStops(app);
+      const entry = result.fired.find((fired) => fired.id === args.id) ?? null;
+      return ok({
+        id: args.id,
+        status: entry?.status ?? "open",
+        result: entry,
+        checked: result.checked,
+        openStops: app.stops.list().length,
+        summary:
+          entry === null
+            ? `stop ${args.id} re-armed and re-evaluated; no trigger fired on this pass`
+            : `stop ${args.id} retried with status ${entry.status}`,
+        note: "Blocked stops also retry automatically on every stop_check and autopoll pass.",
       });
     } catch (error) {
       return fail(error);

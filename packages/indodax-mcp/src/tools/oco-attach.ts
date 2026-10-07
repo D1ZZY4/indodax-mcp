@@ -31,7 +31,7 @@ const ATTACH = defineTool(
     name: "indodax_oco_attach",
     title: "Attach stop to resting order",
     description:
-      "Mutating local state, needs credentials. Link a cut-loss stop to a resting take-profit so the two behave as one-cancels-the-other: when the stop triggers it cancels that order first, freeing the quantity the exchange has reserved. Use this for positions opened before indodax_oco_bundle, where a take-profit already rests on the exchange and a plain stop would be refused with -2010 every time it fires. Places nothing and cancels nothing: it records the link only. Args: orderId required (exchange order id of the resting take-profit), stopPrice required, optional pair to narrow the lookup, optional quantity defaulting to the order quantity, optional limitPrice defaulting to stopPrice, optional groupId, optional acknowledged for live mode.",
+      "Mutating local state, needs credentials. Link a cut-loss stop to a resting take-profit so the two behave as one-cancels-the-other: when the stop triggers it cancels that order first, freeing the quantity the exchange has reserved. Use this for positions opened before indodax_oco_bundle, where a take-profit already rests on the exchange and a plain stop would be refused with -2010 every time it fires. Places nothing and cancels nothing: it records the link only. Refuses with DUPLICATE_STOP when a stop already arms the same pair, side, and quantity. Args: orderId required (exchange order id of the resting take-profit), stopPrice required, optional pair to narrow the lookup, optional quantity defaulting to the order quantity, optional limitPrice defaulting to stopPrice, optional groupId, optional acknowledged for live mode.",
     capability: "TRADE",
     riskClass: "mutation",
     environmentRequirement: "any",
@@ -143,6 +143,34 @@ export function registerOcoAttachTools(
       if (duplicate !== undefined) {
         throw ValidationError(
           `stop ${duplicate.id} is already attached to order ${wanted}; cancel it first to attach another`,
+        );
+      }
+
+      // One position, one cut-loss: a second stop on the same pair, side, and
+      // quantity doubles the protection and leaves a stranded sibling behind
+      // when the first one fires (the survivor then blocks forever on the
+      // reserved quantity). Refuse the double with a named remedy instead of
+      // arming a stop that is certain to confuse the next trigger.
+      const armedDouble = app.stops
+        .list()
+        .find(
+          (stop) =>
+            stop.pair === pair &&
+            stop.side === side &&
+            (decimalOrNull(String(stop.quantity)) ?? new Decimal(0)).eq(quantity),
+        );
+      if (armedDouble !== undefined) {
+        throw ValidationError(
+          `DUPLICATE_STOP: stop ${armedDouble.id} already arms ${pair} ${side} ` +
+            `${quantity.toString()}; cancel it with indodax_stop_cancel before attaching ` +
+            "another cut-loss to the same position",
+          {
+            safeMetadata: {
+              reason: "DUPLICATE_STOP",
+              stopId: armedDouble.id,
+              linkedOrderId: armedDouble.linkedOrderId ?? null,
+            },
+          },
         );
       }
 

@@ -20,7 +20,7 @@ shapes, errors, and worked usage. Start here, then open one area file.
 | History | [history.md](history.md) | open_orders, order, order_history, trade_history |
 | Operations | [ops.md](ops.md) | backtest_get, backtest_compare, strategy_validate, reconcile_trades, audit_risk, exposure, ws_reconnect, private_connect, private_disconnect |
 | Deadman | [deadman.md](deadman.md) | deadman_arm, deadman_status, deadman_disarm, deadman_heartbeat |
-| Stops and OCO | [stops.md](stops.md) | stop_create, stops, stop_cancel, stop_check, oco_attach |
+| Stops and OCO | [stops.md](stops.md) | stop_create, stops, stop_cancel, stop_check, stop_retry, oco_attach |
 | Meta | [docs.md](docs.md) | docs (this guide system itself) |
 
 Conventions used on every page: money serializes as strings, pair

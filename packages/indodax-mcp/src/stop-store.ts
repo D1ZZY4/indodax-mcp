@@ -44,6 +44,8 @@ export interface StopOrder {
   blockedReason?: string | undefined;
   /** Action that clears the block, reported so the caller is not left guessing. */
   blockedFix?: string | undefined;
+  /** Market last price observed when the stop fired. Compare with stopPrice for slippage audit. */
+  triggeredPrice?: string | undefined;
   result?: unknown | undefined;
   reason?: string | undefined;
 }
@@ -122,6 +124,9 @@ export class StopStore {
           ? { blockedReason: candidate.blockedReason }
           : {}),
         ...(typeof candidate.blockedFix === "string" ? { blockedFix: candidate.blockedFix } : {}),
+        ...(typeof candidate.triggeredPrice === "string"
+          ? { triggeredPrice: candidate.triggeredPrice }
+          : {}),
       });
     }
     this.counter = max + 1;
