@@ -61,7 +61,7 @@ async function v2Get(
   try {
     const response = await fetchWithRetry(
       `${V2_BASE}${path}`,
-      { headers: { "X-APIKEY": signer.key, Sign: "" } },
+      { method: "GET" },
       undefined,
       undefined,
       () => {

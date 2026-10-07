@@ -89,7 +89,7 @@ export class AccountClient {
     try {
       const response = await fetchWithRetry(
         `${V2_BASE}${path}`,
-        { headers: { "X-APIKEY": signer.key, Sign: signer.signQuery("") } },
+        { method: "GET" },
         undefined,
         this.options.fetchFn,
         () => {
@@ -154,26 +154,13 @@ export class AccountClient {
   }
 
   async getAccount(): Promise<AccountInfo> {
-    await this.limiter.acquire("v2-rest");
     const params: Record<string, string> = {};
     if (this.options.omitZeroBalances ?? true) params.omitZeroBalances = "true";
-    const query = this.options.signer.buildTimestampParams(params);
-    const signature = this.options.signer.signQuery(query);
-    const url = `${V2_BASE}/api/v2/account?${query}`;
-    let response: Response;
-    try {
-      response = await fetchWithRetry(
-        url,
-        { headers: { "X-APIKEY": this.options.signer.key, Sign: signature } },
-        undefined,
-        this.options.fetchFn,
-      );
-    } catch (error) {
-      const translated = await translateReadError(error, "GET /api/v2/account", egressHint);
-      if (translated !== null) throw translated;
-      throw error;
-    }
-    const json: unknown = await response.json();
+    // Route through signedGet so the timestamp signature is rebuilt on every
+    // retry attempt inside recvWindow. A single signature reused across a
+    // retry burst expires and turns a transient failure into a permanent
+    // timestamp rejection.
+    const json: unknown = await this.signedGet("/api/v2/account", params);
     const parsed = accountSchema.safeParse(json);
     if (!parsed.success) {
       throw ValidationError("unexpected account shape", {

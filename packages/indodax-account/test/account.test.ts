@@ -120,4 +120,28 @@ describe("indodax-account", () => {
     await client.getAccount();
     expect(limiter.remaining("v2-rest")).toBe(9);
   });
+
+  it("rebuilds the account signature on every retry attempt", async () => {
+    // A single signature reused across retries expires outside recvWindow and
+    // turns a transient 500 into a permanent timestamp rejection. The account
+    // read must re-sign per attempt like the other signed reads.
+    const signer = new TapiV2Signer("k", "s");
+    let timestampCalls = 0;
+    const original = signer.buildTimestampParams.bind(signer);
+    signer.buildTimestampParams = (extra: Record<string, string>, nowMs?: number) => {
+      timestampCalls += 1;
+      return original(extra, nowMs);
+    };
+    let calls = 0;
+    const fetchFn = (async () => {
+      calls += 1;
+      if (calls === 1) return new Response("boom", { status: 500 });
+      return new Response(JSON.stringify(ACCOUNT));
+    }) as FetchFn;
+    const client = new AccountClient({ signer, fetchFn });
+    const account = await client.getAccount();
+    expect(account.canTrade).toBe(true);
+    expect(calls).toBe(2);
+    expect(timestampCalls).toBeGreaterThanOrEqual(2);
+  });
 });
