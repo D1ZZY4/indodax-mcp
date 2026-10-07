@@ -145,9 +145,15 @@ export function roundingContextFor(
   pair: string,
   pairs: readonly PairInfo[],
 ): RoundingContext | null {
+  const wanted = pair.toLowerCase();
+  // Match the same spellings the market and symbol tools accept (ticker_id,
+  // id, symbol). Matching ticker_id only reported a valid market as unknown
+  // when the list used a different field for the canonical spelling.
   const found = pairs.find((info) => {
-    const id = (info.ticker_id ?? "").toLowerCase();
-    return id === pair.toLowerCase();
+    const candidates = [info.ticker_id, info.id, info.symbol].filter(
+      (value): value is string => typeof value === "string",
+    );
+    return candidates.some((value) => value.toLowerCase() === wanted);
   });
   if (found === undefined) return null;
   return {

@@ -4,7 +4,7 @@ import type { PublicClient } from "@indodax-mcp/indodax-client";
 import { clearCache } from "@indodax-mcp/indodax-market";
 import { withInMemoryServer } from "@indodax-mcp/mcp-testing";
 import { buildIndodaxServer } from "@indodax-mcp/indodax-mcp";
-import { roundOrder } from "@indodax-mcp/indodax-mcp/order-rounding";
+import { roundOrder, roundingContextFor } from "@indodax-mcp/indodax-mcp/order-rounding";
 import Decimal from "decimal.js";
 
 /**
@@ -137,5 +137,17 @@ describe("order rounding", () => {
     } finally {
       await harness.close();
     }
+  });
+
+  it("resolves id and symbol spellings to the same pair rules", () => {
+    // The pair list carries ticker_id, id, and symbol. Matching ticker_id
+    // only reported a valid market as unknown when the caller used the
+    // compact or uppercase spelling.
+    const byTicker = roundingContextFor("rad_idr", PAIRS);
+    const byId = roundingContextFor("radidr", PAIRS);
+    const bySymbol = roundingContextFor("RADIDR", PAIRS);
+    expect(byTicker?.quantityIncrement?.toString()).toBe("0.1");
+    expect(byId?.quantityIncrement?.toString()).toBe("0.1");
+    expect(bySymbol?.quantityIncrement?.toString()).toBe("0.1");
   });
 });
