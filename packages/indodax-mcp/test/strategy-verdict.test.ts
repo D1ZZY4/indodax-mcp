@@ -88,6 +88,33 @@ describe("strategy signal verdicts", () => {
     }
   });
 
+  it("points an empty closes array at the extraction path", async () => {
+    // A real loop passed data[].Close (capital C) and got closes: [].
+    // The error must name the correct lowercase path instead of reading as
+    // an exchange failure downstream.
+    const { server } = build();
+    const harness = await withInMemoryServer(server);
+    try {
+      const { isError, envelope } = await call(harness, { pair: "btc_idr", closes: [] });
+      expect(isError).toBe(true);
+      expect(envelope.message).toContain("data[].close");
+      const backtest = (await harness.client.callTool({
+        name: "indodax_backtest_run",
+        arguments: { closes: [] },
+      })) as { content: { text: string }[]; isError?: boolean };
+      expect(backtest.isError).toBe(true);
+      expect(backtest.content.map((block) => block.text).join("\n")).toContain("data[].close");
+      const validated = (await harness.client.callTool({
+        name: "indodax_strategy_validate",
+        arguments: { id: "ma-cross", closes: [] },
+      })) as { content: { text: string }[]; isError?: boolean };
+      expect(validated.isError).not.toBe(true);
+      expect(validated.content.map((block) => block.text).join("\n")).toContain("data[].close");
+    } finally {
+      await harness.close();
+    }
+  });
+
   it("still rejects non-positive prices at the schema boundary", async () => {
     // The declared input schema already refuses a non-positive close, so this
     // is a protocol-level rejection rather than the envelope above. Asserting

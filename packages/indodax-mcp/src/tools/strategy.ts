@@ -162,6 +162,12 @@ export function registerStrategyTools(
   handlers.tools.set("indodax_backtest_run", async (raw) => {
     try {
       const args = parseArgs(backtestRun.inputSchema, raw);
+      if (args.closes.length === 0) {
+        throw ValidationError(
+          "closes is empty; extract closing prices from indodax_candles bars as " +
+            "data[].close (lowercase close, decimal strings)",
+        );
+      }
       if (args.closes.length < 2) throw ValidationError("need at least two closes");
       const feeRate = new Decimal(String(args.feeRate ?? 0.0026));
       const threshold = new Decimal(String(args.threshold ?? 0.05));

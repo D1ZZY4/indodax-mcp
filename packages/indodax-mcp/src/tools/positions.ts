@@ -1,4 +1,5 @@
 import Decimal from "decimal.js";
+import { z } from "zod";
 import type { PublicClient } from "@indodax-mcp/indodax-client";
 import { getTicker, isMarketSuspended } from "@indodax-mcp/indodax-market";
 import { getPairsCached } from "@indodax-mcp/indodax-market";
@@ -34,6 +35,14 @@ export interface PositionLeg {
   valueIdr: string | null;
   /** Share of total portfolio value, or null when the portfolio is incomplete. */
   weightPct: string | null;
+  /** Average entry price in IDR when the caller supplied one, else null. */
+  entryPrice: string | null;
+  /**
+   * Unrealized move versus the supplied entry, percent with 2 decimals.
+   * Null without an entry price: the exchange reports balances, not cost
+   * basis, so a percent invented here would read as a real gain or loss.
+   */
+  unrealizedPct: string | null;
   tradable: boolean;
   suspended: boolean;
   /** Reason the leg cannot be priced, present when pair or last is missing. */
@@ -91,12 +100,36 @@ async function findPair(
   );
 }
 
-export async function livePositions(app: AppServices): Promise<PositionReport> {
+export async function livePositions(
+  app: AppServices,
+  entries: Record<string, string> = {},
+): Promise<PositionReport> {
   if (!app.accountClient) {
     throw ValidationError(
       "positions need credentials; call indodax_account first or configure INDODAX_API_KEY",
     );
   }
+  // Average entry prices are operator knowledge: the exchange reports
+  // balances, not cost basis, so a percent invented here would read as a real
+  // gain or loss. Only assets the caller names get a percent.
+  const entryByAsset = new Map<string, Decimal>();
+  for (const [asset, price] of Object.entries(entries)) {
+    const parsed = decimalOrNull(price);
+    if (parsed?.gt(0) === true) entryByAsset.set(asset.toLowerCase(), parsed);
+  }
+  const unrealizedFor = (
+    asset: string,
+    last: Decimal | null,
+  ): { entryPrice: string | null; unrealizedPct: string | null } => {
+    const entry = entryByAsset.get(asset) ?? null;
+    if (entry === null || last === null || !last.isFinite()) {
+      return { entryPrice: entry?.toString() ?? null, unrealizedPct: null };
+    }
+    return {
+      entryPrice: entry.toString(),
+      unrealizedPct: last.minus(entry).div(entry).mul(100).toFixed(2),
+    };
+  };
   const account = await app.accountClient.getAccount();
   app.accountSyncedAt = Date.now();
 
@@ -131,6 +164,8 @@ export async function livePositions(app: AppServices): Promise<PositionReport> {
         last: null,
         valueIdr: totalAmount.toString(),
         weightPct: null,
+        entryPrice: null,
+        unrealizedPct: null,
         tradable: true,
         suspended: false,
         unpricedReason: null,
@@ -142,6 +177,7 @@ export async function livePositions(app: AppServices): Promise<PositionReport> {
     if (pair === null) {
       anyUnpriced = true;
       incomplete.push(asset);
+      const entry = unrealizedFor(asset, null);
       legs.push({
         asset,
         free: free.toString(),
@@ -151,6 +187,8 @@ export async function livePositions(app: AppServices): Promise<PositionReport> {
         last: null,
         valueIdr: null,
         weightPct: null,
+        entryPrice: entry.entryPrice,
+        unrealizedPct: null,
         tradable: false,
         suspended: false,
         unpricedReason: `no direct ${asset}_${QUOTE} market`,
@@ -181,6 +219,7 @@ export async function livePositions(app: AppServices): Promise<PositionReport> {
     }
 
     if (last === null) {
+      const entry = unrealizedFor(asset, null);
       legs.push({
         asset,
         free: free.toString(),
@@ -190,6 +229,8 @@ export async function livePositions(app: AppServices): Promise<PositionReport> {
         last: null,
         valueIdr: null,
         weightPct: null,
+        entryPrice: entry.entryPrice,
+        unrealizedPct: null,
         tradable: true,
         suspended,
         unpricedReason: "no usable last price for this pair",
@@ -199,6 +240,7 @@ export async function livePositions(app: AppServices): Promise<PositionReport> {
 
     const value = totalAmount.mul(last);
     total = total.plus(value);
+    const entry = unrealizedFor(asset, last);
     legs.push({
       asset,
       free: free.toString(),
@@ -208,6 +250,8 @@ export async function livePositions(app: AppServices): Promise<PositionReport> {
       last: last.toString(),
       valueIdr: value.toString(),
       weightPct: null,
+      entryPrice: entry.entryPrice,
+      unrealizedPct: entry.unrealizedPct,
       tradable: true,
       suspended,
       unpricedReason: null,
@@ -235,6 +279,12 @@ export async function livePositions(app: AppServices): Promise<PositionReport> {
         "a zero here would read as a loss",
     );
   }
+  if (entryByAsset.size === 0) {
+    notes.push(
+      "pass entries as {ASSET: avgEntryPriceIdr} to value unrealizedPct per leg; " +
+        "without entry prices the legs carry value and weight only",
+    );
+  }
 
   return {
     legs: legs.sort((a, b) => {
@@ -256,7 +306,7 @@ const POSITIONS = defineTool(
     name: "indodax_positions_live",
     title: "Live positions",
     description:
-      "Read-only, needs credentials. Every non-zero holding valued in IDR at the live last price, with its share of the portfolio and which open stops already protect that leg. One call replaces recomputing positions and PnL by hand each polling round. A leg with no direct pair or no usable price reports valueIdr null and is listed in incomplete, and the weights and total are withheld when any leg is unpriced so a zero is never mistaken for a loss. Takes no arguments.",
+      "Read-only, needs credentials. Every non-zero holding valued in IDR at the live last price, with its share of the portfolio and which open stops already protect that leg. One call replaces recomputing positions and PnL by hand each polling round. A leg with no direct pair or no usable price reports valueIdr null and is listed in incomplete, and the weights and total are withheld when any leg is unpriced so a zero is never mistaken for a loss. Args: optional entries map of ASSET to average entry price in IDR; a leg with an entry reports unrealizedPct, without one it reports null because the exchange states balances, not cost basis.",
     capability: "READ",
     riskClass: "read",
     environmentRequirement: "any",
@@ -265,7 +315,7 @@ const POSITIONS = defineTool(
     idempotencyClass: "none",
     auditClass: "read",
   },
-  {},
+  { entries: z.record(z.string(), z.string()).optional() },
 );
 
 export function registerPositionTools(
@@ -276,8 +326,8 @@ export function registerPositionTools(
   registry.registerTool(POSITIONS);
   handlers.tools.set("indodax_positions_live", async (raw) => {
     try {
-      parseArgs(POSITIONS.inputSchema, raw);
-      return ok(await livePositions(app));
+      const args = parseArgs(POSITIONS.inputSchema, raw);
+      return ok(await livePositions(app, args.entries));
     } catch (error) {
       return fail(error);
     }

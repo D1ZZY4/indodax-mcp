@@ -109,6 +109,24 @@ describe("translateExchangeError", () => {
       ),
     ).toBeNull();
   });
+
+  it("attaches egress guidance to a bodyless 403 as a possibility, not a verdict", async () => {
+    // A gateway 403 in front of the exchange carries HTML instead of the JSON
+    // code, which used to surface as a bare transport string. The address is
+    // still actionable, but without a code the allowlist cause stays possible.
+    const bare = ExchangeApiError("unexpected HTTP 403: <html>forbidden</html>", {
+      safeMetadata: { status: 403, body: "<html>forbidden</html>" },
+    });
+    const translated = await translateExchangeError(bare, "order", stubEgress);
+    expect(translated?.code).toBeNull();
+    expect(translated?.message).toContain("1.2.3.4");
+    expect(translated?.message).toContain("most often an IP allowlist block");
+    expect(translated?.safeMetadata).toMatchObject({
+      httpStatus: 403,
+      reason: "possible_ip_not_allowlisted",
+      egressCidrV4: "1.2.3.4/32",
+    });
+  });
 });
 
 describe("translateReadError", () => {
@@ -136,5 +154,18 @@ describe("translateReadError", () => {
 
   it("returns null when there is nothing translatable", async () => {
     expect(await translateReadError(new Error("boom"), "GET /x")).toBeNull();
+  });
+
+  it("keeps a bodyless 403 actionable for reads without claiming a code", async () => {
+    const bare = ExchangeApiError("unexpected HTTP 403: <html>forbidden</html>", {
+      safeMetadata: { status: 403, body: "<html>forbidden</html>" },
+    });
+    const translated = await translateReadError(bare, "GET /api/v2/account", stubEgress);
+    expect(translated?.code).toBe("ExchangeApiError");
+    expect(translated?.message).toContain("1.2.3.4");
+    expect(translated?.safeMetadata).toMatchObject({
+      reason: "possible_ip_not_allowlisted",
+      egressCidrV4: "1.2.3.4/32",
+    });
   });
 });

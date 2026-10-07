@@ -54,7 +54,18 @@ export function evaluateMovingAverage(input: SignalInput): Signal | null {
 
 export function validateSignalInput(input: SignalInput): string[] {
   const errors: string[] = [];
-  if (input.closes.length < 2) errors.push("closes needs at least two numbers");
+  if (input.closes.length === 0) {
+    // An empty array almost always means the caller mapped the wrong field:
+    // candles bars carry lowercase close, not Close. Say so, otherwise the
+    // failure cascades into every downstream evaluation and reads as an
+    // exchange problem.
+    errors.push(
+      "closes is empty; extract closing prices from indodax_candles bars as data[].close " +
+        "(lowercase close, decimal strings)",
+    );
+  } else if (input.closes.length < 2) {
+    errors.push("closes needs at least two numbers");
+  }
   if (input.closes.some((price) => !Number.isFinite(price) || price <= 0)) {
     errors.push("closes must hold positive finite prices");
   }

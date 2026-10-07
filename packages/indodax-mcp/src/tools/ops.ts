@@ -205,7 +205,14 @@ export function registerOpsTools(
       }
       const window = args.window ?? 5;
       const errors: string[] = [];
-      if (args.closes.length < 2) errors.push("closes needs at least two numbers");
+      if (args.closes.length === 0) {
+        errors.push(
+          "closes is empty; extract closing prices from indodax_candles bars as " +
+            "data[].close (lowercase close, decimal strings)",
+        );
+      } else if (args.closes.length < 2) {
+        errors.push("closes needs at least two numbers");
+      }
       if (window > args.closes.length) errors.push("window must fit inside closes");
       return ok({
         id: args.id,

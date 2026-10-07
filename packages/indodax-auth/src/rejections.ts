@@ -105,6 +105,62 @@ export interface TranslatedRejection {
 }
 
 /**
+ * HTTP status carried by a transport failure, when the adapter preserved it.
+ *
+ * fetchWithRetry stores it on every non-retryable rejection, so a status
+ * check here never guesses: absent metadata means unknown, never success.
+ */
+function statusOf(error: unknown): number | null {
+  if (!isAppError(error)) return null;
+  const status = error.safeMetadata?.status;
+  return typeof status === "number" ? status : null;
+}
+
+/**
+ * Guidance for an HTTP refusal that arrived without a machine-readable body.
+ *
+ * A Cloudflare or gateway 403 in front of the exchange carries HTML instead
+ * of the JSON code the payload parser needs, which used to surface as a bare
+ * transport string with no next action. A bodyless 403 or 401 is most often
+ * an IP allowlist block, but without a code that stays a possibility rather
+ * than a verdict, so the message and the `possible_` reason say so.
+ */
+async function statusRejection(
+  error: unknown,
+  action: string,
+  resolveEgress?: () => Promise<EgressHint>,
+): Promise<(TranslatedRejection & { httpStatus: number }) | null> {
+  const status = statusOf(error);
+  if (status !== 403 && status !== 401) return null;
+  let egress: EgressHint | null = null;
+  if (resolveEgress !== undefined) {
+    try {
+      egress = await resolveEgress();
+    } catch {
+      egress = null;
+    }
+  }
+  const note = egress?.note !== null && egress?.note !== undefined ? ` (${egress.note})` : "";
+  const message =
+    `exchange refused ${action} with HTTP ${status} and no machine-readable error code${note}. ` +
+    "next: this is most often an IP allowlist block rather than a signing problem, " +
+    "so allowlist the egress address named here for the matching IP family in the " +
+    "exchange dashboard, or confirm the key has no IP restrictions; when the block " +
+    "persists, read the exact exchange reply from indodax_open_orders or indodax_account";
+  const safeMetadata: Record<string, unknown> = {
+    httpStatus: status,
+    reason: "possible_ip_not_allowlisted",
+  };
+  if (egress !== null) {
+    safeMetadata.egressIpv4 = egress.ipv4;
+    safeMetadata.egressIpv6 = egress.ipv6;
+    safeMetadata.egressCidrV4 = egress.cidrV4;
+    safeMetadata.egressCidrV6 = egress.cidrV6;
+  }
+  return { message, safeMetadata, httpStatus: status };
+}
+
+/**
  * Render the translated rejection for an already-parsed payload.
  *
  * An IP rejection is unactionable without the address to allowlist, and the
@@ -169,9 +225,15 @@ export async function translateExchangeError(
   error: unknown,
   action: string,
   resolveEgress?: () => Promise<EgressHint>,
-): Promise<(TranslatedRejection & { code: number }) | null> {
+): Promise<(TranslatedRejection & { code: number | null }) | null> {
   const payload = parseExchangePayload(error);
-  if (payload === null) return null;
+  if (payload === null) {
+    // No JSON code to translate, but a bare 403/401 still deserves the
+    // allowlist guidance with the egress address attached.
+    const fallback = await statusRejection(error, action, resolveEgress);
+    if (fallback === null) return null;
+    return { message: fallback.message, safeMetadata: fallback.safeMetadata, code: null };
+  }
   const code = typeof payload.code === "number" ? payload.code : null;
   let egress: EgressHint | null = null;
   if (code === -2015 && resolveEgress !== undefined) {
@@ -201,7 +263,16 @@ export async function translateReadError(
   resolveEgress?: () => Promise<EgressHint>,
 ): Promise<AppError | null> {
   const payload = parseExchangePayload(error);
-  if (payload === null) return null;
+  if (payload === null) {
+    const fallback = await statusRejection(error, action, resolveEgress);
+    if (fallback === null) return null;
+    const prior = isAppError(error) ? error.safeMetadata : undefined;
+    const correlationId = isAppError(error) ? error.correlationId : undefined;
+    return ExchangeApiError(fallback.message, {
+      ...(correlationId !== undefined ? { correlationId } : {}),
+      safeMetadata: { ...prior, ...fallback.safeMetadata },
+    });
+  }
   const code = typeof payload.code === "number" ? payload.code : null;
   let egress: EgressHint | null = null;
   if (code === -2015 && resolveEgress !== undefined) {

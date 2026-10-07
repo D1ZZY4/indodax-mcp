@@ -26,4 +26,9 @@ describe("strategy", () => {
     expect(signal?.side).toBe("BUY");
     expect(validateSignalInput({ symbol: SYMBOL, closes: [100], window: 5 })).not.toHaveLength(0);
   });
+
+  it("names the extraction path for an empty closes array", () => {
+    const errors = validateSignalInput({ symbol: SYMBOL, closes: [], window: 5 });
+    expect(errors.join(" ")).toContain("data[].close");
+  });
 });

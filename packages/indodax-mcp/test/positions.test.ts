@@ -143,4 +143,39 @@ describe("live positions", () => {
       await harness.close();
     }
   });
+
+  it("values unrealized percent only for legs with a supplied entry", async () => {
+    // The exchange states balances, not cost basis, so the percent is only
+    // computed for assets the caller names. Anything else stays null rather
+    // than inventing a gain.
+    const built = stubbed({ rad_idr: "2000" });
+    built.app.accountClient = {
+      getAccount: async () => ({
+        canTrade: true,
+        canWithdraw: false,
+        balances: [
+          { asset: "IDR", free: "10000", locked: "0" },
+          { asset: "RAD", free: "5", locked: "0" },
+        ],
+      }),
+    } as unknown as NonNullable<typeof built.app.accountClient>;
+    const harness = await withInMemoryServer(built.server);
+    try {
+      const r = (await harness.client.callTool({
+        name: "indodax_positions_live",
+        arguments: { entries: { RAD: "1000" } },
+      })) as { content: { text: string }[]; isError?: boolean };
+      expect(r.isError).not.toBe(true);
+      const d = JSON.parse(textOf(r)).data as {
+        legs: { asset: string; entryPrice: string | null; unrealizedPct: string | null }[];
+      };
+      const rad = d.legs.find((l) => l.asset === "rad");
+      expect(rad?.entryPrice).toBe("1000");
+      expect(rad?.unrealizedPct).toBe("100.00");
+      const idr = d.legs.find((l) => l.asset === "idr");
+      expect(idr?.unrealizedPct).toBeNull();
+    } finally {
+      await harness.close();
+    }
+  });
 });
