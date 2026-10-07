@@ -95,6 +95,7 @@ describe("funding rejection translation", () => {
         safeMetadata?: { reason?: string; haveGrant?: boolean; tool?: string };
       };
       expect(body.message).toContain("FUNDING_UNAUTHORIZED");
+      expect(body.message.match(/FUNDING_UNAUTHORIZED/g)).toHaveLength(1);
       expect(body.safeMetadata?.reason).toBe("FUNDING_UNAUTHORIZED");
       expect(body.safeMetadata?.haveGrant).toBe(false);
       expect(body.safeMetadata?.tool).toBe("indodax_withdraw_fee");

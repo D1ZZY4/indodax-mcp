@@ -107,17 +107,10 @@ async function legacyPost(
   });
   const json = (await response.json()) as { success?: number; return?: unknown; error?: string };
   if (json.success !== 1) {
-    const cause = json.error ?? "unknown v1 error";
-    // The legacy compatibility path rejects newer key versions outright.
-    // That is a grant-shaped refusal, not a parameter mistake.
-    if (/access denied/i.test(cause)) {
-      throw fundingUnauthorized(
-        "indodax_withdraw_fee",
-        `the exchange denied this API key version (${cause.slice(0, 120)})`,
-        ValidationError(`exchange: ${cause}`),
-      );
-    }
-    throw ValidationError(`exchange: ${cause}`);
+    // Thrown raw on purpose: the withdraw_fee handler wraps grant-shaped
+    // refusals into FUNDING_UNAUTHORIZED exactly once. Wrapping here as well
+    // would nest the same message twice.
+    throw ValidationError(`exchange: ${json.error ?? "unknown v1 error"}`);
   }
   return json.return;
 }
