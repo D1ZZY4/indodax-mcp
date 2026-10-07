@@ -9,6 +9,7 @@ import type { ServerHandlers } from "@indodax-mcp/mcp-core";
 import { fail, ok, parseArgs } from "@indodax-mcp/indodax-mcp/respond";
 import { defineTool } from "@indodax-mcp/indodax-mcp/tools/define";
 import { roundOrder, roundingContextFor } from "@indodax-mcp/indodax-mcp/order-rounding";
+import { assessRiskBudget } from "@indodax-mcp/indodax-mcp/risk-budget";
 import type { AppServices } from "@indodax-mcp/indodax-mcp/composition";
 
 /**
@@ -25,7 +26,7 @@ const ROUND = defineTool(
     name: "indodax_round_order",
     title: "Round order",
     description:
-      "Read-only, places nothing. Round a quantity and price to what one pair actually accepts, using the live pair list. Args: pair required, side only for context, quantity required in base units, optional price. Reports the rounded values, the originals, whether anything changed, and any rule that blocked the order with the real numbers, such as an increment that leaves nothing tradable or a notional under the pair minimum. Money as strings.",
+      "Read-only, places nothing. Round a quantity and price to what one pair actually accepts, using the live pair list. Args: pair required, side only for context, quantity required in base units, optional price, optional riskBudget in quote units for a notional-vs-budget multiple and warning. Reports the rounded values, the originals, whether anything changed, and any rule that blocked the order with the real numbers, such as an increment that leaves nothing tradable or a notional under the pair minimum. Money as strings.",
     capability: "READ",
     riskClass: "read",
     environmentRequirement: "any",
@@ -39,6 +40,7 @@ const ROUND = defineTool(
     side: z.enum(["BUY", "SELL"]).optional(),
     quantity: z.number().positive(),
     price: z.number().positive().optional(),
+    riskBudget: z.number().positive().optional(),
   },
 );
 
@@ -80,34 +82,50 @@ export function registerRoundingTools(
         args.price === undefined ? null : String(args.price),
         ctx,
       );
-      return ok({
-        pair,
-        side: args.side ?? null,
-        quantity: rounded.quantity,
-        price: rounded.price,
-        adjusted: rounded.adjusted,
-        original: {
-          quantity: rounded.quantityOriginal,
-          price: rounded.priceOriginal,
+      const notional =
+        rounded.price === null ? null : new Decimal(rounded.quantity).mul(rounded.price);
+      const budget = assessRiskBudget(notional, args.riskBudget);
+      const warnings: string[] = [];
+      if (budget.riskWarning !== null) warnings.push(budget.riskWarning);
+      // A pair minimum above the budget means no healthy size exists: the
+      // exchange refuses anything smaller, and anything it accepts overshoots
+      // the budget. State that directly instead of reporting a clean round.
+      if (minimumExceedsBudget(ctx.tradeMinQuote, args.riskBudget)) {
+        warnings.push(
+          `pair minimum notional ${ctx.tradeMinQuote?.toString()} already exceeds ` +
+            `your risk budget ${String(args.riskBudget)}; no size satisfies both the ` +
+            "exchange minimum and the budget for this pair",
+        );
+      }
+      return ok(
+        {
+          pair,
+          side: args.side ?? null,
+          quantity: rounded.quantity,
+          price: rounded.price,
+          adjusted: rounded.adjusted,
+          original: {
+            quantity: rounded.quantityOriginal,
+            price: rounded.priceOriginal,
+          },
+          rules: {
+            quantityIncrement: ctx.quantityIncrement?.toString() ?? null,
+            pricePrecision: ctx.pricePrecision,
+            quantityMin: ctx.quantityMin?.toString() ?? null,
+            tradeMinQuote: ctx.tradeMinQuote?.toString() ?? null,
+          },
+          notional: notional?.toString() ?? null,
+          ...budget,
+          notes: rounded.notes,
+          summary: rounded.adjusted
+            ? `${pair} rounded to quantity ${rounded.quantity}${rounded.price === null ? "" : ` price ${rounded.price}`}`
+            : `${pair} accepts quantity ${rounded.quantity}${rounded.price === null ? "" : ` price ${rounded.price}`} unchanged`,
+          remedy: rounded.adjusted
+            ? undefined
+            : "no rounding was needed, so this quantity and price already match the pair rules",
         },
-        rules: {
-          quantityIncrement: ctx.quantityIncrement?.toString() ?? null,
-          pricePrecision: ctx.pricePrecision,
-          quantityMin: ctx.quantityMin?.toString() ?? null,
-          tradeMinQuote: ctx.tradeMinQuote?.toString() ?? null,
-        },
-        notional:
-          rounded.price === null
-            ? null
-            : new Decimal(rounded.quantity).mul(rounded.price).toString(),
-        notes: rounded.notes,
-        summary: rounded.adjusted
-          ? `${pair} rounded to quantity ${rounded.quantity}${rounded.price === null ? "" : ` price ${rounded.price}`}`
-          : `${pair} accepts quantity ${rounded.quantity}${rounded.price === null ? "" : ` price ${rounded.price}`} unchanged`,
-        remedy: rounded.adjusted
-          ? undefined
-          : "no rounding was needed, so this quantity and price already match the pair rules",
-      });
+        warnings,
+      );
     } catch (error) {
       return fail(error);
     }
@@ -147,4 +165,15 @@ export async function roundForPlacement(
     price: rounded.price === null ? undefined : Number(rounded.price),
     rounded,
   };
+}
+
+/**
+ * Whether the pair minimum alone already breaks the operator budget.
+ *
+ * Kept as a predicate so the call site reads as one condition instead of a
+ * four-part null and range chain.
+ */
+function minimumExceedsBudget(minimum: Decimal | null, budget: number | undefined): boolean {
+  if (budget === undefined || minimum === null) return false;
+  return minimum.gt(0) && minimum.gt(budget);
 }

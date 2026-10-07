@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { AuthenticationError, AuthorizationError, ValidationError } from "@indodax-mcp/errors";
+import { decimalOrNull } from "@indodax-mcp/core";
 import type { Registry } from "@indodax-mcp/mcp-registry";
 import type { ServerHandlers } from "@indodax-mcp/mcp-core";
 import { placePaperOrder } from "@indodax-mcp/indodax-mcp/tools/paper";
@@ -15,6 +16,7 @@ import {
 } from "@indodax-mcp/indodax-mcp/schemas";
 import type { AppServices } from "@indodax-mcp/indodax-mcp/composition";
 import { defineTool, refineTool } from "@indodax-mcp/indodax-mcp/tools/define";
+import { assessRiskBudget } from "@indodax-mcp/indodax-mcp/risk-budget";
 import {
   ambiguousToUnknown,
   draftIntent,
@@ -41,12 +43,15 @@ export function registerOrderTools(
   // Declared once so the advertised schema and the handler parse cannot drift.
   // timeInForce and stpMode were previously accepted by the handler but absent
   // from the registered schema, so the SDK stripped them before the handler ran.
+  // riskBudget is advisory only: it adds a notional-vs-budget multiple and a
+  // warning to the response without changing the risk verdict.
+  const riskBudgetArg = z.number().positive().optional();
   const validateOrder = defineTool(
     {
       name: "indodax_validate_order",
       title: "Validate order",
       description:
-        "Executes nothing. Validate shape plus risk for a hypothetical order. Returns the risk decision with reasons and executed:false. Writes audit entries for traceability.",
+        "Executes nothing. Validate shape plus risk for a hypothetical order. Returns the risk decision with reasons and executed:false. Writes audit entries for traceability. Accepts optional riskBudget in quote units; the response then carries riskMultiple plus a warning when the notional exceeds it.",
       ...base,
       riskClass: "read",
       auditClass: "read",
@@ -59,6 +64,7 @@ export function registerOrderTools(
       mode: modeArg,
       timeInForce: timeInForceArg,
       stpMode: stpModeArg,
+      riskBudget: riskBudgetArg,
     },
   );
   registry.registerTool(validateOrder);
@@ -67,7 +73,7 @@ export function registerOrderTools(
       name: "indodax_propose_order",
       title: "Propose order",
       description:
-        "Executes nothing and creates no order. Build a validated proposal through risk with executed:false. A proposal is not an order. Writes audit entries for traceability.",
+        "Executes nothing and creates no order. Build a validated proposal through risk with executed:false. A proposal is not an order. Writes audit entries for traceability. Accepts optional riskBudget in quote units for a notional-vs-budget multiple and warning.",
       ...base,
       riskClass: "read",
       auditClass: "read",
@@ -81,6 +87,7 @@ export function registerOrderTools(
       reason: z.string().optional(),
       timeInForce: timeInForceArg,
       stpMode: stpModeArg,
+      riskBudget: riskBudgetArg,
     },
   );
   registry.registerTool(proposeOrder);
@@ -137,7 +144,12 @@ export function registerOrderTools(
       const { proposal, order, decision, incrementWarning } = await reviewHypothetical(app, args);
       const warnings = ["proposal only: nothing was placed and no funds moved"];
       if (incrementWarning !== null) warnings.push(`quantity increment: ${incrementWarning}`);
-      return ok({ proposal: proposal.correlationId, order, decision, executed: false }, warnings);
+      const budget = assessRiskBudget(hypotheticalNotional(order), args.riskBudget);
+      if (budget.riskWarning !== null) warnings.push(budget.riskWarning);
+      return ok(
+        { proposal: proposal.correlationId, order, decision, executed: false, ...budget },
+        warnings,
+      );
     } catch (error) {
       return fail(error);
     }
@@ -149,7 +161,12 @@ export function registerOrderTools(
       const { proposal, order, decision, incrementWarning } = await reviewHypothetical(app, args);
       const warnings = ["proposal only: nothing was placed and no funds moved"];
       if (incrementWarning !== null) warnings.push(`quantity increment: ${incrementWarning}`);
-      return ok({ proposal: proposal.correlationId, order, decision, executed: false }, warnings);
+      const budget = assessRiskBudget(hypotheticalNotional(order), args.riskBudget);
+      if (budget.riskWarning !== null) warnings.push(budget.riskWarning);
+      return ok(
+        { proposal: proposal.correlationId, order, decision, executed: false, ...budget },
+        warnings,
+      );
     } catch (error) {
       return fail(error);
     }
@@ -255,4 +272,18 @@ export function registerOrderTools(
       return fail(error);
     }
   });
+}
+
+/**
+ * Priced notional of a hypothetical order for budget comparison.
+ *
+ * Null when the shape has no computable notional, in which case the budget
+ * assessment reports nulls rather than a fabricated multiple.
+ */
+function hypotheticalNotional(order: { price: string | null; quantity: string }) {
+  const price = order.price === null ? null : decimalOrNull(order.price);
+  const quantity = decimalOrNull(order.quantity);
+  if (price === null || quantity === null) return null;
+  const notional = price.mul(quantity);
+  return notional.isFinite() ? notional : null;
 }

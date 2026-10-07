@@ -6,6 +6,7 @@ import { decimalOrNull, parseSymbolFlexible } from "@indodax-mcp/core";
 import { fail, ok, parseArgs } from "@indodax-mcp/indodax-mcp/respond";
 import { canonicalPair, pairArg } from "@indodax-mcp/indodax-mcp/schemas";
 import { defineTool } from "@indodax-mcp/indodax-mcp/tools/define";
+import { assessRiskBudget } from "@indodax-mcp/indodax-mcp/risk-budget";
 import { checkPaperConsistency } from "@indodax-mcp/indodax-mcp/paper-consistency";
 import { resolveRiskContext } from "@indodax-mcp/indodax-mcp/risk-context";
 import type { AppServices } from "@indodax-mcp/indodax-mcp/composition";
@@ -47,7 +48,7 @@ const riskEvaluate = defineTool(
     name: "indodax_risk_evaluate",
     title: "Evaluate order risk",
     description:
-      "No side effects. Run a hypothetical order through risk. Returns ALLOW, DENY, REVIEW, or HALT with reason codes. Nothing is placed.",
+      "No side effects. Run a hypothetical order through risk. Returns ALLOW, DENY, REVIEW, or HALT with reason codes. Nothing is placed. Accepts optional riskBudget in quote units for a notional-vs-budget multiple and warning alongside the verdict.",
     ...SYSTEM_READ,
     // TRADE after the spread: SYSTEM_READ defaults to SYSTEM, and evaluating an
     // order is a trade-path capability even though it has no side effects.
@@ -59,6 +60,7 @@ const riskEvaluate = defineTool(
     quantity: z.number().positive(),
     price: z.number().positive(),
     mode: z.enum(["paper", "live"]).optional(),
+    riskBudget: z.number().positive().optional(),
   },
 );
 
@@ -135,22 +137,27 @@ export function registerRiskTools(
           pair: args.pair,
         }),
       );
-      return ok({
-        pair: canonicalPair(args.pair),
-        side: args.side,
-        outcome: decision.outcome,
-        reasons: decision.reasons,
-        message: decision.message,
-        notional: price.mul(quantity).toString(),
-        price: price.toString(),
-        quantity: quantity.toString(),
-        mode,
-        limits: {
-          minOrderNotional: app.limits.minOrderNotional.toString(),
-          maxOrderNotional: app.limits.maxOrderNotional.toString(),
+      const budget = assessRiskBudget(price.mul(quantity), args.riskBudget);
+      return ok(
+        {
+          pair: canonicalPair(args.pair),
+          side: args.side,
+          outcome: decision.outcome,
+          reasons: decision.reasons,
+          message: decision.message,
+          notional: price.mul(quantity).toString(),
+          price: price.toString(),
+          quantity: quantity.toString(),
+          mode,
+          ...budget,
+          limits: {
+            minOrderNotional: app.limits.minOrderNotional.toString(),
+            maxOrderNotional: app.limits.maxOrderNotional.toString(),
+          },
+          summary: `${decision.outcome} for ${args.side} ${String(args.quantity)} ${canonicalPair(args.pair)} at ${String(args.price)}`,
         },
-        summary: `${decision.outcome} for ${args.side} ${String(args.quantity)} ${canonicalPair(args.pair)} at ${String(args.price)}`,
-      });
+        budget.riskWarning === null ? [] : [budget.riskWarning],
+      );
     } catch (error) {
       return fail(error);
     }
