@@ -314,8 +314,6 @@ export function registerOpsTools(
       }
       return ok({
         scope,
-        // Connected sockets, not restored channels: an empty subscription
-        // list still connects fine and used to report failure next to CONNECTED.
         reconnected: connected.length > 0,
         connected,
         restored,
