@@ -32,6 +32,30 @@ describe("PublicClient", () => {
     await expect(client.ticker("btc_idr")).rejects.toThrow();
   });
 
+  it("preserves bulk volume keys for screening filters", async () => {
+    // Regression: parsing bulk rows with the bare ticker shape stripped
+    // vol_idr, so minVolumeIdr matched nothing and explicit vol_idr came back
+    // empty.
+    const client = new PublicClient({
+      fetchFn: stubFetch({
+        "/api/ticker_all": {
+          tickers: {
+            btc_idr: {
+              high: "120",
+              low: "100",
+              last: "110",
+              buy: "109",
+              sell: "111",
+              vol_idr: "600000000",
+            },
+          },
+        },
+      }),
+    });
+    const all = await client.tickerAll();
+    expect((all.tickers.btc_idr as { vol_idr?: string }).vol_idr).toBe("600000000");
+  });
+
   it("builds OHLC query params", async () => {
     let seen = "";
     const fetchFn = (async (input: string | URL | Request) => {

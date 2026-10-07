@@ -40,7 +40,22 @@ export const tickerBodySchema = z.object({
 export type TickerBody = z.infer<typeof tickerBodySchema>;
 
 export const tickerResponseSchema = z.object({ ticker: tickerBodySchema });
-export const tickerAllSchema = z.object({ tickers: z.record(z.string(), tickerBodySchema) });
+/**
+ * Bulk ticker rows carry 24h quote volume alongside price fields.
+ *
+ * The bare ticker shape has no volume keys, and zod strips unknown keys on
+ * parse. Parsing bulk rows with the bare shape therefore dropped `vol_idr`
+ * from every row, which made the `minVolumeIdr` filter match nothing and an
+ * explicit `fields: [vol_idr]` come back without volume. The extended shape
+ * keeps price validation strict while preserving the volume keys the
+ * screening filters and projections read.
+ */
+const tickerAllBodySchema = tickerBodySchema.extend({
+  vol_idr: decimalString.optional(),
+  vol_btc: decimalString.optional(),
+  name: z.string().optional(),
+});
+export const tickerAllSchema = z.object({ tickers: z.record(z.string(), tickerAllBodySchema) });
 
 export const tradeSchema = z.object({
   date: z.union([z.string(), z.number()]),

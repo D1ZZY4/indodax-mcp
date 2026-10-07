@@ -6,9 +6,16 @@ import { buildIndodaxServer } from "@indodax-mcp/indodax-mcp";
 
 const tickers = {
   tickers: {
-    btc_idr: { high: "2", low: "1", last: "2", buy: "2", sell: "2" },
-    eth_usdt: { high: "2", low: "1", last: "2", buy: "2", sell: "2" },
-    btc_usdt: { high: "2", low: "1", last: "2", buy: "2", sell: "2" },
+    btc_idr: {
+      high: "120",
+      low: "100",
+      last: "110",
+      buy: "109",
+      sell: "111",
+      vol_idr: "600000000",
+    },
+    eth_usdt: { high: "2", low: "1", last: "2", buy: "2", sell: "2", vol_idr: "10" },
+    btc_usdt: { high: "2", low: "1", last: "2", buy: "2", sell: "2", vol_idr: "10" },
   },
 };
 
@@ -32,9 +39,10 @@ async function dataOf(call: Promise<unknown>) {
 }
 
 describe("market filters", () => {
-  it("returns only price and volume unless fields is asked for", async () => {
-    // The exchange sends the full body for roughly 475 pairs, which is enough
-    // to flood a harness context on one unfiltered scan.
+  it("returns screening-ready defaults with range, position, and spread", async () => {
+    // Screening needs high/low for range, buy/sell for spread, and volume in
+    // one call. Defaults carry all six plus derived rangePct, pos, and
+    // spreadPct so a harness sorts candidates without re-parsing decimals.
     const { server } = stubbed();
     const harness = await withInMemoryServer(server);
     try {
@@ -44,12 +52,14 @@ describe("market filters", () => {
         tickers: Record<string, Record<string, unknown>>;
         fields: string[];
       };
-      expect(data.fields).toEqual(["last", "vol_idr"]);
+      expect(data.fields).toEqual(["last", "high", "low", "buy", "sell", "vol_idr"]);
       const row = data.tickers.btc_idr;
-      expect(row?.last).toBe("2");
-      expect(row?.high).toBeUndefined();
-      expect(row?.buy).toBeUndefined();
-      expect(row?.sell).toBeUndefined();
+      expect(row?.last).toBe("110");
+      expect(row?.high).toBe("120");
+      expect(row?.vol_idr).toBe("600000000");
+      expect(row?.rangePct).toBe(20);
+      expect(row?.pos).toBe(0.5);
+      expect(row?.spreadPct).toBe(1.83);
     } finally {
       await harness.close();
     }
@@ -67,8 +77,8 @@ describe("market filters", () => {
       )) as { tickers: Record<string, Record<string, unknown>>; fields: string[] };
       expect(data.fields).toEqual(["last", "buy", "sell"]);
       const row = data.tickers.btc_idr;
-      expect(row?.buy).toBe("2");
-      expect(row?.sell).toBe("2");
+      expect(row?.buy).toBe("109");
+      expect(row?.sell).toBe("111");
       expect(row?.high).toBeUndefined();
     } finally {
       await harness.close();
@@ -94,6 +104,45 @@ describe("market filters", () => {
     }
   });
 
+  it("combines volume, range, and spread filters with AND logic", async () => {
+    // Regression for the live report where minVolumeIdr plus fields always
+    // returned zero rows: volume keys were stripped before filtering, so every
+    // row failed the floor.
+    const { server } = stubbed();
+    const harness = await withInMemoryServer(server);
+    try {
+      const filtered = (await dataOf(
+        harness.client.callTool({
+          name: "indodax_tickers_all",
+          arguments: {
+            quote: "IDR",
+            minVolumeIdr: 500000000,
+            fields: ["last", "high", "low", "buy", "sell", "vol_idr"],
+          },
+        }),
+      )) as {
+        tickers: Record<string, Record<string, unknown>>;
+        count: number;
+        matched: number;
+        total: number;
+      };
+      expect(Object.keys(filtered.tickers)).toEqual(["btc_idr"]);
+      expect(filtered.count).toBe(1);
+      expect(filtered.matched).toBe(1);
+      expect(filtered.total).toBe(3);
+      expect(filtered.tickers.btc_idr?.vol_idr).toBe("600000000");
+      const ranged = (await dataOf(
+        harness.client.callTool({
+          name: "indodax_tickers_all",
+          arguments: { minRangePct: 50 },
+        }),
+      )) as { count: number; matched: number };
+      expect(ranged.matched).toBe(2);
+      expect(ranged.count).toBe(2);
+    } finally {
+      await harness.close();
+    }
+  });
   it("limits public trades", async () => {
     const { server } = stubbed();
     const harness = await withInMemoryServer(server);
