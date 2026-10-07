@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import {
   PrivateChannelManager,
+  maskPrivateChannel,
   needsRefresh,
   reconnectDelayMs,
   tokenAgeMs,
@@ -82,5 +83,22 @@ describe("private channel manager", () => {
     const fetchToken = vi.fn(async () => ({ token: "abc", channel: "pws:#c" }));
     expect(await manager.reconnect(fetchToken)).toBe(0);
     expect(fetchToken).not.toHaveBeenCalled();
+  });
+});
+
+describe("channel masking", () => {
+  it("shortens the hash while keeping the prefix", () => {
+    expect(maskPrivateChannel("pws:#6e41abcdef12345acfd")).toBe("pws:#6e41...acfd");
+  });
+
+  it("passes null and short channels through untouched", () => {
+    expect(maskPrivateChannel(null)).toBeNull();
+    expect(maskPrivateChannel("pws:#abc")).toBe("pws:#abc");
+  });
+
+  it("masks deterministically so repeated reads stay comparable", () => {
+    expect(maskPrivateChannel("pws:#6e41abcdef12345acfd")).toBe(
+      maskPrivateChannel("pws:#6e41abcdef12345acfd"),
+    );
   });
 });

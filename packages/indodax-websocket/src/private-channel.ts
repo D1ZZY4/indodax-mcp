@@ -33,6 +33,24 @@ export function tokenAgeMs(token: PrivateToken, nowMs: number): number {
   return Math.max(0, nowMs - token.issuedAtMs);
 }
 
+/**
+ * Mask a private channel id for status and log output.
+ *
+ * The channel carries a long hash (for example `pws:#6e41...5acfd`) that a
+ * harness logs on every status poll. The full value is only needed inside
+ * the socket manager, so status surfaces show the first and last four hash
+ * characters. Masking is deterministic, so equality checks across calls keep
+ * working.
+ */
+export function maskPrivateChannel(channel: string | null): string | null {
+  if (channel === null) return null;
+  const marker = channel.lastIndexOf("#");
+  const prefix = marker === -1 ? "" : channel.slice(0, marker + 1);
+  const hash = marker === -1 ? channel : channel.slice(marker + 1);
+  if (hash.length <= 8) return channel;
+  return `${prefix}${hash.slice(0, 4)}...${hash.slice(-4)}`;
+}
+
 export interface PrivateChannelEvents {
   onEvent: (event: StreamEvent) => void;
   onTokenRefresh?: ((token: PrivateToken) => void) | undefined;

@@ -13,7 +13,7 @@ All responses are booleans and statuses, never secrets.
 | `indodax_runtime_status` | none | `{ scheduler, schedulerFailures, marketSocket, privateChannel, metrics, deadman, persistence }` | `persistence` reports `database: configured/absent` plus which stores mirror; memory-only mode loses paper, audit, alerts, stops, and deadman on restart. |
 | `indodax_auth_status` | none | `{ credentialsConfigured, mode }` | Credential presence only. |
 | `indodax_funding_withdraw` | `currency`, `amount`, `address` (shape validation only) | Always `AuthorizationError` | Withdrawal has no server-side grant path by design. |
-| `indodax_ws_status` | none | `{ mode, market: { state, subscriptions }, private: { state, channel } }` | Sockets are on-demand: `DISCONNECTED` is the resting state, not a failure. Honest connection states; no fake LIVE. |
+| `indodax_ws_status` | none | `{ mode, market: { state, subscriptions }, private: { state, channel } }` | Sockets are on-demand: `DISCONNECTED` is the resting state, not a failure. Honest connection states; no fake LIVE. The private channel hash is masked. |
 | `indodax_ws_ticker` | `pair` default `btc_idr` | One-shot market snapshot `{ channel, offset, data: { pair, row, rows } }` | 15s timeout. A missing pair row is an explicit `ValidationError` naming the pair (use REST `indodax_ticker` for it) instead of unrelated rows. |
 
 Related: `system://health`, `websocket://state`, `capabilities://matrix` resources.

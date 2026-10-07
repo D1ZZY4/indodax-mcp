@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { AuthorizationError, ValidationError } from "@indodax-mcp/errors";
 import { oneShotPairSnapshot } from "@indodax-mcp/indodax-websocket";
+import { maskPrivateChannel } from "@indodax-mcp/indodax-websocket/private-channel";
 import type { Registry } from "@indodax-mcp/mcp-registry";
 import type { ServerHandlers } from "@indodax-mcp/mcp-core";
 import { fail, ok, parseArgs } from "@indodax-mcp/indodax-mcp/respond";
@@ -307,7 +308,9 @@ export function registerSystemTools(
       },
       private: {
         state: app.privateChannel.connectionState,
-        channel: app.privateChannel.channel,
+        // Masked hash: status pages are logged on every poll, and only the
+        // socket manager needs the full channel id.
+        channel: maskPrivateChannel(app.privateChannel.channel),
       },
     }),
   );

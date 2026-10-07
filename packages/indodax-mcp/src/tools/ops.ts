@@ -4,6 +4,7 @@ import { ValidationError } from "@indodax-mcp/errors";
 import type { Registry } from "@indodax-mcp/mcp-registry";
 import type { ServerHandlers } from "@indodax-mcp/mcp-core";
 import { DEFAULT_PUBLIC_TOKEN, PUBLIC_WS_URL } from "@indodax-mcp/indodax-websocket";
+import { maskPrivateChannel } from "@indodax-mcp/indodax-websocket/private-channel";
 import { reconcileFills } from "@indodax-mcp/indodax-reconciliation";
 import { fail, ok, parseArgs } from "@indodax-mcp/indodax-mcp/respond";
 import type { AppServices } from "@indodax-mcp/indodax-mcp/composition";
@@ -287,6 +288,7 @@ export function registerOpsTools(
     try {
       const args = parseArgs(wsReconnect.inputSchema, raw);
       const scope = args.scope ?? "all";
+      const connected: string[] = [];
       const restored: string[] = [];
       const reasons: string[] = [];
       if (scope === "market" || scope === "all") {
@@ -296,6 +298,7 @@ export function registerOpsTools(
             token: app.env.INDODAX_WS_TOKEN ?? DEFAULT_PUBLIC_TOKEN,
           });
           for (const sub of subs) restored.push(sub.channel);
+          connected.push("market");
         } catch (error) {
           reasons.push(`market: ${error instanceof Error ? error.message : String(error)}`);
         }
@@ -306,13 +309,21 @@ export function registerOpsTools(
         }
         app.privateChannel.disconnect();
         await app.privateChannel.connect(app.privateTokenFetcher);
-        restored.push(app.privateChannel.channel ?? "private");
+        connected.push("private");
+        restored.push(maskPrivateChannel(app.privateChannel.channel) ?? "private");
       }
       return ok({
         scope,
-        reconnected: restored.length > 0,
+        // Connected sockets, not restored channels: an empty subscription
+        // list still connects fine and used to report failure next to CONNECTED.
+        reconnected: connected.length > 0,
+        connected,
         restored,
         marketState: app.marketSocket.connectionState,
+        note:
+          restored.length === 0 && connected.length > 0
+            ? "connected with no subscriptions to restore; resubscribe first when channel recovery matters"
+            : "restored lists resubscribed channels",
         ...(reasons.length > 0 ? { reasons } : {}),
       });
     } catch (error) {
@@ -326,7 +337,7 @@ export function registerOpsTools(
       }
       await app.privateChannel.connect(app.privateTokenFetcher);
       return ok({
-        channel: app.privateChannel.channel,
+        channel: maskPrivateChannel(app.privateChannel.channel),
         state: app.privateChannel.connectionState,
       });
     } catch (error) {
