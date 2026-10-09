@@ -4,7 +4,7 @@ import type { PublicClient } from "@indodax-mcp/indodax-client";
 import { getTicker, isMarketSuspended } from "@indodax-mcp/indodax-market";
 import { getPairsCached } from "@indodax-mcp/indodax-market";
 import { ValidationError } from "@indodax-mcp/errors";
-import { decimalOrNull } from "@indodax-mcp/core";
+import { decimalOrNull, formatMoney } from "@indodax-mcp/core";
 import type { Registry } from "@indodax-mcp/mcp-registry";
 import type { ServerHandlers } from "@indodax-mcp/mcp-core";
 import { fail, ok, parseArgs } from "@indodax-mcp/indodax-mcp/respond";
@@ -51,6 +51,8 @@ export interface PositionLeg {
 
 export interface PositionReport {
   legs: PositionLeg[];
+  /** Alias of legs for harnesses that read `.positions`. */
+  positions: PositionLeg[];
   /** Sum of priced legs only. Null when any leg is unpriced. */
   totalIdr: string | null;
   pricedLegs: number;
@@ -286,13 +288,25 @@ export async function livePositions(
     );
   }
 
+  const sorted = legs.sort((a, b) => {
+    const left = a.valueIdr === null ? new Decimal(-1) : new Decimal(a.valueIdr);
+    const right = b.valueIdr === null ? new Decimal(-1) : new Decimal(b.valueIdr);
+    return right.comparedTo(left);
+  });
+  // IDR has no fractional unit: round only the serialized values, after
+  // weights are computed from full precision, so display rounding never
+  // compounds into portfolio math.
+  const rendered = sorted.map((leg) => ({
+    ...leg,
+    valueIdr: leg.valueIdr === null ? null : formatMoney(new Decimal(leg.valueIdr), 0),
+  }));
+
   return {
-    legs: legs.sort((a, b) => {
-      const left = a.valueIdr === null ? new Decimal(-1) : new Decimal(a.valueIdr);
-      const right = b.valueIdr === null ? new Decimal(-1) : new Decimal(b.valueIdr);
-      return right.comparedTo(left);
-    }),
-    totalIdr: anyUnpriced ? null : total.toString(),
+    legs: rendered,
+    // Alias for harnesses that read `.positions`: same array, same objects.
+    // Canonical key stays `legs`.
+    positions: rendered,
+    totalIdr: anyUnpriced ? null : formatMoney(total, 0),
     pricedLegs: legs.filter((leg) => leg.valueIdr !== null).length,
     totalLegs: legs.length,
     incomplete,

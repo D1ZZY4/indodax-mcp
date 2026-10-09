@@ -5,6 +5,7 @@ import {
   asCompact,
   asPair,
   decimalOrNull,
+  formatMoney,
   isValidClientOrderId,
   parseSymbolFlexible,
   validateOrderInput,
@@ -26,6 +27,12 @@ describe("core money", () => {
   it("preserves decimal text for numeric inputs", () => {
     expect(decimalOrNull(0.0754)?.toString()).toBe("0.0754");
     expect(decimalOrNull(1000)?.toString()).toBe("1000");
+  });
+
+  it("rounds only at the display boundary", () => {
+    expect(formatMoney(new Decimal("145645.83956312"), 0)).toBe("145646");
+    expect(formatMoney(new Decimal("4418.903068"), 2)).toBe("4418.90");
+    expect(formatMoney(new Decimal("10000"), 0)).toBe("10000");
   });
 
   it("holds decimal invariants under arbitrary inputs", () => {

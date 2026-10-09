@@ -2,6 +2,7 @@ import { z } from "zod";
 import Decimal from "decimal.js";
 import type { Registry } from "@indodax-mcp/mcp-registry";
 import type { ServerHandlers } from "@indodax-mcp/mcp-core";
+import { formatMoney } from "@indodax-mcp/core";
 import { equityIdr, pnl } from "@indodax-mcp/indodax-portfolio";
 import { fail, ok } from "@indodax-mcp/indodax-mcp/respond";
 import type { AppServices } from "@indodax-mcp/indodax-mcp/composition";
@@ -71,7 +72,7 @@ export function registerPortfolioTools(
       return ok({
         balances: state.balances,
         initialBalances: state.initialBalances,
-        equityIdr: equity.toString(),
+        equityIdr: formatMoney(equity, 0),
         positions,
         positionCount: Object.keys(state.balances).length,
         prices,
@@ -79,7 +80,7 @@ export function registerPortfolioTools(
         tradeCount: state.tradeCount,
         totalFees: state.totalFees,
         checkedAt: new Date().toISOString(),
-        summary: `equity ${equity.toString()} IDR across ${Object.keys(state.balances).length} asset(s)`,
+        summary: `equity ${formatMoney(equity, 0)} IDR across ${Object.keys(state.balances).length} asset(s)`,
       });
     } catch (error) {
       return fail(error);
@@ -101,8 +102,8 @@ export function registerPortfolioTools(
           asset,
           current: current.toString(),
           initial: start.toString(),
-          pnl: pnl(current, start).toString(),
-          valueIdr: price === null ? null : current.mul(price).toString(),
+          pnl: formatMoney(pnl(current, start), 2),
+          valueIdr: price === null ? null : formatMoney(current.mul(price), 0),
           price: price?.toString() ?? null,
         };
       });
@@ -142,12 +143,12 @@ export function registerPortfolioTools(
       return ok({
         tradeCount: state.tradeCount,
         totalFees: state.totalFees,
-        pnlIdr: total.toString(),
+        pnlIdr: formatMoney(total, 2),
         valuedAssets: valued,
         totalAssets: Object.keys(state.balances).length,
         incomplete,
         prices,
-        summary: `PnL ${total.toString()} IDR across ${valued} valued asset(s), fees ${state.totalFees}`,
+        summary: `PnL ${formatMoney(total, 2)} IDR across ${valued} valued asset(s), fees ${state.totalFees}`,
       });
     } catch (error) {
       return fail(error);
