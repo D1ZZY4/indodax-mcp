@@ -40,10 +40,19 @@ flowchart TD
     Stored --> Check["stop_check or autopoll"]
     Check --> Crossed{"Price crossed?"}
     Crossed -->|"No"| Stored
-    Crossed -->|"Yes"| Risk2{"Risk ALLOW?"}
-    Risk2 -->|"No"| Failed["Mark failed"]
-    Risk2 -->|"Yes"| Place["Place LIMIT order"]
+    Crossed -->|"Yes"| Risk2{"Risk verdict?"}
+    Risk2 -->|"DENY: stale context or cooldown"| Retry["Stays armed, retryable"]
+    Risk2 -->|"DENY: quantity reserved"| Blocked["Blocked, still armed"]
+    Risk2 -->|"DENY: terminal"| Failed["Mark failed"]
+    Risk2 -->|"ALLOW"| Place["Place LIMIT order"]
+    Blocked --> Check
+    Retry --> Check
 ```
+
+`retryable` and `blocked` are distinct from `failed` because a stop refused
+for a refreshable reason, or because another order reserves the quantity, is
+still armed protection. Retiring it would leave an open position with no
+server-side downside protection while the report still showed an open stop.
 
 ## Live readiness boundary
 
