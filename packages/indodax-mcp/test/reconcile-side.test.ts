@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { loadEnv } from "@indodax-mcp/config";
-import { withInMemoryServer } from "@indodax-mcp/mcp-testing";
-import { buildIndodaxServer } from "@indodax-mcp/indodax-mcp";
-import type { AppServices } from "@indodax-mcp/indodax-mcp/composition";
+import { loadEnv } from "@d1zzy4-jethools/config";
+import { withInMemoryServer } from "@d1zzy4-jethools/mcp-testing";
+import { buildIndodaxServer } from "@d1zzy4-jethools/mcp-app";
+import type { AppServices } from "@d1zzy4-jethools/mcp-app/composition";
 
 /**
  * A summary row that carries only an exchange order id gives a caller nothing

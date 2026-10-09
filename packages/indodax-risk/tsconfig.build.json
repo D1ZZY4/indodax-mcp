@@ -9,8 +9,8 @@
     "outDir": "dist",
     "rootDir": "src",
     "paths": {
-      "@indodax-mcp/indodax-risk": ["./src/index.ts"],
-      "@indodax-mcp/indodax-risk/*": ["./src/*"]
+      "@d1zzy4-jethools/indodax-risk": ["./src/index.ts"],
+      "@d1zzy4-jethools/indodax-risk/*": ["./src/*"]
     }
   },
   "include": ["src"]

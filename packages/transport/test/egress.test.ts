@@ -4,7 +4,7 @@ import {
   egressAddresses,
   egressHint,
   resetEgressCache,
-} from "@indodax-mcp/transport/egress";
+} from "@d1zzy4-jethools/transport/egress";
 
 function stubFetch(v4: string | null, v6: string | null) {
   return (async (input: string) => {

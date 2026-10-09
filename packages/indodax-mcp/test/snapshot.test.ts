@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { loadEnv } from "@indodax-mcp/config";
-import type { PublicClient } from "@indodax-mcp/indodax-client";
-import { clearCache } from "@indodax-mcp/indodax-market";
-import { withInMemoryServer } from "@indodax-mcp/mcp-testing";
-import { buildIndodaxServer } from "@indodax-mcp/indodax-mcp";
+import { loadEnv } from "@d1zzy4-jethools/config";
+import type { PublicClient } from "@d1zzy4-jethools/indodax-client";
+import { clearCache } from "@d1zzy4-jethools/indodax-market";
+import { withInMemoryServer } from "@d1zzy4-jethools/mcp-testing";
+import { buildIndodaxServer } from "@d1zzy4-jethools/mcp-app";
 
 const PAIRS = [
   {
@@ -108,7 +108,7 @@ describe("portfolio snapshot", () => {
     } as unknown as PublicClient;
     clearCache();
     built.app.alerts.add({ pair: "btc_idr", condition: { type: "above", price: "0.5" } });
-    const { evaluateAlerts } = await import("@indodax-mcp/indodax-mcp/tools/alerts");
+    const { evaluateAlerts } = await import("@d1zzy4-jethools/mcp-app/tools/alerts");
     await evaluateAlerts(built.app);
 
     const harness = await withInMemoryServer(built.server);

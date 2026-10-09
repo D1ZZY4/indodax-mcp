@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { LiveExecutor } from "@indodax-mcp/indodax-execution/live";
-import { TapiV2Signer } from "@indodax-mcp/indodax-auth";
-import type { FetchFn } from "@indodax-mcp/transport";
-import type { OrderRecord } from "@indodax-mcp/indodax-orders";
-import type { ExecutionRequest } from "@indodax-mcp/indodax-execution";
+import { LiveExecutor } from "@d1zzy4-jethools/indodax-execution/live";
+import { TapiV2Signer } from "@d1zzy4-jethools/indodax-auth";
+import type { FetchFn } from "@d1zzy4-jethools/transport";
+import type { OrderRecord } from "@d1zzy4-jethools/indodax-orders";
+import type { ExecutionRequest } from "@d1zzy4-jethools/indodax-execution";
 
 /**
  * Exchange rejections arrive as HTTP 4xx with a JSON body, not as HTTP 200

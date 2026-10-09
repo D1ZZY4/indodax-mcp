@@ -9,7 +9,7 @@ import {
   compareOrderIds,
   isLegalTransition,
   transition,
-} from "@indodax-mcp/indodax-orders";
+} from "@d1zzy4-jethools/indodax-orders";
 
 describe("order machine", () => {
   it("walks the happy path", () => {

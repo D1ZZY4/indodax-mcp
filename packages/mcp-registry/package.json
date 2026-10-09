@@ -1,5 +1,5 @@
 {
-  "name": "@indodax-mcp/mcp-registry",
+  "name": "@d1zzy4-jethools/mcp-registry",
   "version": "1.1.1",
   "private": true,
   "type": "module",
@@ -14,7 +14,7 @@
     "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
-    "@indodax-mcp/mcp-contracts": "workspace:*",
+    "@d1zzy4-jethools/mcp-contracts": "workspace:*",
     "zod": "catalog:"
   },
   "devDependencies": {

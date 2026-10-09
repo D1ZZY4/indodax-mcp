@@ -9,8 +9,8 @@
     "outDir": "dist",
     "rootDir": "src",
     "paths": {
-      "@indodax-mcp/indodax-websocket": ["./src/index.ts"],
-      "@indodax-mcp/indodax-websocket/*": ["./src/*"]
+      "@d1zzy4-jethools/indodax-websocket": ["./src/index.ts"],
+      "@d1zzy4-jethools/indodax-websocket/*": ["./src/*"]
     }
   },
   "include": ["src"]

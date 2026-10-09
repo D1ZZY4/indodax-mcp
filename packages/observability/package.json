@@ -1,5 +1,5 @@
 {
-  "name": "@indodax-mcp/observability",
+  "name": "@d1zzy4-jethools/observability",
   "version": "1.1.1",
   "private": true,
   "type": "module",
@@ -14,7 +14,7 @@
     "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
-    "@indodax-mcp/core": "workspace:*"
+    "@d1zzy4-jethools/core": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "catalog:",

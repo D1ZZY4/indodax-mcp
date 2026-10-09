@@ -1,5 +1,5 @@
 {
-  "name": "@indodax-mcp/indodax-reconciliation",
+  "name": "@d1zzy4-jethools/indodax-reconciliation",
   "version": "1.1.1",
   "private": true,
   "type": "module",
@@ -14,8 +14,8 @@
     "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
-    "@indodax-mcp/core": "workspace:*",
-    "@indodax-mcp/indodax-orders": "workspace:*",
+    "@d1zzy4-jethools/core": "workspace:*",
+    "@d1zzy4-jethools/indodax-orders": "workspace:*",
     "decimal.js": "catalog:"
   },
   "devDependencies": {

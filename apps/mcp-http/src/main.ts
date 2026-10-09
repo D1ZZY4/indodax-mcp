@@ -1,7 +1,7 @@
-import { loadConfig } from "@indodax-mcp/config";
-import { createLogger } from "@indodax-mcp/logging";
-import { buildIndodaxServer, SERVER_NAME, SERVER_VERSION } from "@indodax-mcp/indodax-mcp";
-import { buildHttpApp } from "@indodax-mcp/mcp-runtime";
+import { loadConfig } from "@d1zzy4-jethools/config";
+import { createLogger } from "@d1zzy4-jethools/logging";
+import { buildIndodaxServer, SERVER_NAME, SERVER_VERSION } from "@d1zzy4-jethools/mcp-app";
+import { buildHttpApp } from "@d1zzy4-jethools/mcp-runtime";
 
 // loadConfig keeps the parsed environment and its provenance together, so
 // indodax_config_status can explain which channel supplied each credential.

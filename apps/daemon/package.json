@@ -1,5 +1,5 @@
 {
-  "name": "@indodax-mcp/daemon",
+  "name": "@d1zzy4-jethools/daemon",
   "version": "1.1.1",
   "private": true,
   "type": "module",
@@ -14,11 +14,11 @@
     "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
-    "@indodax-mcp/config": "workspace:*",
-    "@indodax-mcp/core": "workspace:*",
-    "@indodax-mcp/indodax-market": "workspace:*",
-    "@indodax-mcp/indodax-mcp": "workspace:*",
-    "@indodax-mcp/logging": "workspace:*"
+    "@d1zzy4-jethools/config": "workspace:*",
+    "@d1zzy4-jethools/core": "workspace:*",
+    "@d1zzy4-jethools/indodax-market": "workspace:*",
+    "@d1zzy4-jethools/mcp-app": "workspace:*",
+    "@d1zzy4-jethools/logging": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "catalog:",

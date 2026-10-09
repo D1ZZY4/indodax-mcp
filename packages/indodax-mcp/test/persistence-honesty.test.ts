@@ -6,7 +6,7 @@ import {
   noteUnconfigured,
   noteWriteOutcome,
   refreshPersistenceState,
-} from "@indodax-mcp/indodax-mcp/persistence-state";
+} from "@d1zzy4-jethools/mcp-app/persistence-state";
 
 /**
  * Five independent mirrors report into one rollup. A shared success flag let

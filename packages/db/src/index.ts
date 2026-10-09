@@ -1,3 +1,3 @@
-export * from "@indodax-mcp/db/schema";
-export * from "@indodax-mcp/db/client";
-export * from "@indodax-mcp/db/repositories";
+export * from "@d1zzy4-jethools/db/schema";
+export * from "@d1zzy4-jethools/db/client";
+export * from "@d1zzy4-jethools/db/repositories";

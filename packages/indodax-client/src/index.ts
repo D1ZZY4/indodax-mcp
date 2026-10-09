@@ -1,4 +1,4 @@
-export * from "@indodax-mcp/indodax-client/endpoints";
-export * from "@indodax-mcp/indodax-client/public-schemas";
-export * from "@indodax-mcp/indodax-client/public-client";
-export type { FetchFn } from "@indodax-mcp/transport";
+export * from "@d1zzy4-jethools/indodax-client/endpoints";
+export * from "@d1zzy4-jethools/indodax-client/public-schemas";
+export * from "@d1zzy4-jethools/indodax-client/public-client";
+export type { FetchFn } from "@d1zzy4-jethools/transport";

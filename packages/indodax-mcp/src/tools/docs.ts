@@ -2,12 +2,12 @@ import { existsSync, readFileSync } from "node:fs";
 import { dirname, join, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { z } from "zod";
-import { ValidationError } from "@indodax-mcp/errors";
-import type { Registry } from "@indodax-mcp/mcp-registry";
-import type { ServerHandlers } from "@indodax-mcp/mcp-core";
-import { fail, ok, parseArgs } from "@indodax-mcp/indodax-mcp/respond";
-import { defineTool } from "@indodax-mcp/indodax-mcp/tools/define";
-import type { AppServices } from "@indodax-mcp/indodax-mcp/composition";
+import { ValidationError } from "@d1zzy4-jethools/errors";
+import type { Registry } from "@d1zzy4-jethools/mcp-registry";
+import type { ServerHandlers } from "@d1zzy4-jethools/mcp-core";
+import { fail, ok, parseArgs } from "@d1zzy4-jethools/mcp-app/respond";
+import { defineTool } from "@d1zzy4-jethools/mcp-app/tools/define";
+import type { AppServices } from "@d1zzy4-jethools/mcp-app/composition";
 
 const PAGES = [
   "market",

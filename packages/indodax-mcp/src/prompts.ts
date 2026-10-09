@@ -1,6 +1,6 @@
-import type { Registry } from "@indodax-mcp/mcp-registry";
-import type { ServerHandlers } from "@indodax-mcp/mcp-core";
-import type { AppServices } from "@indodax-mcp/indodax-mcp/composition";
+import type { Registry } from "@d1zzy4-jethools/mcp-registry";
+import type { ServerHandlers } from "@d1zzy4-jethools/mcp-core";
+import type { AppServices } from "@d1zzy4-jethools/mcp-app/composition";
 
 export function registerPrompts(
   registry: Registry,

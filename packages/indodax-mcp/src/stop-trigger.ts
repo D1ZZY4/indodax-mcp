@@ -1,15 +1,15 @@
 import Decimal from "decimal.js";
-import { getTicker } from "@indodax-mcp/indodax-market";
-import { decimalOrNull } from "@indodax-mcp/core";
-import type { AppServices } from "@indodax-mcp/indodax-mcp/composition";
-import type { StopOrder } from "@indodax-mcp/indodax-mcp/stop-store";
-import { assessLiquidity } from "@indodax-mcp/indodax-mcp/stop-liquidity";
+import { getTicker } from "@d1zzy4-jethools/indodax-market";
+import { decimalOrNull } from "@d1zzy4-jethools/core";
+import type { AppServices } from "@d1zzy4-jethools/mcp-app/composition";
+import type { StopOrder } from "@d1zzy4-jethools/mcp-app/stop-store";
+import { assessLiquidity } from "@d1zzy4-jethools/mcp-app/stop-liquidity";
 import {
   isLiquidityBlock,
   isRetryableStopFailure,
-} from "@indodax-mcp/indodax-mcp/stop-classification";
-import { placeLiveOrder } from "@indodax-mcp/indodax-mcp/tools/order-intent";
-import { placePaperOrder } from "@indodax-mcp/indodax-mcp/tools/paper";
+} from "@d1zzy4-jethools/mcp-app/stop-classification";
+import { placeLiveOrder } from "@d1zzy4-jethools/mcp-app/tools/order-intent";
+import { placePaperOrder } from "@d1zzy4-jethools/mcp-app/tools/paper";
 
 /**
  * Stop trigger evaluation, shared by `indodax_stop_check` and the autopoll.

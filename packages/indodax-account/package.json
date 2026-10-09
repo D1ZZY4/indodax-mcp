@@ -1,5 +1,5 @@
 {
-  "name": "@indodax-mcp/indodax-account",
+  "name": "@d1zzy4-jethools/indodax-account",
   "version": "1.1.1",
   "private": true,
   "type": "module",
@@ -14,10 +14,10 @@
     "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
-    "@indodax-mcp/core": "workspace:*",
-    "@indodax-mcp/errors": "workspace:*",
-    "@indodax-mcp/indodax-auth": "workspace:*",
-    "@indodax-mcp/transport": "workspace:*",
+    "@d1zzy4-jethools/core": "workspace:*",
+    "@d1zzy4-jethools/errors": "workspace:*",
+    "@d1zzy4-jethools/indodax-auth": "workspace:*",
+    "@d1zzy4-jethools/transport": "workspace:*",
     "decimal.js": "catalog:",
     "zod": "catalog:"
   },

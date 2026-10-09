@@ -4,7 +4,7 @@ import {
   evaluateMovingAverage,
   movingAverage,
   validateSignalInput,
-} from "@indodax-mcp/indodax-strategy";
+} from "@d1zzy4-jethools/indodax-strategy";
 
 const SYMBOL = { base: "btc", quote: "idr" };
 

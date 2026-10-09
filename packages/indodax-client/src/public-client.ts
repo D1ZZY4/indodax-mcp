@@ -1,13 +1,13 @@
 import { z } from "zod";
-import { ExchangeApiError, ValidationError } from "@indodax-mcp/errors";
+import { ExchangeApiError, ValidationError } from "@d1zzy4-jethools/errors";
 import {
   OFFICIAL_PUBLIC_BUCKET,
   RateLimiter,
   appThrottleBucket,
   type FetchFn,
   fetchWithRetry,
-} from "@indodax-mcp/transport";
-import { PUBLIC_BASE, PublicApi } from "@indodax-mcp/indodax-client/endpoints";
+} from "@d1zzy4-jethools/transport";
+import { PUBLIC_BASE, PublicApi } from "@d1zzy4-jethools/indodax-client/endpoints";
 import {
   depthSchema,
   ohlcSchema,
@@ -22,7 +22,7 @@ import {
   type PairInfo,
   type ServerTime,
   type TickerBody,
-} from "@indodax-mcp/indodax-client/public-schemas";
+} from "@d1zzy4-jethools/indodax-client/public-schemas";
 
 export type { Depth as DepthBook, OhlcBar, PairInfo, ServerTime, TickerBody };
 

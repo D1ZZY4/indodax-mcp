@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
-import type { Database } from "@indodax-mcp/db/client";
-import { auditEvents, deadmanState, paperLedgers, tenants } from "@indodax-mcp/db/schema";
-import type { alertSnapshots, stopSnapshots } from "@indodax-mcp/db/schema";
+import type { Database } from "@d1zzy4-jethools/db/client";
+import { auditEvents, deadmanState, paperLedgers, tenants } from "@d1zzy4-jethools/db/schema";
+import type { alertSnapshots, stopSnapshots } from "@d1zzy4-jethools/db/schema";
 
 export interface AuditRecord {
   eventId: string;

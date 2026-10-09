@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Activity } from "lucide-react";
-import { connectMcp } from "@indodax-mcp/mcp-workbench/api/mcp";
+import { connectMcp } from "@d1zzy4-jethools/mcp-workbench/api/mcp";
 
 export function HealthPage() {
   const health = useQuery({

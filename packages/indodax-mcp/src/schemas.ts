@@ -1,6 +1,6 @@
 import { z } from "zod";
-import { ValidationError } from "@indodax-mcp/errors";
-import { asPair, parseSymbolFlexible } from "@indodax-mcp/core";
+import { ValidationError } from "@d1zzy4-jethools/errors";
+import { asPair, parseSymbolFlexible } from "@d1zzy4-jethools/core";
 
 /** Shared MCP input schemas. Validation lives here so every tool parses the same way. */
 

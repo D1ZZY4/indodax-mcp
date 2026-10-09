@@ -1,5 +1,5 @@
 {
-  "name": "@indodax-mcp/indodax-risk",
+  "name": "@d1zzy4-jethools/indodax-risk",
   "version": "1.1.1",
   "private": true,
   "type": "module",
@@ -14,7 +14,7 @@
     "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
-    "@indodax-mcp/core": "workspace:*",
+    "@d1zzy4-jethools/core": "workspace:*",
     "decimal.js": "catalog:"
   },
   "devDependencies": {

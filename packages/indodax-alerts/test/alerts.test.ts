@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { AlertStore, shouldTrigger } from "@indodax-mcp/indodax-alerts";
+import { AlertStore, shouldTrigger } from "@d1zzy4-jethools/indodax-alerts";
 
 describe("alerts", () => {
   it("evaluates threshold conditions", () => {

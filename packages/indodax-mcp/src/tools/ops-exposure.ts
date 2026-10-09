@@ -1,7 +1,7 @@
 import Decimal from "decimal.js";
-import { formatMoney } from "@indodax-mcp/core";
-import { getTicker } from "@indodax-mcp/indodax-market";
-import type { AppServices } from "@indodax-mcp/indodax-mcp/composition";
+import { formatMoney } from "@d1zzy4-jethools/core";
+import { getTicker } from "@d1zzy4-jethools/indodax-market";
+import type { AppServices } from "@d1zzy4-jethools/mcp-app/composition";
 
 export interface ExposureRow {
   asset: string;

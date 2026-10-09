@@ -1,8 +1,8 @@
 import { McpServer } from "@modelcontextprotocol/server";
 import { z } from "zod";
-import { AppError } from "@indodax-mcp/errors";
-import type { ToolMetadata } from "@indodax-mcp/mcp-contracts";
-import type { Registry } from "@indodax-mcp/mcp-registry";
+import { AppError } from "@d1zzy4-jethools/errors";
+import type { ToolMetadata } from "@d1zzy4-jethools/mcp-contracts";
+import type { Registry } from "@d1zzy4-jethools/mcp-registry";
 
 export interface ToolContext {
   // Intentionally empty: SDK 2.3.0 exposes no per-call abort signal to

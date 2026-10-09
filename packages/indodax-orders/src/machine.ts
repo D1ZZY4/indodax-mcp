@@ -1,4 +1,4 @@
-import type { CancelState, ExecutionState } from "@indodax-mcp/core";
+import type { CancelState, ExecutionState } from "@d1zzy4-jethools/core";
 
 type Edge = readonly [ExecutionState, ExecutionState];
 

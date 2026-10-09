@@ -1,5 +1,5 @@
-import { ExchangeApiError, isAppError, type AppError } from "@indodax-mcp/errors";
-import type { EgressHint } from "@indodax-mcp/transport/egress";
+import { ExchangeApiError, isAppError, type AppError } from "@d1zzy4-jethools/errors";
+import type { EgressHint } from "@d1zzy4-jethools/transport/egress";
 
 /**
  * Exchange rejection vocabulary, shared by every adapter that talks to the

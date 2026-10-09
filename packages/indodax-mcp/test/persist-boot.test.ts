@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { resolveBootSnapshot } from "@indodax-mcp/indodax-mcp/persist-error";
+import { resolveBootSnapshot } from "@d1zzy4-jethools/mcp-app/persist-error";
 
 describe("boot snapshot resolution", () => {
   it("restores stored state on a clean boot", () => {

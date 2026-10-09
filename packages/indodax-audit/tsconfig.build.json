@@ -9,8 +9,8 @@
     "outDir": "dist",
     "rootDir": "src",
     "paths": {
-      "@indodax-mcp/indodax-audit": ["./src/index.ts"],
-      "@indodax-mcp/indodax-audit/*": ["./src/*"]
+      "@d1zzy4-jethools/indodax-audit": ["./src/index.ts"],
+      "@d1zzy4-jethools/indodax-audit/*": ["./src/*"]
     }
   },
   "include": ["src"]

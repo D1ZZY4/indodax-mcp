@@ -1,7 +1,7 @@
 import { z } from "zod";
-import { ValidationError } from "@indodax-mcp/errors";
-import { LegacyTapiSigner } from "@indodax-mcp/indodax-auth";
-import { fetchWithRetry, type FetchFn } from "@indodax-mcp/transport";
+import { ValidationError } from "@d1zzy4-jethools/errors";
+import { LegacyTapiSigner } from "@d1zzy4-jethools/indodax-auth";
+import { fetchWithRetry, type FetchFn } from "@d1zzy4-jethools/transport";
 
 export const DEADMAN_V1_BASE = "https://indodax.com/tapi";
 

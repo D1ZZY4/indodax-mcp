@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { ToolMetadata } from "@indodax-mcp/mcp-contracts";
+import type { ToolMetadata } from "@d1zzy4-jethools/mcp-contracts";
 
 /**
  * One declaration per tool.

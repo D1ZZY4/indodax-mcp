@@ -1,5 +1,5 @@
 {
-  "name": "@indodax-mcp/mcp-core",
+  "name": "@d1zzy4-jethools/mcp-core",
   "version": "1.1.1",
   "private": true,
   "type": "module",
@@ -14,14 +14,14 @@
     "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
-    "@indodax-mcp/errors": "workspace:*",
-    "@indodax-mcp/mcp-contracts": "workspace:*",
-    "@indodax-mcp/mcp-registry": "workspace:*",
+    "@d1zzy4-jethools/errors": "workspace:*",
+    "@d1zzy4-jethools/mcp-contracts": "workspace:*",
+    "@d1zzy4-jethools/mcp-registry": "workspace:*",
     "@modelcontextprotocol/server": "catalog:",
     "zod": "catalog:"
   },
   "devDependencies": {
-    "@indodax-mcp/mcp-testing": "workspace:*",
+    "@d1zzy4-jethools/mcp-testing": "workspace:*",
     "@types/node": "catalog:",
     "@vitest/coverage-v8": "catalog:",
     "bun-types": "catalog:",

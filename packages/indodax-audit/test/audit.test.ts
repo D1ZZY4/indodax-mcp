@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { AuditTrail } from "@indodax-mcp/indodax-audit";
+import { AuditTrail } from "@d1zzy4-jethools/indodax-audit";
 
 describe("audit", () => {
   it("records and traces by correlation", () => {

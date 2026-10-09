@@ -1,4 +1,4 @@
-import { WebSocketError } from "@indodax-mcp/errors";
+import { WebSocketError } from "@d1zzy4-jethools/errors";
 import {
   authMessage,
   isDuplicate,
@@ -9,9 +9,9 @@ import {
   subscribeMessage,
   type ChannelSubscription,
   type ConnectionState,
-} from "@indodax-mcp/indodax-websocket/protocol";
-import { extractPrivateUpdates } from "@indodax-mcp/indodax-websocket/private";
-import { SubscriptionRegistry } from "@indodax-mcp/indodax-websocket/protocol";
+} from "@d1zzy4-jethools/indodax-websocket/protocol";
+import { extractPrivateUpdates } from "@d1zzy4-jethools/indodax-websocket/private";
+import { SubscriptionRegistry } from "@d1zzy4-jethools/indodax-websocket/protocol";
 
 export const PUBLIC_WS_URL = "wss://ws3.indodax.com/ws/";
 export const PRIVATE_WS_URL = "wss://pws.indodax.com/ws/?cf_ws_frame_ping_pong=true";

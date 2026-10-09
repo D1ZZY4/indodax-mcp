@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import Decimal from "decimal.js";
-import { runBacktest } from "@indodax-mcp/indodax-backtest";
+import { runBacktest } from "@d1zzy4-jethools/indodax-backtest";
 
 function closes(...values: number[]): Decimal[] {
   return values.map((value) => new Decimal(value));

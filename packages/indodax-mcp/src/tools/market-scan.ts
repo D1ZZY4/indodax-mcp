@@ -1,11 +1,11 @@
 import { z } from "zod";
-import { asPair, parseSymbolFlexible } from "@indodax-mcp/core";
-import type { Registry } from "@indodax-mcp/mcp-registry";
-import type { ServerHandlers } from "@indodax-mcp/mcp-core";
-import { fail, ok, parseArgs } from "@indodax-mcp/indodax-mcp/respond";
-import { passesScreen, screenValues } from "@indodax-mcp/indodax-mcp/screen";
-import { defineTool } from "@indodax-mcp/indodax-mcp/tools/define";
-import type { AppServices } from "@indodax-mcp/indodax-mcp/composition";
+import { asPair, parseSymbolFlexible } from "@d1zzy4-jethools/core";
+import type { Registry } from "@d1zzy4-jethools/mcp-registry";
+import type { ServerHandlers } from "@d1zzy4-jethools/mcp-core";
+import { fail, ok, parseArgs } from "@d1zzy4-jethools/mcp-app/respond";
+import { passesScreen, screenValues } from "@d1zzy4-jethools/mcp-app/screen";
+import { defineTool } from "@d1zzy4-jethools/mcp-app/tools/define";
+import type { AppServices } from "@d1zzy4-jethools/mcp-app/composition";
 
 /**
  * Bulk market screening scan.

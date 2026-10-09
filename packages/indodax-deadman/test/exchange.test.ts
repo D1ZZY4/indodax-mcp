@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
-import type { FetchFn } from "@indodax-mcp/transport";
-import { DEADMAN_V1_BASE, requestDeadmanCountdown } from "@indodax-mcp/indodax-deadman/exchange";
+import type { FetchFn } from "@d1zzy4-jethools/transport";
+import {
+  DEADMAN_V1_BASE,
+  requestDeadmanCountdown,
+} from "@d1zzy4-jethools/indodax-deadman/exchange";
 
 function stubFetch(body: unknown): FetchFn {
   return (async () => new Response(JSON.stringify(body))) as FetchFn;

@@ -9,8 +9,8 @@
     "outDir": "dist",
     "rootDir": "src",
     "paths": {
-      "@indodax-mcp/indodax-backtest": ["./src/index.ts"],
-      "@indodax-mcp/indodax-backtest/*": ["./src/*"]
+      "@d1zzy4-jethools/indodax-backtest": ["./src/index.ts"],
+      "@d1zzy4-jethools/indodax-backtest/*": ["./src/*"]
     }
   },
   "include": ["src"]

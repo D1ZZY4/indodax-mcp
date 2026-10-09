@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
-import { Registry } from "@indodax-mcp/mcp-registry";
+import { Registry } from "@d1zzy4-jethools/mcp-registry";
 
 function tool(name: string) {
   return {

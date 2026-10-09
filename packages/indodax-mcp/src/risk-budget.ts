@@ -1,5 +1,5 @@
 import type Decimal from "decimal.js";
-import { decimalOrNull } from "@indodax-mcp/core";
+import { decimalOrNull } from "@d1zzy4-jethools/core";
 
 /**
  * Advisory budget sizing for order validation responses.

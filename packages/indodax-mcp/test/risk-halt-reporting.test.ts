@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { loadEnv } from "@indodax-mcp/config";
-import { withInMemoryServer } from "@indodax-mcp/mcp-testing";
-import { buildIndodaxServer } from "@indodax-mcp/indodax-mcp";
-import { checkPaperConsistency } from "@indodax-mcp/indodax-mcp/paper-consistency";
+import { loadEnv } from "@d1zzy4-jethools/config";
+import { withInMemoryServer } from "@d1zzy4-jethools/mcp-testing";
+import { buildIndodaxServer } from "@d1zzy4-jethools/mcp-app";
+import { checkPaperConsistency } from "@d1zzy4-jethools/mcp-app/paper-consistency";
 
 type Harness = Awaited<ReturnType<typeof withInMemoryServer>>;
 

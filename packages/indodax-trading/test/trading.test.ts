@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { createRiskEngine, defaultRiskLimits, paperOnlyPolicy } from "@indodax-mcp/indodax-risk";
-import { TradingService, type TradeIntent } from "@indodax-mcp/indodax-trading";
+import {
+  createRiskEngine,
+  defaultRiskLimits,
+  paperOnlyPolicy,
+} from "@d1zzy4-jethools/indodax-risk";
+import { TradingService, type TradeIntent } from "@d1zzy4-jethools/indodax-trading";
 
 function intent(): TradeIntent {
   return {

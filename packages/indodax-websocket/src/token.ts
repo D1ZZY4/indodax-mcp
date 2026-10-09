@@ -1,7 +1,7 @@
 import { z } from "zod";
-import { ValidationError } from "@indodax-mcp/errors";
-import { PrivateWebSocketTokenSigner } from "@indodax-mcp/indodax-auth";
-import { fetchWithRetry, type FetchFn } from "@indodax-mcp/transport";
+import { ValidationError } from "@d1zzy4-jethools/errors";
+import { PrivateWebSocketTokenSigner } from "@d1zzy4-jethools/indodax-auth";
+import { fetchWithRetry, type FetchFn } from "@d1zzy4-jethools/transport";
 
 export const PRIVATE_TOKEN_URL = "https://indodax.com/api/private_ws/v1/generate_token";
 

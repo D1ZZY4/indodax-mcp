@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { AppError, ExchangeRateLimitError, ValidationError, isAppError } from "@indodax-mcp/errors";
+import {
+  AppError,
+  ExchangeRateLimitError,
+  ValidationError,
+  isAppError,
+} from "@d1zzy4-jethools/errors";
 
 describe("errors", () => {
   it("builds typed errors with safe metadata", () => {

@@ -1,6 +1,6 @@
 import { spawn } from "node:child_process";
 import { describe, expect, it } from "vitest";
-import { withStdioCommand } from "@indodax-mcp/mcp-testing";
+import { withStdioCommand } from "@d1zzy4-jethools/mcp-testing";
 
 /**
  * End-to-end coverage over a real stdio transport.

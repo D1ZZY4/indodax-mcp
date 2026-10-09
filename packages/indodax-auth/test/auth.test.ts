@@ -6,7 +6,7 @@ import {
   hmacSha256Hex,
   nextNonce,
   resetNonceForTests,
-} from "@indodax-mcp/indodax-auth";
+} from "@d1zzy4-jethools/indodax-auth";
 
 describe("indodax-auth", () => {
   it("matches the HMAC-SHA256 reference vector", () => {

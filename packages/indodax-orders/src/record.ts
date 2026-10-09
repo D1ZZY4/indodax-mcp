@@ -1,5 +1,11 @@
-import type { ExecutionState, OrderSide, OrderType, StpMode, TimeInForce } from "@indodax-mcp/core";
-import type { SymbolParts } from "@indodax-mcp/core";
+import type {
+  ExecutionState,
+  OrderSide,
+  OrderType,
+  StpMode,
+  TimeInForce,
+} from "@d1zzy4-jethools/core";
+import type { SymbolParts } from "@d1zzy4-jethools/core";
 
 export interface OrderRecord {
   internalOrderId: string;

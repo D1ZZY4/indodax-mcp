@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { MemoryRepository } from "@indodax-mcp/storage";
+import { MemoryRepository } from "@d1zzy4-jethools/storage";
 
 describe("storage", () => {
   it("round-trips records", async () => {

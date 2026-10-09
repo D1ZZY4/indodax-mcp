@@ -10,8 +10,8 @@ import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { loadEnv } from "@indodax-mcp/config";
-import { buildIndodaxServer } from "@indodax-mcp/indodax-mcp";
+import { loadEnv } from "@d1zzy4-jethools/config";
+import { buildIndodaxServer } from "@d1zzy4-jethools/mcp-app";
 
 const ROOT = fileURLToPath(new URL("../../../", import.meta.url));
 

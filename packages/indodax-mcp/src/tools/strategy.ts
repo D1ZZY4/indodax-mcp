@@ -1,20 +1,20 @@
 import { z } from "zod";
 import Decimal from "decimal.js";
-import { ValidationError } from "@indodax-mcp/errors";
-import type { Registry } from "@indodax-mcp/mcp-registry";
-import type { ServerHandlers } from "@indodax-mcp/mcp-core";
-import { parseSymbolFlexible } from "@indodax-mcp/core";
+import { ValidationError } from "@d1zzy4-jethools/errors";
+import type { Registry } from "@d1zzy4-jethools/mcp-registry";
+import type { ServerHandlers } from "@d1zzy4-jethools/mcp-core";
+import { parseSymbolFlexible } from "@d1zzy4-jethools/core";
 import {
   BUILTIN_STRATEGIES,
   evaluateMovingAverage,
   validateSignalInput,
-} from "@indodax-mcp/indodax-strategy";
-import { runBacktest } from "@indodax-mcp/indodax-backtest";
-import { fail, ok, parseArgs } from "@indodax-mcp/indodax-mcp/respond";
-import { pairArg } from "@indodax-mcp/indodax-mcp/schemas";
-import { defineTool } from "@indodax-mcp/indodax-mcp/tools/define";
-import { storeBacktest } from "@indodax-mcp/indodax-mcp/tools/ops";
-import type { AppServices } from "@indodax-mcp/indodax-mcp/composition";
+} from "@d1zzy4-jethools/indodax-strategy";
+import { runBacktest } from "@d1zzy4-jethools/indodax-backtest";
+import { fail, ok, parseArgs } from "@d1zzy4-jethools/mcp-app/respond";
+import { pairArg } from "@d1zzy4-jethools/mcp-app/schemas";
+import { defineTool } from "@d1zzy4-jethools/mcp-app/tools/define";
+import { storeBacktest } from "@d1zzy4-jethools/mcp-app/tools/ops";
+import type { AppServices } from "@d1zzy4-jethools/mcp-app/composition";
 
 const closesArg = z.array(z.number().positive());
 

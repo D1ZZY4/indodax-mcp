@@ -9,7 +9,7 @@ import {
   isValidClientOrderId,
   parseSymbolFlexible,
   validateOrderInput,
-} from "@indodax-mcp/core";
+} from "@d1zzy4-jethools/core";
 
 describe("core money", () => {
   it("parses exchange decimal strings without float loss", () => {

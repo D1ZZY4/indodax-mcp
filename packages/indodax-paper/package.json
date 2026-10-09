@@ -1,5 +1,5 @@
 {
-  "name": "@indodax-mcp/indodax-paper",
+  "name": "@d1zzy4-jethools/indodax-paper",
   "version": "1.1.1",
   "private": true,
   "type": "module",
@@ -14,9 +14,9 @@
     "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
-    "@indodax-mcp/errors": "workspace:*",
-    "@indodax-mcp/indodax-execution": "workspace:*",
-    "@indodax-mcp/indodax-orders": "workspace:*",
+    "@d1zzy4-jethools/errors": "workspace:*",
+    "@d1zzy4-jethools/indodax-execution": "workspace:*",
+    "@d1zzy4-jethools/indodax-orders": "workspace:*",
     "decimal.js": "catalog:"
   },
   "devDependencies": {

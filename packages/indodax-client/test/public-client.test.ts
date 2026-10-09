@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import type { FetchFn } from "@indodax-mcp/transport";
-import { PublicClient } from "@indodax-mcp/indodax-client/public-client";
+import type { FetchFn } from "@d1zzy4-jethools/transport";
+import { PublicClient } from "@d1zzy4-jethools/indodax-client/public-client";
 
 function stubFetch(routes: Record<string, unknown>): FetchFn {
   return (async (input: string | URL | Request) => {

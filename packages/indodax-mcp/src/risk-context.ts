@@ -1,11 +1,11 @@
 import Decimal from "decimal.js";
-import type { Capability, ExecutionMode } from "@indodax-mcp/core";
-import { decimalOrNull } from "@indodax-mcp/core";
-import { getTicker, isMarketSuspended } from "@indodax-mcp/indodax-market";
-import { currentUtcDay } from "@indodax-mcp/indodax-paper";
-import type { RiskContext } from "@indodax-mcp/indodax-risk";
-import { checkPaperConsistency } from "@indodax-mcp/indodax-mcp/paper-consistency";
-import type { AppServices } from "@indodax-mcp/indodax-mcp/composition";
+import type { Capability, ExecutionMode } from "@d1zzy4-jethools/core";
+import { decimalOrNull } from "@d1zzy4-jethools/core";
+import { getTicker, isMarketSuspended } from "@d1zzy4-jethools/indodax-market";
+import { currentUtcDay } from "@d1zzy4-jethools/indodax-paper";
+import type { RiskContext } from "@d1zzy4-jethools/indodax-risk";
+import { checkPaperConsistency } from "@d1zzy4-jethools/mcp-app/paper-consistency";
+import type { AppServices } from "@d1zzy4-jethools/mcp-app/composition";
 
 export interface RiskContextRequest {
   mode: ExecutionMode;

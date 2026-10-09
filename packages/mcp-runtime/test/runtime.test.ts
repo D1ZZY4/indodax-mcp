@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { McpServer } from "@modelcontextprotocol/server";
 import { z } from "zod";
-import { buildHttpApp, serveHttp } from "@indodax-mcp/mcp-runtime";
+import { buildHttpApp, serveHttp } from "@d1zzy4-jethools/mcp-runtime";
 
 function tinyServer(): McpServer {
   const server = new McpServer({ name: "tiny", version: "1.0.0" });

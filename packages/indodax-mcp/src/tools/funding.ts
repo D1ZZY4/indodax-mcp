@@ -5,20 +5,20 @@ import {
   ValidationError,
   isAppError,
   type AppError,
-} from "@indodax-mcp/errors";
-import type { Registry } from "@indodax-mcp/mcp-registry";
-import type { ServerHandlers } from "@indodax-mcp/mcp-core";
+} from "@d1zzy4-jethools/errors";
+import type { Registry } from "@d1zzy4-jethools/mcp-registry";
+import type { ServerHandlers } from "@d1zzy4-jethools/mcp-core";
 import {
   INDODAX_V2_BASE,
   LegacyTapiSigner,
   nextNonce,
   translateReadError,
-} from "@indodax-mcp/indodax-auth";
-import { fetchWithRetry } from "@indodax-mcp/transport";
-import { egressHint } from "@indodax-mcp/transport/egress";
-import { fail, ok, parseArgs } from "@indodax-mcp/indodax-mcp/respond";
-import { defineTool } from "@indodax-mcp/indodax-mcp/tools/define";
-import type { AppServices } from "@indodax-mcp/indodax-mcp/composition";
+} from "@d1zzy4-jethools/indodax-auth";
+import { fetchWithRetry } from "@d1zzy4-jethools/transport";
+import { egressHint } from "@d1zzy4-jethools/transport/egress";
+import { fail, ok, parseArgs } from "@d1zzy4-jethools/mcp-app/respond";
+import { defineTool } from "@d1zzy4-jethools/mcp-app/tools/define";
+import type { AppServices } from "@d1zzy4-jethools/mcp-app/composition";
 
 const V1_BASE = "https://indodax.com/tapi";
 const V2_BASE = INDODAX_V2_BASE;

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import type { FetchFn } from "@indodax-mcp/transport";
-import { AccountClient, capabilitiesFor, toBalanceViews } from "@indodax-mcp/indodax-account";
-import { TapiV2Signer } from "@indodax-mcp/indodax-auth";
+import type { FetchFn } from "@d1zzy4-jethools/transport";
+import { AccountClient, capabilitiesFor, toBalanceViews } from "@d1zzy4-jethools/indodax-account";
+import { TapiV2Signer } from "@d1zzy4-jethools/indodax-auth";
 
 const ACCOUNT = {
   canTrade: true,
@@ -113,7 +113,7 @@ describe("indodax-account", () => {
   });
 
   it("acquires the private rate-limit slot per call", async () => {
-    const { RateLimiter } = await import("@indodax-mcp/transport");
+    const { RateLimiter } = await import("@d1zzy4-jethools/transport");
     const fetchFn = (async () => new Response(JSON.stringify(ACCOUNT))) as FetchFn;
     const limiter = new RateLimiter([{ key: "v2-rest", capacity: 10, refillPerSecond: 10 }]);
     const client = new AccountClient({ signer: new TapiV2Signer("k", "s"), fetchFn, limiter });

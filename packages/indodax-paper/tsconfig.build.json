@@ -9,8 +9,8 @@
     "outDir": "dist",
     "rootDir": "src",
     "paths": {
-      "@indodax-mcp/indodax-paper": ["./src/index.ts"],
-      "@indodax-mcp/indodax-paper/*": ["./src/*"]
+      "@d1zzy4-jethools/indodax-paper": ["./src/index.ts"],
+      "@d1zzy4-jethools/indodax-paper/*": ["./src/*"]
     }
   },
   "include": ["src"]

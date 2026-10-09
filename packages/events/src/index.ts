@@ -1,4 +1,4 @@
-import type { DomainEvent } from "@indodax-mcp/core";
+import type { DomainEvent } from "@d1zzy4-jethools/core";
 
 export type EventHandler = (event: DomainEvent) => void | Promise<void>;
 

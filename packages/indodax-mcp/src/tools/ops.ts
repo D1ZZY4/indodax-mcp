@@ -1,17 +1,17 @@
 import { z } from "zod";
 import Decimal from "decimal.js";
-import { ValidationError } from "@indodax-mcp/errors";
-import type { Registry } from "@indodax-mcp/mcp-registry";
-import type { ServerHandlers } from "@indodax-mcp/mcp-core";
-import { reconcileFills } from "@indodax-mcp/indodax-reconciliation";
-import { fail, ok, parseArgs } from "@indodax-mcp/indodax-mcp/respond";
-import type { AppServices } from "@indodax-mcp/indodax-mcp/composition";
-import { defineTool } from "@indodax-mcp/indodax-mcp/tools/define";
-import { getBacktest } from "@indodax-mcp/indodax-mcp/tools/ops-backtest";
-import { exposureReport } from "@indodax-mcp/indodax-mcp/tools/ops-exposure";
+import { ValidationError } from "@d1zzy4-jethools/errors";
+import type { Registry } from "@d1zzy4-jethools/mcp-registry";
+import type { ServerHandlers } from "@d1zzy4-jethools/mcp-core";
+import { reconcileFills } from "@d1zzy4-jethools/indodax-reconciliation";
+import { fail, ok, parseArgs } from "@d1zzy4-jethools/mcp-app/respond";
+import type { AppServices } from "@d1zzy4-jethools/mcp-app/composition";
+import { defineTool } from "@d1zzy4-jethools/mcp-app/tools/define";
+import { getBacktest } from "@d1zzy4-jethools/mcp-app/tools/ops-backtest";
+import { exposureReport } from "@d1zzy4-jethools/mcp-app/tools/ops-exposure";
 
-export type { StoredBacktest } from "@indodax-mcp/indodax-mcp/tools/ops-backtest";
-export { storeBacktest } from "@indodax-mcp/indodax-mcp/tools/ops-backtest";
+export type { StoredBacktest } from "@d1zzy4-jethools/mcp-app/tools/ops-backtest";
+export { storeBacktest } from "@d1zzy4-jethools/mcp-app/tools/ops-backtest";
 
 const READ = {
   capability: "READ" as const,

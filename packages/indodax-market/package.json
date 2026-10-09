@@ -1,5 +1,5 @@
 {
-  "name": "@indodax-mcp/indodax-market",
+  "name": "@d1zzy4-jethools/indodax-market",
   "version": "1.1.1",
   "private": true,
   "type": "module",
@@ -14,9 +14,9 @@
     "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
-    "@indodax-mcp/core": "workspace:*",
-    "@indodax-mcp/errors": "workspace:*",
-    "@indodax-mcp/indodax-client": "workspace:*"
+    "@d1zzy4-jethools/core": "workspace:*",
+    "@d1zzy4-jethools/errors": "workspace:*",
+    "@d1zzy4-jethools/indodax-client": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "catalog:",

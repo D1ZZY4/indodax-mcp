@@ -1,12 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { type FetchFn, fetchWithRetry } from "@indodax-mcp/transport/fetch";
+import { type FetchFn, fetchWithRetry } from "@d1zzy4-jethools/transport/fetch";
 import {
   OFFICIAL_PUBLIC_BUCKET,
   OFFICIAL_V2_BUCKET,
   RateLimiter,
   appThrottleBucket,
-} from "@indodax-mcp/transport/rate-limit";
-import { isAppError } from "@indodax-mcp/errors";
+} from "@d1zzy4-jethools/transport/rate-limit";
+import { isAppError } from "@d1zzy4-jethools/errors";
 
 describe("fetchWithRetry", () => {
   it("returns first successful response", async () => {

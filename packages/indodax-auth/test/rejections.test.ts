@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ExchangeApiError } from "@indodax-mcp/errors";
+import { ExchangeApiError } from "@d1zzy4-jethools/errors";
 import {
   formatRejection,
   guidanceFor,
@@ -7,7 +7,7 @@ import {
   parseExchangePayload,
   translateExchangeError,
   translateReadError,
-} from "@indodax-mcp/indodax-auth/rejections";
+} from "@d1zzy4-jethools/indodax-auth/rejections";
 
 function httpError(status: number, body: unknown) {
   return ExchangeApiError(`unexpected HTTP ${status}: ${JSON.stringify(body).slice(0, 200)}`, {

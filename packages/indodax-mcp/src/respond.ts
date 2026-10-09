@@ -1,5 +1,5 @@
 import type { z } from "zod";
-import { AppError, ValidationError } from "@indodax-mcp/errors";
+import { AppError, ValidationError } from "@d1zzy4-jethools/errors";
 
 export interface ToolSuccess {
   content: { type: "text"; text: string }[];

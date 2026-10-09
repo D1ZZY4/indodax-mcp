@@ -7,17 +7,21 @@
  */
 import { describe, expect, it } from "vitest";
 import Decimal from "decimal.js";
-import { createRiskEngine, defaultRiskLimits, liveEnabledPolicy } from "@indodax-mcp/indodax-risk";
-import { evaluateStops } from "@indodax-mcp/indodax-mcp/tools/stop";
+import {
+  createRiskEngine,
+  defaultRiskLimits,
+  liveEnabledPolicy,
+} from "@d1zzy4-jethools/indodax-risk";
+import { evaluateStops } from "@d1zzy4-jethools/mcp-app/tools/stop";
 import {
   isLiquidityBlock,
   isRetryableStopFailure,
-} from "@indodax-mcp/indodax-mcp/stop-classification";
-import { loadEnv } from "@indodax-mcp/config";
-import type { PublicClient } from "@indodax-mcp/indodax-client";
-import { clearCache } from "@indodax-mcp/indodax-market";
-import { buildIndodaxServer } from "@indodax-mcp/indodax-mcp";
-import type { AppServices } from "@indodax-mcp/indodax-mcp/composition";
+} from "@d1zzy4-jethools/mcp-app/stop-classification";
+import { loadEnv } from "@d1zzy4-jethools/config";
+import type { PublicClient } from "@d1zzy4-jethools/indodax-client";
+import { clearCache } from "@d1zzy4-jethools/indodax-market";
+import { buildIndodaxServer } from "@d1zzy4-jethools/mcp-app";
+import type { AppServices } from "@d1zzy4-jethools/mcp-app/composition";
 
 const engine = createRiskEngine(defaultRiskLimits(), liveEnabledPolicy());
 

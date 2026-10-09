@@ -6,7 +6,7 @@ import {
   paperOnlyPolicy,
   type OrderFacts,
   type RiskContext,
-} from "@indodax-mcp/indodax-risk";
+} from "@d1zzy4-jethools/indodax-risk";
 
 function order(notional: string): OrderFacts {
   return {

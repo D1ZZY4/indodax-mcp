@@ -9,8 +9,8 @@
     "outDir": "dist",
     "rootDir": "src",
     "paths": {
-      "@indodax-mcp/errors": ["./src/index.ts"],
-      "@indodax-mcp/errors/*": ["./src/*"]
+      "@d1zzy4-jethools/errors": ["./src/index.ts"],
+      "@d1zzy4-jethools/errors/*": ["./src/*"]
     }
   },
   "include": ["src"]

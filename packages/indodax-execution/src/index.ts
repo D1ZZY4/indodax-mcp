@@ -1,6 +1,6 @@
-import type { Capability, ExecutionMode, RiskDecision } from "@indodax-mcp/core";
-import { RiskDeniedError, ValidationError } from "@indodax-mcp/errors";
-import type { OrderRecord } from "@indodax-mcp/indodax-orders";
+import type { Capability, ExecutionMode, RiskDecision } from "@d1zzy4-jethools/core";
+import { RiskDeniedError, ValidationError } from "@d1zzy4-jethools/errors";
+import type { OrderRecord } from "@d1zzy4-jethools/indodax-orders";
 
 export interface ExecutionRequest {
   order: OrderRecord;
@@ -49,4 +49,4 @@ function isAllow(risk: RiskDecision): boolean {
   return risk.outcome === "ALLOW";
 }
 
-export * from "@indodax-mcp/indodax-execution/live";
+export * from "@d1zzy4-jethools/indodax-execution/live";

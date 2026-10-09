@@ -9,8 +9,8 @@
     "outDir": "dist",
     "rootDir": "src",
     "paths": {
-      "@indodax-mcp/mcp-core": ["./src/index.ts"],
-      "@indodax-mcp/mcp-core/*": ["./src/*"]
+      "@d1zzy4-jethools/mcp-core": ["./src/index.ts"],
+      "@d1zzy4-jethools/mcp-core/*": ["./src/*"]
     }
   },
   "include": ["src"]

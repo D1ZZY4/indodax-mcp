@@ -1,6 +1,6 @@
 import { createHmac } from "node:crypto";
 
-export * from "@indodax-mcp/indodax-auth/rejections";
+export * from "@d1zzy4-jethools/indodax-auth/rejections";
 
 export const INDODAX_V2_BASE = "https://api.indodax.com";
 

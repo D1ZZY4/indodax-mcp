@@ -7,10 +7,10 @@
  * or a window.
  */
 import { describe, expect, it } from "vitest";
-import { loadEnv } from "@indodax-mcp/config";
-import type { PublicClient } from "@indodax-mcp/indodax-client";
-import { withInMemoryServer } from "@indodax-mcp/mcp-testing";
-import { buildIndodaxServer } from "@indodax-mcp/indodax-mcp";
+import { loadEnv } from "@d1zzy4-jethools/config";
+import type { PublicClient } from "@d1zzy4-jethools/indodax-client";
+import { withInMemoryServer } from "@d1zzy4-jethools/mcp-testing";
+import { buildIndodaxServer } from "@d1zzy4-jethools/mcp-app";
 
 const BARS = [
   { Time: 1791399960, Open: 1, High: 2, Low: 1, Close: 2, Volume: "10" },
