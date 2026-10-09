@@ -28,6 +28,7 @@ const TOOL_MODULES = [
   "reconcile",
   "risk",
   "rounding",
+  "snapshot",
   "stop",
   "stop-check",
   "stop-create",

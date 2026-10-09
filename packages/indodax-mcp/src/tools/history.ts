@@ -27,7 +27,11 @@ const openOrders = defineTool(
   {
     name: "indodax_open_orders",
     title: "Open orders",
-    description: "Read-only, needs credentials. Live open orders, optional symbol filter.",
+    description:
+      "Read-only, needs credentials. Live open orders, optional symbol filter. The exchange " +
+      "propagates a freshly placed or cancelled order asynchronously, so observedAt states when " +
+      "this set was read; cross-check against indodax_portfolio_snapshot or " +
+      "indodax_reconcile_full when the count matters for a duplicate check.",
     ...READ_AUTH,
   },
   { symbol: z.string().optional() },
@@ -111,6 +115,18 @@ export function registerHistoryTools(
         count: list.length,
         symbol: args.symbol ?? "all",
         orders: list,
+        /**
+         * This read is uncached, so `source` is always live. The field exists
+         * because a caller that caught an order count disagreeing with another
+         * tool needed to rule out a stale read on this side before treating the
+         * difference as an exchange propagation lag.
+         */
+        source: "live",
+        observedAt: new Date().toISOString(),
+        note:
+          "Uncached exchange read. A count taken seconds after a place or cancel can lag the " +
+          "exchange's own propagation; cross-check with indodax_portfolio_snapshot.openOrders or " +
+          "indodax_reconcile_full.exchange.openOrders before acting on a difference.",
         summary: `${list.length} live open order(s)${args.symbol ? ` for ${args.symbol}` : ""}`,
       });
     } catch (error) {
