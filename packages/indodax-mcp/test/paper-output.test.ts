@@ -1,9 +1,27 @@
 import { describe, expect, it } from "vitest";
 import { loadEnv } from "@indodax-mcp/config";
+import type { PublicClient } from "@indodax-mcp/indodax-client";
+import { clearCache } from "@indodax-mcp/indodax-market";
 import { withInMemoryServer } from "@indodax-mcp/mcp-testing";
 import { buildIndodaxServer } from "@indodax-mcp/mcp-app";
 
 type Harness = Awaited<ReturnType<typeof withInMemoryServer>>;
+
+/**
+ * Risk review resolves market context, so an unstubbed build reaches the live
+ * exchange. That made this suite's runtime depend on network latency, and on a
+ * cold runner it exceeded the default 5s timeout. The market read is not what
+ * these assertions are about, so it is served from a fixed price like the other
+ * paper suites do.
+ */
+function paperServer() {
+  const built = buildIndodaxServer(loadEnv({}));
+  built.app.publicClient = {
+    ticker: async () => ({ high: "1000", low: "1000", last: "1000", buy: "1000", sell: "1000" }),
+    pairs: async () => [],
+  } as unknown as PublicClient;
+  return built;
+}
 
 async function toolData(
   harness: Harness,
@@ -20,7 +38,8 @@ async function toolData(
 
 describe("paper output detail", () => {
   it("paper status names open orders with ids", async () => {
-    const { server } = buildIndodaxServer(loadEnv({}));
+    clearCache();
+    const { server } = paperServer();
     const harness = await withInMemoryServer(server);
     try {
       const placed = (await toolData(harness, "indodax_paper_order", {
@@ -42,7 +61,8 @@ describe("paper output detail", () => {
   });
 
   it("paper fill and cancel return balances after the mutation", async () => {
-    const { server } = buildIndodaxServer(loadEnv({}));
+    clearCache();
+    const { server } = paperServer();
     const harness = await withInMemoryServer(server);
     try {
       const placed = (await toolData(harness, "indodax_paper_order", {
@@ -64,7 +84,8 @@ describe("paper output detail", () => {
       await harness.close();
     }
     // Separate server: the 5s order cooldown would deny a second placement here.
-    const second = buildIndodaxServer(loadEnv({}));
+    clearCache();
+    const second = paperServer();
     const harness2 = await withInMemoryServer(second.server);
     try {
       const placed = (await toolData(harness2, "indodax_paper_order", {
