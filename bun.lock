@@ -15,7 +15,7 @@
       },
     },
     "apps/cli": {
-      "name": "indodax-mcp-cli",
+      "name": "@d1zzy4-jethools/indodax-mcp-cli",
       "version": "1.1.1",
       "bin": {
         "indodax": "./dist/index.js",
@@ -67,7 +67,7 @@
       },
     },
     "apps/mcp-stdio": {
-      "name": "indodax-mcp",
+      "name": "@d1zzy4-jethools/indodax-mcp",
       "version": "1.1.1",
       "bin": {
         "indodax-mcp": "./dist/index.js",
@@ -756,6 +756,10 @@
 
     "@csstools/css-tokenizer": ["@csstools/css-tokenizer@4.0.2", "", {}, "sha512-OoKoR0f76dCY666JlcbhmVTs2drYj1GUXZTYTcbUgJjh9Nv41aFfZ21bPQTERm5+L5cBDo466NltB2lplS5GBw=="],
 
+    "@d1zzy4-jethools/indodax-mcp": ["@d1zzy4-jethools/indodax-mcp@workspace:apps/mcp-stdio"],
+
+    "@d1zzy4-jethools/indodax-mcp-cli": ["@d1zzy4-jethools/indodax-mcp-cli@workspace:apps/cli"],
+
     "@drizzle-team/brocli": ["@drizzle-team/brocli@0.10.2", "", {}, "sha512-z33Il7l5dKjUgGULTqBsQBQwckHh5AbIuxhdsIxDDiZAzBOrZO6q9ogcWC65kU382AfynTfgNumVcNIjuIua6w=="],
 
     "@embedded-postgres/darwin-arm64": ["@embedded-postgres/darwin-arm64@17.10.0-beta.17", "", { "os": "darwin", "cpu": "arm64" }, "sha512-E2dxhSllrcyAJBHuvgTrBTx2BaPlX2vvjXClPKHxfwBezk+nTZ01uAEraKiRJMpzHSCyN8J1dTjKh4q/uTsBLQ=="],
@@ -1187,10 +1191,6 @@
     "import-meta-resolve": ["import-meta-resolve@4.2.0", "", {}, "sha512-Iqv2fzaTQN28s/FwZAoFq0ZSs/7hMAHJVX+w8PZl3cY19Pxk6jFFalxQoIfW2826i/fDLXv8IiEZRIT0lDuWcg=="],
 
     "indent-string": ["indent-string@4.0.0", "", {}, "sha512-EdDDZu4A2OyIK7Lr/2zG+w5jmbuk1DVBnEwREQvBzspBJkCEbRa8GxU1lghYcaGJCnRWibjDXlq779X1/y5xwg=="],
-
-    "indodax-mcp": ["indodax-mcp@workspace:apps/mcp-stdio"],
-
-    "indodax-mcp-cli": ["indodax-mcp-cli@workspace:apps/cli"],
 
     "is-potential-custom-element-name": ["is-potential-custom-element-name@1.0.1", "", {}, "sha512-bCYeRA2rVibKZd+s2625gGnGF/t7DSqDs4dP7CrLA1m7jKWz6pps0LpYLJN8Q64HtmPKJ1hrN3nzPNKFEKOUiQ=="],
 

@@ -55,8 +55,8 @@ jobs:
       - run: bun run verify:consumer
       - name: Publish beta to npm
         run: |
-          npm publish ./artifacts/indodax-mcp-*.tgz --tag beta --provenance --access public
-          npm publish ./artifacts/indodax-mcp-cli-*.tgz --tag beta --provenance --access public
+          npm publish ./artifacts/d1zzy4-jethools-indodax-mcp-*.tgz --tag beta --provenance --access public
+          npm publish ./artifacts/d1zzy4-jethools-indodax-mcp-cli-*.tgz --tag beta --provenance --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
       - name: Create beta GitHub release

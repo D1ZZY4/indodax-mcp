@@ -1,6 +1,6 @@
 ---
-"indodax-mcp": minor
-"indodax-mcp-cli": minor
+"@d1zzy4-jethools/indodax-mcp": minor
+"@d1zzy4-jethools/indodax-mcp-cli": minor
 ---
 
 Every module is now imported through its package name, including modules inside the same package.

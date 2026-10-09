@@ -1,6 +1,6 @@
 ---
-"indodax-mcp": minor
-"indodax-mcp-cli": minor
+"@d1zzy4-jethools/indodax-mcp": minor
+"@d1zzy4-jethools/indodax-mcp-cli": minor
 ---
 
 Agent-harness feedback round: rejections that carry a next action, consistent top-of-book fields, symbol lookup, and explicit signal verdicts.
