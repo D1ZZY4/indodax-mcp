@@ -4,6 +4,10 @@ import { decimalOrNull } from "@indodax-mcp/core";
 import type { AppServices } from "@indodax-mcp/indodax-mcp/composition";
 import type { StopOrder } from "@indodax-mcp/indodax-mcp/stop-store";
 import { assessLiquidity } from "@indodax-mcp/indodax-mcp/stop-liquidity";
+import {
+  isLiquidityBlock,
+  isRetryableStopFailure,
+} from "@indodax-mcp/indodax-mcp/stop-classification";
 import { placeLiveOrder } from "@indodax-mcp/indodax-mcp/tools/order-intent";
 import { placePaperOrder } from "@indodax-mcp/indodax-mcp/tools/paper";
 
@@ -45,30 +49,6 @@ export interface StopFireResult {
     /** Take-profit orders cancelled to free the quantity for this stop. */
     cancelledLinkedOrders?: string[];
   }[];
-}
-
-/**
- * Whether a placement refusal can still be cleared by a later cycle.
- *
- * Local context refusals are the ones worth retrying: the price condition
- * already held, the stop never reached the exchange, and the position is
- * still unprotected. Anything the exchange itself refused is terminal,
- * because resubmitting the same order would only be refused again.
- */
-export function isRetryableStopFailure(reason: string): boolean {
-  if (/^denied: (STALE_ACCOUNT_STATE|STALE_MARKET_DATA)\b/.test(reason)) return true;
-  return /\b(COOLDOWN_ACTIVE)\b/.test(reason);
-}
-
-/**
- * Whether a refusal is a quantity-lock problem rather than a real rejection.
- *
- * The exchange reports the same code for "you do not own this" and "another
- * order is holding it", and the remedy differs completely: one needs funds,
- * the other needs the conflicting order cancelled.
- */
-export function isLiquidityBlock(reason: string): boolean {
-  return /-2010|insufficient balance|INSUFFICIENT_BALANCE/i.test(reason);
 }
 
 /**

@@ -5,7 +5,8 @@ import type { PublicClient } from "@indodax-mcp/indodax-client";
 import { clearCache } from "@indodax-mcp/indodax-market";
 import { withInMemoryServer } from "@indodax-mcp/mcp-testing";
 import { buildIndodaxServer } from "@indodax-mcp/indodax-mcp";
-import { evaluateStops, isLiquidityBlock } from "@indodax-mcp/indodax-mcp/tools/stop";
+import { evaluateStops } from "@indodax-mcp/indodax-mcp/tools/stop";
+import { isLiquidityBlock } from "@indodax-mcp/indodax-mcp/stop-classification";
 import type { AppServices } from "@indodax-mcp/indodax-mcp/composition";
 
 const TP_ORDER = {

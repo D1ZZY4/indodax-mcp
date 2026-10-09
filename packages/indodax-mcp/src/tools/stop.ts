@@ -17,12 +17,12 @@ import { registerStopCheckTools } from "@indodax-mcp/indodax-mcp/tools/stop-chec
  * share one decision path. This module keeps the shared re-exports plus the
  * small list and cancel surfaces.
  */
+export { evaluateStops } from "@indodax-mcp/indodax-mcp/stop-trigger";
+export type { StopFireResult } from "@indodax-mcp/indodax-mcp/stop-trigger";
 export {
-  evaluateStops,
   isLiquidityBlock,
   isRetryableStopFailure,
-} from "@indodax-mcp/indodax-mcp/stop-trigger";
-export type { StopFireResult } from "@indodax-mcp/indodax-mcp/stop-trigger";
+} from "@indodax-mcp/indodax-mcp/stop-classification";
 
 const stopsList = defineTool(
   {
