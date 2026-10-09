@@ -54,6 +54,9 @@ export function registerStopCheckTools(
         ...result,
         openStops: app.stops.list().length,
         totalStops: app.stops.list(true).length,
+        // Stable shape: `crossed` names every stop whose price crossed on
+        // this pass; `fired` carries their per-outcome detail.
+        crossed: result.fired.map((entry) => entry.id),
         /** Armed stops whose placement was refused but is worth another cycle. */
         retryable: retry.length,
         retryableStops: retry.map((entry) => ({

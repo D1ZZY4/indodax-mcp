@@ -115,6 +115,30 @@ function cancelOcoSiblings(app: AppServices, firedId: string, groupId: string): 
   return cancelled;
 }
 
+/**
+ * Advance a trailing stop's extreme to the latest favorable print.
+ *
+ * SELL trails below the highest seen price, BUY above the lowest seen one.
+ * The extreme persists through the store so a restart re-anchors from
+ * recorded evidence instead of inventing a fresh anchor that could skip a
+ * trigger the market already crossed.
+ */
+function ratchetExtreme(app: AppServices, stop: StopOrder, last: string): string | null {
+  const current = decimalOrNull(last);
+  if (current === null) return null;
+  const stored = stop.extremePrice === undefined ? null : decimalOrNull(stop.extremePrice);
+  const extreme =
+    stored === null
+      ? current
+      : stop.side === "SELL"
+        ? Decimal.max(stored, current)
+        : Decimal.min(stored, current);
+  if (stored === null || !stored.eq(extreme)) {
+    app.stops.touch(stop.id, { extremePrice: extreme.toString() });
+  }
+  return extreme.toString();
+}
+
 /** Shared trigger evaluation used by the tool and the optional autopoll job. */
 export async function evaluateStops(app: AppServices): Promise<StopFireResult> {
   const fired: StopFireResult["fired"] = [];
@@ -154,7 +178,25 @@ export async function evaluateStops(app: AppServices): Promise<StopFireResult> {
     } catch {
       last = null;
     }
-    if (last === null || !crossed(stop.side, last, stop.stopPrice)) continue;
+    if (last === null) continue;
+    // Trailing stops chase the market instead of watching a fixed level: the
+    // extreme ratchets with every favorable print and the trigger trails one
+    // distance behind it. The stored stopPrice stays as the arming record;
+    // the live trigger below is what the crossing tests.
+    let trigger = stop.stopPrice;
+    if (stop.trailPct !== undefined && stop.trailPct !== null) {
+      const extreme = ratchetExtreme(app, stop, last);
+      if (extreme === null) continue;
+      const pct = decimalOrNull(stop.trailPct);
+      const anchor = decimalOrNull(extreme);
+      if (pct === null || anchor === null) continue;
+      const factor =
+        stop.side === "SELL"
+          ? new Decimal(1).minus(pct.div(100))
+          : new Decimal(1).plus(pct.div(100));
+      trigger = anchor.mul(factor).toNumber();
+    }
+    if (!crossed(stop.side, last, trigger)) continue;
 
     /**
      * Free the quantity before placing, then place.
@@ -192,7 +234,7 @@ export async function evaluateStops(app: AppServices): Promise<StopFireResult> {
         id: stop.id,
         status: "triggered",
         price: last,
-        triggerPrice: stop.stopPrice,
+        triggerPrice: trigger,
         limitPrice: stop.limitPrice,
       };
       if (released.length > 0) entry.cancelledLinkedOrders = released;
@@ -218,7 +260,7 @@ export async function evaluateStops(app: AppServices): Promise<StopFireResult> {
           id: stop.id,
           status: "retry",
           price: last,
-          triggerPrice: stop.stopPrice,
+          triggerPrice: trigger,
           limitPrice: stop.limitPrice,
           reason,
           retryable: true,
@@ -247,7 +289,7 @@ export async function evaluateStops(app: AppServices): Promise<StopFireResult> {
           id: stop.id,
           status: "blocked",
           price: last,
-          triggerPrice: stop.stopPrice,
+          triggerPrice: trigger,
           limitPrice: stop.limitPrice,
           reason,
           retryable: true,
@@ -260,7 +302,7 @@ export async function evaluateStops(app: AppServices): Promise<StopFireResult> {
         id: stop.id,
         status: "failed",
         price: last,
-        triggerPrice: stop.stopPrice,
+        triggerPrice: trigger,
         limitPrice: stop.limitPrice,
         reason,
         retryable: false,

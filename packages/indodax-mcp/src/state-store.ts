@@ -159,6 +159,15 @@ export function attachStopPersistence(app: AppServices, health: PersistenceHealt
         mark(id, status, extra);
         persist();
       };
+      // Ratchet bookkeeping (trailing extremes) must mirror like any other
+      // mutation, otherwise a restart re-anchors from a stale extreme and can
+      // skip a trigger the market already crossed.
+      const touch = store.touch.bind(store);
+      store.touch = (id: string, extra: Parameters<typeof touch>[1]): boolean => {
+        const result = touch(id, extra);
+        if (result) persist();
+        return result;
+      };
     },
     (stored) => app.stops.restore(stored),
     health,

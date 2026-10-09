@@ -46,6 +46,14 @@ export interface StopOrder {
   blockedFix?: string | undefined;
   /** Market last price observed when the stop fired. Compare with stopPrice for slippage audit. */
   triggeredPrice?: string | undefined;
+  /**
+   * Trailing distance in percent, when this stop ratchets with the market
+   * instead of watching a fixed level. SELL trails below the highest seen
+   * price, BUY above the lowest seen price.
+   */
+  trailPct?: number | undefined;
+  /** Best price observed since arming, the anchor the trailing trigger moves from. */
+  extremePrice?: string | undefined;
   result?: unknown | undefined;
   reason?: string | undefined;
 }
@@ -127,6 +135,10 @@ export class StopStore {
         ...(typeof candidate.triggeredPrice === "string"
           ? { triggeredPrice: candidate.triggeredPrice }
           : {}),
+        ...(typeof candidate.trailPct === "number" ? { trailPct: candidate.trailPct } : {}),
+        ...(typeof candidate.extremePrice === "string"
+          ? { extremePrice: candidate.extremePrice }
+          : {}),
       });
     }
     this.counter = max + 1;
@@ -172,6 +184,17 @@ export class StopStore {
     stop.status = "open";
     delete stop.blockedReason;
     delete stop.blockedFix;
+    return true;
+  }
+
+  /**
+   * Merge fields without changing status, for ratchet bookkeeping that must
+   * not look like a lifecycle transition.
+   */
+  touch(id: string, extra: Partial<StopOrder>): boolean {
+    const stop = this.stops.get(id);
+    if (!stop) return false;
+    Object.assign(stop, extra);
     return true;
   }
 

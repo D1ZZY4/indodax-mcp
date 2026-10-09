@@ -48,4 +48,42 @@ same balance; only the fired leg places an order. A **take-profit order** is
 different: it does reserve, which is why `groupId` alone is not enough and
 `indodax_oco_attach` exists.
 
+## When a refused stop is retired
+
+A stop is armed protection, so a refused trigger is not automatically a failed
+stop. `indodax_stop_check` classifies each refusal:
+
+| Outcome | Meaning | Next state |
+| --- | --- | --- |
+| `triggered` | Placement went through | Retired, this is the stop working |
+| `blocked` | The quantity is reserved by another order, so the exchange refused with `-2010` | Stays armed and retries every pass |
+| `retry` | A refreshable local refusal such as `STALE_ACCOUNT_STATE`, `STALE_MARKET_DATA` or `COOLDOWN_ACTIVE` | Stays armed and retries every pass |
+| `failed` | A terminal refusal | Retired, and the position needs manual attention |
+
+A refreshable reason keeps the stop armed even when another rule failed in the
+same evaluation, so a stale account read can never silently remove protection
+from an open position. `blocked` is reported separately from `open` because a
+stop that cannot place is not the same as one that can, and `retryableStops`
+names the fix for the `retry` class.
+
+## Stops vs alerts vs Deadman
+
+| Mechanism | What it does | When it acts | Use it when |
+| --- | --- | --- | --- |
+| Stop (`indodax_stop_create`) | Places a LIMIT order through risk when the trigger crosses | On `indodax_stop_check` or the opt-in `STOP_AUTOPOLL_MS` schedule, only while this server runs | The position needs automatic execution at a level |
+| Alert (`indodax_alert_create`) | Marks triggered, optionally pushes an MCP notification | On `indodax_alert_check` or the opt-in `ALERT_AUTOPOLL_MS` schedule | The operator (human or harness) must decide first; execution stays manual |
+| Deadman (`indodax_deadman_arm`) | Cancels open orders exchange-side when heartbeats lapse | On the exchange, independent of this server | A crash or disconnect must fail closed instead of leaving orders resting |
+
+A stop below the notional floor is refused (`UNDERMINIMUM_STOP`); the
+fallback is an alert at the same level plus manual execution, not a silent
+unprotected position. Deadman protects against the server disappearing;
+stops and alerts require it to keep running.
+
+## Trailing stops
+
+`stopPrice` replaced by `trailingPct` arms a ratchet: a SELL trails below
+the highest last seen since arming, a BUY above the lowest. The extreme
+persists across restarts, and every fired entry reports the live trigger it
+used, so slippage audits against the arming level stay exact.
+
 Related: order tools, paper tools, alert tools (same autopoll pattern).

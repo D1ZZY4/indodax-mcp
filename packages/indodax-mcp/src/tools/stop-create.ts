@@ -32,6 +32,13 @@ const STOP_SHAPE = {
    */
   percentDown: z.number().positive().max(100).optional(),
   percentUp: z.number().positive().max(100).optional(),
+  /**
+   * Trailing distance in percent from the best price seen since arming, as an
+   * alternative trigger. SELL trails below the highest last, BUY above the
+   * lowest last, ratcheting on every check. Exactly one of stopPrice,
+   * percentDown, percentUp, trailingPct is required.
+   */
+  trailingPct: z.number().positive().max(100).optional(),
   mode: z.enum(["paper", "live"]).optional(),
   acknowledged: z.boolean().optional(),
   clientOrderId: z.string().min(1).max(36).optional(),
@@ -45,7 +52,7 @@ const stopCreate = defineTool(
     name: "indodax_stop_create",
     title: "Create stop",
     description:
-      "Server-side emulated stop, not exchange-native. Stores a trigger after a notional limit pre-check; nothing is placed until indodax_stop_check or the opt-in autopoll sees the stop price crossed. Stops that share groupId behave as one-cancels-the-other: when one fires, open siblings auto-cancel. Live needs acknowledged true plus the full live gate, recorded as acknowledgedAt. For a live SELL it also checks the asset is actually free: a resting take-profit reserves the quantity it will sell, so a cut-loss on the same quantity would be refused with -2010 when it triggers. A blocked stop is still armed and the response carries a warning naming the locking order plus the fix. Args: pair, side, quantity, exactly one of stopPrice or percentDown (SELL) or percentUp (BUY) anchored to the live price, optional limitPrice defaulting to the trigger, optional groupId for OCO linking. A stop whose notional cannot clear the minimum is refused with UNDERMINIMUM_STOP carrying the shortfall math instead of arming protection that cannot place.",
+      "Server-side emulated stop, not exchange-native. Stores a trigger after a notional limit pre-check; nothing is placed until indodax_stop_check or the opt-in autopoll sees the stop price crossed. Stops that share groupId behave as one-cancels-the-other: when one fires, open siblings auto-cancel. Live needs acknowledged true plus the full live gate, recorded as acknowledgedAt. For a live SELL it also checks the asset is actually free: a resting take-profit reserves the quantity it will sell, so a cut-loss on that same quantity would be refused with -2010 when it triggers. A blocked stop is still armed and the response carries a warning naming the locking order plus the fix. Args: pair, side, quantity, exactly one of stopPrice or percentDown (SELL) or percentUp (BUY) or trailingPct anchored to the live price, optional limitPrice defaulting to the trigger, optional groupId for OCO linking. A stop whose notional cannot clear the minimum is refused with UNDERMINIMUM_STOP carrying the shortfall math instead of arming protection that cannot place.",
     ...STOP,
   },
   STOP_SHAPE,
@@ -69,14 +76,6 @@ async function resolveStopPrice(
     percentUp?: number | undefined;
   },
 ): Promise<number> {
-  const modes = [
-    args.stopPrice !== undefined,
-    args.percentDown !== undefined,
-    args.percentUp !== undefined,
-  ].filter(Boolean).length;
-  if (modes !== 1) {
-    throw ValidationError("stop needs exactly one of stopPrice, percentDown, or percentUp");
-  }
   if (args.stopPrice !== undefined) return args.stopPrice;
   if (args.percentDown !== undefined && args.side !== "SELL") {
     throw ValidationError(
@@ -89,21 +88,47 @@ async function resolveStopPrice(
     );
   }
   const percent = (args.percentDown ?? args.percentUp) as number;
+  const anchor = await liveAnchor(app, args.pair);
+  const factor =
+    args.side === "SELL" ? new Decimal(1).minus(percent / 100) : new Decimal(1).plus(percent / 100);
+  return anchor.mul(factor).toNumber();
+}
+
+/** Live last price or a clear refusal when the market is unreachable. */
+async function liveAnchor(app: AppServices, pair: string): Promise<Decimal> {
   let last: string;
   try {
-    last = (await getTicker(app.publicClient, args.pair)).last;
+    last = (await getTicker(app.publicClient, pair)).last;
   } catch {
     throw ValidationError(
-      `percent stops need a live price for ${args.pair}; retry online or pass stopPrice`,
+      `anchored stops need a live price for ${pair}; retry online or pass stopPrice`,
     );
   }
   const anchor = decimalOrNull(last);
   if (anchor === null || !anchor.gt(0)) {
-    throw ValidationError(`percent stops need a usable live price for ${args.pair}`);
+    throw ValidationError(`anchored stops need a usable live price for ${pair}`);
   }
+  return anchor;
+}
+
+/**
+ * Initial trigger and ratchet anchor for a trailing stop.
+ *
+ * Both derive from the live last price at creation: the extreme starts at
+ * the market and the trigger sits one trailing distance away from it.
+ */
+async function resolveTrailing(
+  app: AppServices,
+  pair: string,
+  side: "BUY" | "SELL",
+  trailingPct: number,
+): Promise<{ trigger: number; extreme: string }> {
+  const anchor = await liveAnchor(app, pair);
   const factor =
-    args.side === "SELL" ? new Decimal(1).minus(percent / 100) : new Decimal(1).plus(percent / 100);
-  return anchor.mul(factor).toNumber();
+    side === "SELL"
+      ? new Decimal(1).minus(trailingPct / 100)
+      : new Decimal(1).plus(trailingPct / 100);
+  return { trigger: anchor.mul(factor).toNumber(), extreme: anchor.toString() };
 }
 
 /**
@@ -169,7 +194,22 @@ export function registerStopCreateTools(
           throw ValidationError("live stops need API credentials");
         }
       }
-      const stopPrice = await resolveStopPrice(app, args);
+      const modes = [
+        args.stopPrice !== undefined,
+        args.percentDown !== undefined,
+        args.percentUp !== undefined,
+        args.trailingPct !== undefined,
+      ].filter(Boolean).length;
+      if (modes !== 1) {
+        throw ValidationError(
+          "stop needs exactly one of stopPrice, percentDown, percentUp, or trailingPct",
+        );
+      }
+      const trailing =
+        args.trailingPct === undefined
+          ? null
+          : await resolveTrailing(app, args.pair, args.side, args.trailingPct);
+      const stopPrice = trailing === null ? await resolveStopPrice(app, args) : trailing.trigger;
       const limitPrice = args.limitPrice ?? stopPrice;
       const notional = decimalOrNull(limitPrice)?.mul(decimalOrNull(args.quantity) ?? 0);
       if (notional !== null && notional !== undefined) {
@@ -211,6 +251,9 @@ export function registerStopCreateTools(
         ...(args.timeInForce !== undefined ? { timeInForce: args.timeInForce } : {}),
         ...(args.stpMode !== undefined ? { stpMode: args.stpMode } : {}),
         ...(args.groupId !== undefined ? { groupId: args.groupId } : {}),
+        ...(trailing === null || args.trailingPct === undefined
+          ? {}
+          : { trailPct: args.trailingPct, extremePrice: trailing.extreme }),
         ...(mode === "live" ? { acknowledgedAt: new Date().toISOString() } : {}),
       });
       const warning = describeLock(liquidity);

@@ -232,3 +232,41 @@ describe("percent stops and minimum refusal", () => {
     }
   });
 });
+
+describe("trailing stops", () => {
+  it("ratchets the trigger with favorable prints and fires from the extreme", async () => {
+    const { server, app } = buildIndodaxServer(loadEnv({}));
+    app.publicClient = stubTicker("100000");
+    clearCache();
+    const harness = await withInMemoryServer(server);
+    try {
+      const created = await harness.client.callTool({
+        name: "indodax_stop_create",
+        arguments: { pair: "btc_idr", side: "SELL", quantity: 0.5, trailingPct: 10 },
+      });
+      expect(created.isError).not.toBe(true);
+      // Rally to 110000: nothing fires, but the extreme ratchets up so the
+      // trigger trails at 99000 instead of the initial 90000.
+      app.publicClient = stubTicker("110000");
+      clearCache();
+      const quiet = await harness.client.callTool({ name: "indodax_stop_check", arguments: {} });
+      expect(quiet.isError).not.toBe(true);
+      expect(app.stops.list().at(0)?.extremePrice).toBe("110000");
+      // Dip to 98000 crosses the trailed 99000 trigger (not the 90000 arming
+      // level), firing protection that followed the market up.
+      app.publicClient = stubTicker("98000");
+      clearCache();
+      const fired = await harness.client.callTool({ name: "indodax_stop_check", arguments: {} });
+      const text = (fired.content as { type: string; text: string }[])[0]?.text ?? "{}";
+      const rows = (
+        JSON.parse(text) as { data: { fired: { status: string; triggerPrice: number }[] } }
+      ).data.fired;
+      expect(rows).toHaveLength(1);
+      expect(rows[0]?.status).toBe("triggered");
+      expect(rows[0]?.triggerPrice).toBe(99000);
+    } finally {
+      await harness.close();
+      clearCache();
+    }
+  });
+});
