@@ -51,7 +51,10 @@ describe("funding rejection translation", () => {
     const { server } = liveApp();
     const harness = await withInMemoryServer(server);
     try {
-      const failure = await errorOf(harness, "indodax_withdraw_history", { coin: "btc" });
+      const failure = await errorOf(harness, "indodax_funding", {
+        kind: "withdrawHistory",
+        coin: "btc",
+      });
       expect(failure.code).toBe("ExchangeApiError");
       expect(failure.message).toContain("-2015");
       expect(failure.message).toContain("allowlist");
@@ -66,7 +69,10 @@ describe("funding rejection translation", () => {
     const { server } = liveApp();
     const harness = await withInMemoryServer(server);
     try {
-      const failure = await errorOf(harness, "indodax_deposit_history", { coin: "btc" });
+      const failure = await errorOf(harness, "indodax_funding", {
+        kind: "depositHistory",
+        coin: "btc",
+      });
       expect(failure.code).toBe("ExchangeApiError");
       expect(failure.message).toContain("Unauthorized IP");
     } finally {
@@ -85,8 +91,8 @@ describe("funding rejection translation", () => {
     const harness = await withInMemoryServer(server);
     try {
       const result = (await harness.client.callTool({
-        name: "indodax_withdraw_fee",
-        arguments: { currency: "btc" },
+        name: "indodax_funding",
+        arguments: { kind: "withdrawFee", currency: "btc" },
       })) as { content: { text: string }[]; isError?: boolean };
       expect(result.isError).toBe(true);
       const body = JSON.parse(result.content[0]?.text ?? "{}") as {
@@ -98,7 +104,7 @@ describe("funding rejection translation", () => {
       expect(body.message.match(/FUNDING_UNAUTHORIZED/g)).toHaveLength(1);
       expect(body.safeMetadata?.reason).toBe("FUNDING_UNAUTHORIZED");
       expect(body.safeMetadata?.haveGrant).toBe(false);
-      expect(body.safeMetadata?.tool).toBe("indodax_withdraw_fee");
+      expect(body.safeMetadata?.tool).toBe("indodax_funding withdrawFee");
     } finally {
       await harness.close();
     }
@@ -108,7 +114,10 @@ describe("funding rejection translation", () => {
     const { server } = liveApp();
     const harness = await withInMemoryServer(server);
     try {
-      const failure = await errorOf(harness, "indodax_withdraw_history", { coin: "btc" });
+      const failure = await errorOf(harness, "indodax_funding", {
+        kind: "withdrawHistory",
+        coin: "btc",
+      });
       expect(failure.message).toContain("allowlist");
       expect(failure.message).not.toContain("FUNDING_UNAUTHORIZED");
     } finally {
@@ -116,13 +125,16 @@ describe("funding rejection translation", () => {
     }
   });
 
-  it("redirects fiat coin codes to fiat history before any network call", async () => {
+  it("redirects fiat coin codes to the fiat history kind before any network call", async () => {
     const { server } = liveApp();
     const harness = await withInMemoryServer(server);
     try {
-      const failure = await errorOf(harness, "indodax_deposit_history", { coin: "idr" });
+      const failure = await errorOf(harness, "indodax_funding", {
+        kind: "depositHistory",
+        coin: "idr",
+      });
       expect(failure.code).toBe("ValidationError");
-      expect(failure.message).toContain("indodax_fiat_history");
+      expect(failure.message).toContain("fiatHistory");
     } finally {
       await harness.close();
     }
@@ -134,8 +146,8 @@ describe("funding rejection translation", () => {
     const harness = await withInMemoryServer(server);
     try {
       const result = (await harness.client.callTool({
-        name: "indodax_deposit_address",
-        arguments: { coin: "BTC", network: "BTC" },
+        name: "indodax_funding",
+        arguments: { kind: "depositAddress", coin: "BTC", network: "BTC" },
       })) as { content: { text: string }[]; isError?: boolean };
       expect(result.isError).not.toBe(true);
       const data = (

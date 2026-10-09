@@ -63,14 +63,14 @@ function corruptLedger() {
 }
 
 describe("read-only tools never move the trading gate", () => {
-  it("reconciliation_state reports the verdict without writing app state", async () => {
+  it("the paper reconcile reports the verdict without writing app state", async () => {
     const built = buildIndodaxServer(loadEnv({}));
     built.app.scheduler.stopAll();
     built.app.paper.restore(corruptLedger());
     expect(built.app.reconciliationHalted).toBe(false);
     const harness = await withInMemoryServer(built.server);
     try {
-      const body = await dataOf(harness, "indodax_reconciliation_state");
+      const body = await dataOf(harness, "indodax_reconcile_paper", { scope: "state" });
       const data = body.data as { state: string; halted: boolean; mismatchedOrders: string[] };
       expect(data.state).toBe("MISMATCH");
       expect(data.halted).toBe(true);
@@ -113,7 +113,7 @@ describe("read-only tools never move the trading gate", () => {
     } as unknown as NonNullable<typeof built.app.accountClient>;
     const harness = await withInMemoryServer(built.server);
     try {
-      const body = await dataOf(harness, "indodax_reconcile_full");
+      const body = await dataOf(harness, "indodax_reconcile_exchange", { scope: "full" });
       expect((body.data as { paper: { state: string } }).paper.state).toBe("MISMATCH");
       expect(built.app.reconciliationHalted).toBe(false);
     } finally {

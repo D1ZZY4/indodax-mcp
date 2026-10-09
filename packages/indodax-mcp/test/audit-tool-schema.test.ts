@@ -135,7 +135,7 @@ describe("tool annotations reach the protocol", () => {
         idempotentHint: true,
         openWorldHint: true,
       });
-      expect(byName.get("indodax_paper_status")).toMatchObject({
+      expect(byName.get("indodax_paper_ledger")).toMatchObject({
         readOnlyHint: true,
         openWorldHint: false,
       });

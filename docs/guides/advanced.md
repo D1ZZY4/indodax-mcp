@@ -72,7 +72,7 @@ The current main composition does not use PostgreSQL as its runtime source of tr
 
 ## 6. Backtests
 
-Run deterministic strategy replays with indodax_backtest_run, compare runs with indodax_backtest_compare, and inspect results with indodax_backtest_get.
+Run deterministic strategy replays with indodax_backtest_run, then read stored reports with indodax_backtest: pass a single-element `ids` for one run, or two to ten to get them ranked by net PnL.
 
 Current backtest results are stored in process memory. They are **not durable historical records and do not demonstrate profitability**.
 

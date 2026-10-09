@@ -109,17 +109,18 @@ indodax risk limits          # the deterministic limits in force
 indodax risk state           # policy, Deadman state, credential origin
 ```
 
-Over MCP: `indodax_health`, `indodax_runtime_status`, `indodax_readiness`,
-`indodax_config_status`.
+Over MCP: `indodax_health` (add `readiness: true` for the serve verdict),
+`indodax_runtime_status`, `indodax_config_status`.
 
 ### Two habits worth forming early
 
 **Check `indodax_config_status` first** whenever a credential seems missing. It
 names the channel each value came from, which removes the guesswork.
 
-**Read `indodax_reconciliation_state` before trusting a balance.** A healthy
-process does not mean its in-memory state matches the exchange. This is the
-check that catches a duplicate or phantom order before it becomes a real one.
+**Read `indodax_reconcile_paper` with `scope: "state"` before trusting a
+balance.** A healthy process does not mean its in-memory state matches the
+exchange. This is the check that catches a duplicate or phantom order before it
+becomes a real one.
 
 ### Handling an ambiguous outcome
 

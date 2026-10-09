@@ -21,23 +21,19 @@ const SYSTEM_READ = {
   auditClass: "read" as const,
 };
 
-const riskLimits = defineTool(
-  {
-    name: "indodax_risk_limits",
-    title: "Risk limits",
-    description:
-      "Read-only. Deterministic risk limits and thresholds. Notionals in quote-asset units (IDR for _idr pairs), durations in ms. Takes no arguments.",
-    ...SYSTEM_READ,
-  },
-  {},
-);
-
+/**
+ * Limits and state in one read.
+ *
+ * `indodax_risk_limits` and `indodax_risk_state` both answered from the same
+ * two static objects, `app.limits` and `app.policy`, with no side effects, so
+ * they are one tool with two blocks.
+ */
 const riskState = defineTool(
   {
     name: "indodax_risk_state",
     title: "Risk state",
     description:
-      "Read-only. Kill switch, circuit breaker, allowed modes, and Deadman state. Takes no arguments.",
+      "Read-only. Deterministic risk limits plus the live gate state. Absorbs the former indodax_risk_limits, whose eight limit fields are now the limits object; durations stay in ms and notionals in quote-asset units. Also reports kill switch, circuit breaker, allowed modes and capabilities, Deadman state, and whether trading is halted. The halt verdict is derived from the live ledger on every call, so reading it can never open or close the trading path.",
     ...SYSTEM_READ,
   },
   {},
@@ -70,21 +66,13 @@ export function registerRiskTools(
   handlers: ServerHandlers,
   app: AppServices,
 ): void {
-  registry.registerTool(riskLimits);
   registry.registerTool(riskState);
   registry.registerTool(riskEvaluate);
 
-  handlers.tools.set("indodax_risk_limits", async () => {
+  handlers.tools.set("indodax_risk_state", async () => {
     const limits = Object.fromEntries(
       Object.entries(app.limits).map(([key, value]) => [key, String(value)]),
     );
-    return ok({
-      ...limits,
-      quoteAsset: "notionals in quote-asset units (IDR for _idr pairs), durations in ms",
-      summary: `min ${app.limits.minOrderNotional.toString()} to max ${app.limits.maxOrderNotional.toString()} per order`,
-    });
-  });
-  handlers.tools.set("indodax_risk_state", async () => {
     const deadman = app.deadman.snapshot();
     // Derived from the live ledger rather than read from cached application
     // state, so this read-only query can never be the thing that decides
@@ -104,6 +92,8 @@ export function registerRiskTools(
             ? `deadman${deadman.state}`
             : null;
     return ok({
+      limits,
+      quoteAsset: "notionals in quote-asset units (IDR for _idr pairs), durations in ms",
       killSwitch: app.policy.killSwitch,
       circuitBreaker: app.policy.circuitBreaker,
       allowedModes: app.policy.allowedModes,

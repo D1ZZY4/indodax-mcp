@@ -37,7 +37,7 @@ async function toolData(
 }
 
 describe("paper output detail", () => {
-  it("paper status names open orders with ids", async () => {
+  it("the paper ledger view names open orders with ids", async () => {
     clearCache();
     const { server } = paperServer();
     const harness = await withInMemoryServer(server);
@@ -49,7 +49,7 @@ describe("paper output detail", () => {
         quantity: 100,
       })) as { data: { exchangeOrderId: string } };
       expect(placed.data.exchangeOrderId).toMatch(/^paper-/);
-      const body = (await toolData(harness, "indodax_paper_status", {})) as {
+      const body = (await toolData(harness, "indodax_paper_ledger", {})) as {
         data: { openOrders: number; openOrderIds: string[]; openOrdersTruncated: boolean };
       };
       expect(body.data.openOrders).toBe(1);

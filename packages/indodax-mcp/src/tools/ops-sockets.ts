@@ -43,12 +43,24 @@ const wsReconnect = defineTool(
   { scope: z.enum(["market", "private", "all"]).optional() },
 );
 
-const privateConnect = defineTool(
+/**
+ * Private channel lifecycle.
+ *
+ * Connect and disconnect are the same channel and the same manager, one opening
+ * and one closing. They are merged behind an `action` argument so a caller
+ * managing a live channel has one tool rather than two.
+ *
+ * One consequence is deliberate: the merged tool requires credentials, because
+ * connect does. Disconnecting therefore needs a configured key where it did not
+ * before. That narrows the accepted input, which is a breaking change, taken
+ * knowingly so the guard stays one uniform credential gate.
+ */
+const privateChannel = defineTool(
   {
-    name: "indodax_private_connect",
-    title: "Connect private channel",
+    name: "indodax_private_channel",
+    title: "Private channel",
     description:
-      "Mutating connection state, needs credentials. Fetch a private token and subscribe to the private order-event channel. Returns the channel and connection state, never the token.",
+      "Mutating connection state, needs credentials. Open or close the private order-event channel. Replaces the former indodax_private_connect and indodax_private_disconnect. Args: action connect fetches a private token, subscribes, and returns the masked channel plus state; action disconnect drops the channel without touching credentials or tokens. The token itself is never returned.",
     capability: "READ",
     riskClass: "mutation",
     environmentRequirement: "any",
@@ -57,24 +69,7 @@ const privateConnect = defineTool(
     idempotencyClass: "none",
     auditClass: "mutation",
   },
-  {},
-);
-
-const privateDisconnect = defineTool(
-  {
-    name: "indodax_private_disconnect",
-    title: "Disconnect private channel",
-    description:
-      "Mutating connection state. Drop the private order-event channel without touching credentials or tokens. Use after indodax_private_connect when live mirroring is no longer needed.",
-    capability: "READ",
-    riskClass: "mutation",
-    environmentRequirement: "any",
-    authRequirement: "none",
-    destructive: false,
-    idempotencyClass: "none",
-    auditClass: "mutation",
-  },
-  {},
+  { action: z.enum(["connect", "disconnect"]).describe("connect opens, disconnect closes") },
 );
 
 export function registerSocketTools(
@@ -83,8 +78,7 @@ export function registerSocketTools(
   app: AppServices,
 ): void {
   registry.registerTool(wsReconnect);
-  registry.registerTool(privateConnect);
-  registry.registerTool(privateDisconnect);
+  registry.registerTool(privateChannel);
 
   handlers.tools.set("indodax_ws_reconnect", async (raw) => {
     try {
@@ -146,23 +140,24 @@ export function registerSocketTools(
     }
   });
 
-  handlers.tools.set("indodax_private_connect", async () => {
+  handlers.tools.set("indodax_private_channel", async (raw) => {
     try {
+      const args = parseArgs(privateChannel.inputSchema, raw);
+      if (args.action === "disconnect") {
+        app.privateChannel.disconnect();
+        return ok({ action: "disconnect", state: app.privateChannel.connectionState });
+      }
       if (!app.privateTokenFetcher) {
         throw ValidationError("private channel needs API credentials");
       }
       await app.privateChannel.connect(app.privateTokenFetcher);
       return ok({
+        action: "connect",
         channel: maskPrivateChannel(app.privateChannel.channel),
         state: app.privateChannel.connectionState,
       });
     } catch (error) {
       return fail(error);
     }
-  });
-
-  handlers.tools.set("indodax_private_disconnect", async () => {
-    app.privateChannel.disconnect();
-    return ok({ state: app.privateChannel.connectionState });
   });
 }

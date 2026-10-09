@@ -55,17 +55,30 @@ Annotations are advisory. The central guard and risk review remain the enforced 
 ## Current groups
 
 - market.ts: public market reads with quote and limit filters.
-- account.ts: authenticated account reads.
-- orders.ts: order validation, proposals, paper creation, and paper cancellation.
-- paper.ts: paper ledger operations and risk-reviewed paper placement.
-- risk.ts: direct deterministic risk evaluation.
-- reconcile.ts: balance comparison, paper-local consistency checks, and full exchange reconciliation (open orders, fills, balances) with halt tracking.
-- system.ts: status, configuration, authentication state, WebSocket snapshots, and withdrawal denial.
+- market-scan.ts: the bulk screening scan.
+- candles.ts: the candle series.
+- symbols.ts: symbol resolution against the live pair list.
+- quote.ts: pre-order fill estimation.
+- rounding.ts: precision preflight and stop sizing.
+- account.ts: authenticated account reads plus the capability gate.
+- orders.ts: order validation, placement, and cancellation.
+- portfolio.ts and positions.ts: paper valuation and live position valuation.
+- snapshot.ts: the single-call monitoring picture.
+- paper.ts: the paper ledger and risk-reviewed paper placement.
+- risk.ts: limits, gate state, and direct deterministic risk evaluation.
+- reconcile.ts: paper-local and exchange-backed reconciliation, split by whether credentials are needed.
+- system.ts: status, configuration, WebSocket snapshots, and withdrawal denial.
 - funding.ts: authenticated read-only funding information.
-- history.ts and ops.ts: history, operational helpers, and private channel connect.
-- stop.ts and stop-store.ts: server-side emulated stops plus trigger checks.
+- history.ts: order and trade history.
+- ops.ts, ops-sockets.ts, ops-backtest.ts, ops-exposure.ts: stored backtests, exposure, and socket lifecycle.
+- audit.ts: the filtered audit trail.
+- alerts.ts: local price alerts and their evaluation.
+- strategy.ts: the strategy catalog and signal evaluation.
+- stop.ts, stop-create.ts, stop-check.ts, stop-store.ts, stop-trigger.ts: server-side emulated stops plus trigger evaluation.
+- oco.ts and oco-attach.ts: linked position protection.
 - deadman.ts: Deadman safety state tools.
-- order-intent.ts: shared intent drafting plus the live placement path.
+- docs.ts: the runtime guide pages.
+- order-intent.ts, paper-order.ts: shared intent drafting plus the placement paths.
 
 ## Response contract
 
@@ -101,7 +114,7 @@ Money, price, and quantity values serialize as strings to preserve Decimal preci
 
 Pair spellings follow the exchange per endpoint: canonical `btc_idr` for tickers and balances, compact `btcidr` for depth, trades, and candles, uppercase `BTCIDR` for authenticated order calls. The market package normalizes user input into each form, so every tool accepts any common spelling (`btc_idr`, `BTCIDR`, `BTC/IDR`) and only the exchange wire format differs.
 
-Component health `unknown` means that check is not wired (database, exchange REST/WS probes, queue), not that it failed. `indodax_readiness` reports `ready` only for an overall `healthy` rollup and lists every non-healthy component in `degradedReasons`.
+Component health `unknown` means that check is not wired (database, exchange REST/WS probes, queue), not that it failed. `indodax_health` with `readiness: true` reports `ready` only for an overall `healthy` rollup and lists every non-healthy component in `degradedReasons`.
 
 ## Mutation rules
 

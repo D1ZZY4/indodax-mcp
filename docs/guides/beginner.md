@@ -35,7 +35,7 @@ indodax risk limits
 indodax paper status
 ~~~
 
-Via MCP, call indodax_health and indodax_paper_status.
+Via MCP, call indodax_health and indodax_paper_ledger.
 
 ## 3. Read the market
 
@@ -65,7 +65,7 @@ quantity: 100
 
 The example notional is 100,000 IDR and exceeds the current application minimum risk limit of 10,000.
 
-After acceptance, call indodax_paper_fill with the returned order id and a fill price, then read indodax_paper_status.
+After acceptance, call indodax_paper_fill with the returned order id and a fill price, then read indodax_paper_ledger.
 
 **Paper execution never sends the order to INDODAX.**
 

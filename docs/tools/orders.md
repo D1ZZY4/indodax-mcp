@@ -17,8 +17,7 @@ harness entry that starts the server separately from a genuinely missing key.
 
 | Tool | Parameters | Response `data` | Notes |
 | --- | --- | --- | --- |
-| `indodax_validate_order` | `pair`, `side` BUY/SELL, `quantity` positive number, `price` positive optional, `mode` paper/live/shadow/development optional, `timeInForce` GTC/MOC/FOK optional, `stpMode` optional, `riskBudget`? positive in quote units, `stopPrice`? | `{ proposal, order, decision, executed: false, riskBudget, notionalMultiple, riskAmount, riskMultiple, riskWarning, riskNote, minimumQty, currentNotional, minimumNotional }` | Executes nothing. The returned order state is `PROPOSED`, never `ACCEPTED`. Audit entries are still written for traceability. `timeInForce` and `stpMode` reach the proposal order and enforce the same shape rules as `indodax_create_order` (FOK only on MARKET, GTC/MOC only on LIMIT). When the pair increment is known and the quantity breaks it, a `quantity increment` warning names the fix; offline, the check is skipped rather than failed. `notionalMultiple` is sizing info and never warns; with `stopPrice` the stop-distance `riskMultiple` warns above 1x, and `minimumQty` estimates the floor quantity at this price (increment-aware sizing lives in `indodax_round_order`). Unsure about fillability? Call `indodax_quote` first for an instant-vs-parked estimate. |
-| `indodax_propose_order` | Same as validate plus `reason` optional | Same shape, `executed: false` | A proposal is not an order and creates nothing. |
+| `indodax_validate_order` | `pair`, `side` BUY/SELL, `quantity` positive number, `price` positive optional, `mode` paper/live/shadow/development optional, `reason` optional free text, `timeInForce` GTC/MOC/FOK optional, `stpMode` optional, `riskBudget`? positive in quote units, `stopPrice`? | `{ proposal, order, decision, executed: false, riskBudget, notionalMultiple, riskAmount, riskMultiple, riskWarning, riskNote, minimumQty, currentNotional, minimumNotional }` | Executes nothing and creates nothing. Builds the validated proposal `indodax_create_order` would place. The returned order state is `PROPOSED`, never `ACCEPTED`. Audit entries are still written for traceability. `reason` rides on the audit entry. `timeInForce` and `stpMode` reach the proposal order and enforce the same shape rules as `indodax_create_order` (FOK only on MARKET, GTC/MOC only on LIMIT). When the pair increment is known and the quantity breaks it, a `quantity increment` warning names the fix; offline, the check is skipped rather than failed. `notionalMultiple` is sizing info and never warns; with `stopPrice` the stop-distance `riskMultiple` warns above 1x, and `minimumQty` estimates the floor quantity at this price (increment-aware sizing lives in `indodax_round_order`). Unsure about fillability? Call `indodax_quote` first for an instant-vs-parked estimate. |
 | `indodax_create_order` | Same as propose plus `acknowledged` optional, `clientOrderId` 1-36 optional | Paper or live `ExecutionResult` (`accepted`, ids, `executedAt`); acceptance is not a fill | `timeInForce`: GTC/MOC for LIMIT, FOK for MARKET. Repeated `clientOrderId` replays the first paper result instead of placing twice. `clientOrderId` must be unique per exchange: a reused live id is rejected opaquely, so generate fresh ids and check status via `indodax_order` before resubmitting. |
 | `indodax_cancel_order` | `orderId` or `clientOrderId` (one required), `mode`?, `acknowledged`?, `symbol`? (live only) | `{ orderId, status: "cancelled" }` plus `balances` after a paper refund, or live result | Paper cancels by any id form with refund. Live cancel additionally needs the full live gate plus `symbol`. |
 
@@ -28,6 +27,12 @@ funds or exchange rejection; exchange codes carry a `next:` remedy, for example
 `-2010` points at `indodax_balances` and `-2015` at the API key IP allowlist), `UnknownExecutionResultError` (non-retryable;
 live transport timeout or network failure with the client order id preserved.
 Reconcile before any retry).
+
+## What replaced the removed tools
+
+`indodax_propose_order` and `indodax_validate_order` had byte-identical
+handlers; the only difference was that propose accepted `reason`. That argument
+is now part of `indodax_validate_order`, and the two tools are one.
 
 ## timeInForce and self-trade prevention
 

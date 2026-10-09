@@ -81,109 +81,108 @@ const paperReset = defineTool(
   { acknowledged: z.boolean() },
 );
 
+/**
+ * The whole ledger, in four views.
+ *
+ * `indodax_paper_snapshots` already returned the complete ledger object plus
+ * counts, and the other three read tools were strict subsets of it: account and
+ * status were field selections over the same snapshot, and orders was
+ * `openOrders()` over the same order array. One tool with a `view` argument
+ * replaces all four without dropping a field.
+ */
+const paperLedger = defineTool(
+  {
+    name: "indodax_paper_ledger",
+    title: "Paper ledger",
+    description:
+      "Read-only. The complete virtual paper ledger, never real money. Absorbs the former indodax_paper_status, indodax_paper_account, indodax_paper_orders, and indodax_paper_snapshots. Args: view selects the shape. status (default) gives trade count, open orders with ids, fees, filled count, balances, and realized PnL today. account adds initial balances and the tracked cost-basis assets. orders lists the full open order records with pairs and sides. snapshots returns the raw ledger plus summary counts. Every view also returns the raw data under ledger, so no view has to be guessed to find a field.",
+    ...PAPER_READ,
+  },
+  {
+    view: z
+      .enum(["status", "account", "orders", "snapshots"])
+      .optional()
+      .describe("Which shape to return; status is the default"),
+  },
+);
+
 export function registerPaperTools(
   registry: Registry,
   handlers: ServerHandlers,
   app: AppServices,
 ): void {
-  const defs = [
-    {
-      name: "indodax_paper_account",
-      description:
-        "Read-only. Complete virtual paper account: balances, initial balances, trade count, open orders, and total fees. Never touches real money.",
-    },
-    {
-      name: "indodax_paper_status",
-      description:
-        "Read-only. Complete paper status: trade count, open order count with ids (first 100), total fees, balances, and realized PnL today.",
-    },
-    {
-      name: "indodax_paper_orders",
-      description:
-        "Read-only. Complete open paper orders with count, full order records, pairs, and summary.",
-    },
-    {
-      name: "indodax_paper_snapshots",
-      description:
-        "Read-only. Complete paper ledger snapshot with balances, orders, cost basis, realized PnL, replay log, and summary counts.",
-    },
-  ];
-  for (const def of defs) {
-    registry.registerTool({
-      metadata: { name: def.name, title: def.name, description: def.description, ...PAPER_READ },
-      inputSchema: z.object({}),
-    });
-  }
+  registry.registerTool(paperLedger);
   registry.registerTool(paperOrder);
   registry.registerTool(paperFill);
   registry.registerTool(paperCancel);
   registry.registerTool(paperReset);
 
-  handlers.tools.set("indodax_paper_account", async () => {
-    const snapshot = app.paper.snapshot();
-    const open = app.paper.openOrders();
-    return ok({
-      balances: snapshot.balances,
-      initialBalances: snapshot.initialBalances,
-      tradeCount: snapshot.tradeCount,
-      openOrders: open.length,
-      openOrderIds: open.map((order) => order.internalOrderId).slice(0, 100),
-      totalFees: snapshot.totalFees,
-      realizedByDay: snapshot.realizedByDay,
-      costBasisAssets: Object.keys(snapshot.costBasis),
-      summary: `${Object.keys(snapshot.balances).length} assets, ${open.length} open orders, ${snapshot.tradeCount} lifetime trades, fees ${snapshot.totalFees}`,
-      note: "Simulation only. Paper balances never settle on the exchange.",
-    });
-  });
-  handlers.tools.set("indodax_paper_status", async () => {
-    const snapshot = app.paper.snapshot();
-    const open = app.paper.openOrders();
-    const openOrderIds = open.map((order) => order.internalOrderId);
-    const filled = snapshot.orders.filter((order) => order.state === "FILLED").length;
-    return ok({
-      tradeCount: snapshot.tradeCount,
-      openOrders: open.length,
-      openOrderIds: openOrderIds.slice(0, 100),
-      openOrdersTruncated: openOrderIds.length > 100,
-      totalFees: snapshot.totalFees,
-      filledOrders: filled,
-      balances: snapshot.balances,
-      initialBalances: snapshot.initialBalances,
-      realizedByDay: snapshot.realizedByDay,
-      pairs: [...new Set(open.map((order) => `${order.symbol.base}_${order.symbol.quote}`))],
-      summary: `trades=${snapshot.tradeCount} open=${open.length} filled=${filled} fees=${snapshot.totalFees}`,
-      note: "Simulation only. Acceptance is not a fill; use indodax_paper_fill next.",
-    });
-  });
-  handlers.tools.set("indodax_paper_orders", async () => {
-    const orders = app.paper.openOrders();
-    return ok({
-      count: orders.length,
-      orders,
-      pairs: [...new Set(orders.map((order) => `${order.symbol.base}_${order.symbol.quote}`))],
-      sides: [...new Set(orders.map((order) => order.side))],
-      summary: `${orders.length} open paper orders (${orders.filter((o) => o.side === "BUY").length} BUY, ${orders.filter((o) => o.side === "SELL").length} SELL)`,
-      note: "ACCEPTED and PARTIALLY_FILLED only. Use indodax_paper_fill or indodax_paper_cancel next.",
-    });
-  });
-  handlers.tools.set("indodax_paper_snapshots", async () => {
-    const snapshot = app.paper.snapshot();
-    const open = snapshot.orders.filter(
-      (order) => order.state === "ACCEPTED" || order.state === "PARTIALLY_FILLED",
-    ).length;
-    const filled = snapshot.orders.filter((order) => order.state === "FILLED").length;
-    return ok({
-      ...snapshot,
-      summary: {
-        assets: Object.keys(snapshot.balances).length,
-        totalOrders: snapshot.orders.length,
-        openOrders: open,
-        filledOrders: filled,
+  handlers.tools.set("indodax_paper_ledger", async (raw) => {
+    try {
+      const args = parseArgs(paperLedger.inputSchema, raw);
+      const view = args.view ?? "status";
+      const snapshot = app.paper.snapshot();
+      const open = app.paper.openOrders();
+      const openOrderIds = open.map((order) => order.internalOrderId);
+      const filled = snapshot.orders.filter((order) => order.state === "FILLED").length;
+      const base = {
+        view,
         tradeCount: snapshot.tradeCount,
+        openOrders: open.length,
+        openOrderIds: openOrderIds.slice(0, 100),
+        openOrdersTruncated: openOrderIds.length > 100,
+        filledOrders: filled,
         totalFees: snapshot.totalFees,
-      },
-      note: "Full ledger including balances, orders, cost basis, realized PnL, and idempotent replay log.",
-    });
+        balances: snapshot.balances,
+        realizedByDay: snapshot.realizedByDay,
+        pairs: [...new Set(open.map((order) => `${order.symbol.base}_${order.symbol.quote}`))],
+        // The raw ledger always rides along. The named fields above are the
+        // convenient view; this is the same data they were selected from, so a
+        // caller never has to switch view to reach a field it needs.
+        ledger: snapshot,
+      };
+      if (view === "snapshots") {
+        return ok({
+          ...base,
+          summary: {
+            assets: Object.keys(snapshot.balances).length,
+            totalOrders: snapshot.orders.length,
+            openOrders: open.length,
+            filledOrders: filled,
+            tradeCount: snapshot.tradeCount,
+            totalFees: snapshot.totalFees,
+          },
+          note: "Raw ledger including balances, orders, cost basis, realized PnL, and the idempotent replay log.",
+        });
+      }
+      if (view === "orders") {
+        return ok({
+          ...base,
+          count: open.length,
+          orders: open,
+          sides: [...new Set(open.map((order) => order.side))],
+          summary: `${open.length} open paper orders (${open.filter((o) => o.side === "BUY").length} BUY, ${open.filter((o) => o.side === "SELL").length} SELL)`,
+          note: "ACCEPTED and PARTIALLY_FILLED only. Use indodax_paper_fill or indodax_paper_cancel next.",
+        });
+      }
+      if (view === "account") {
+        return ok({
+          ...base,
+          initialBalances: snapshot.initialBalances,
+          costBasisAssets: Object.keys(snapshot.costBasis),
+          summary: `${Object.keys(snapshot.balances).length} assets, ${open.length} open orders, ${snapshot.tradeCount} lifetime trades, fees ${snapshot.totalFees}`,
+          note: "Simulation only. Paper balances never settle on the exchange.",
+        });
+      }
+      return ok({
+        ...base,
+        initialBalances: snapshot.initialBalances,
+        summary: `trades=${snapshot.tradeCount} open=${open.length} filled=${filled} fees=${snapshot.totalFees}`,
+        note: "Simulation only. Acceptance is not a fill; use indodax_paper_fill next.",
+      });
+    } catch (error) {
+      return fail(error);
+    }
   });
   handlers.tools.set("indodax_paper_reset", async (raw) => {
     try {

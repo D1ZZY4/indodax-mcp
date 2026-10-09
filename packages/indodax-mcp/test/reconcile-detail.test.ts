@@ -34,7 +34,10 @@ describe("reconcile explicit reasons", () => {
     const harness = await withInMemoryServer(built.server);
     try {
       const envelope = (await dataOf(
-        harness.client.callTool({ name: "indodax_reconcile_balances", arguments: {} }),
+        harness.client.callTool({
+          name: "indodax_reconcile_exchange",
+          arguments: { scope: "balances" },
+        }),
       )) as {
         data: { balances: { asset: string; state: string; paper: string; exchange: string }[] };
       };
@@ -62,8 +65,8 @@ describe("reconcile explicit reasons", () => {
     try {
       const envelope = (await dataOf(
         harness.client.callTool({
-          name: "indodax_reconcile_full",
-          arguments: { symbol: "btcidr" },
+          name: "indodax_reconcile_exchange",
+          arguments: { scope: "full", symbol: "btcidr" },
         }),
       )) as {
         data: {
@@ -94,7 +97,10 @@ describe("reconcile explicit reasons", () => {
       });
       expect(placed.isError).not.toBe(true);
       const envelope = (await dataOf(
-        harness.client.callTool({ name: "indodax_reconcile_orders", arguments: {} }),
+        harness.client.callTool({
+          name: "indodax_reconcile_paper",
+          arguments: { scope: "orders" },
+        }),
       )) as {
         data: {
           checked: number;
@@ -135,7 +141,10 @@ describe("reconcile explicit reasons", () => {
       } as unknown as PublicClient;
       clearCache();
       const envelope = (await dataOf(
-        harness.client.callTool({ name: "indodax_reconcile_orders", arguments: {} }),
+        harness.client.callTool({
+          name: "indodax_reconcile_paper",
+          arguments: { scope: "orders" },
+        }),
       )) as {
         data: { orders: { fillable: boolean; reason: string }[] };
       };

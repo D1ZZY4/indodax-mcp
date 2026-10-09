@@ -34,7 +34,7 @@ stateDiagram-v2
 
 Use indodax_health for the service rollup.
 
-Use indodax_readiness to check whether the server considers itself able to serve traffic.
+Use indodax_health with `readiness: true` to check whether the server considers itself able to serve traffic.
 
 Use indodax_runtime_status for scheduler state, socket state, counters, and Deadman state.
 
@@ -46,7 +46,7 @@ Use indodax_ws_status to inspect managed socket state and subscriptions.
 
 Use indodax_ws_ticker for a one-shot market snapshot.
 
-The private channel connects with a generated 24h token through `indodax_private_connect` and streams order updates over the official dialect. Treat it as a live event mirror, not as durable order-state synchronization. Reconnect with `indodax_ws_reconnect` scope private when the token nears expiry.
+The private channel connects with a generated 24h token through `indodax_private_channel` with `action: "connect"` and streams order updates over the official dialect. Treat it as a live event mirror, not as durable order-state synchronization. Close it with `action: "disconnect"` when live mirroring is no longer needed, and reconnect with `indodax_ws_reconnect` scope private when the token nears expiry.
 
 ## Credential rotation
 
@@ -56,7 +56,7 @@ After rotating an INDODAX key:
 
 1. update the deployment environment;
 2. restart the MCP server and any long-running daemon;
-3. call indodax_auth_status;
+3. call indodax_config_status and read `credentialsSource`;
 4. call indodax_account using read-only access;
 5. review configuration and policy before any future live enablement.
 

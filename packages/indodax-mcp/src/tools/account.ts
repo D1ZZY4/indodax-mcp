@@ -3,98 +3,92 @@ import { AuthenticationError } from "@indodax-mcp/errors";
 import type { Registry } from "@indodax-mcp/mcp-registry";
 import type { ServerHandlers } from "@indodax-mcp/mcp-core";
 import { toBalanceViews } from "@indodax-mcp/indodax-account";
-import { fail, ok } from "@indodax-mcp/mcp-app/respond";
+import { fail, ok, parseArgs } from "@indodax-mcp/mcp-app/respond";
+import { defineTool } from "@indodax-mcp/mcp-app/tools/define";
 import type { AppServices } from "@indodax-mcp/mcp-app/composition";
+
+const AUTH_READ = {
+  capability: "READ" as const,
+  riskClass: "read" as const,
+  environmentRequirement: "any" as const,
+  authRequirement: "credentials" as const,
+  destructive: false,
+  idempotencyClass: "none" as const,
+  auditClass: "read" as const,
+};
+
+const SYSTEM_READ = {
+  ...AUTH_READ,
+  capability: "SYSTEM" as const,
+  authRequirement: "none" as const,
+};
+
+/**
+ * Account reads.
+ *
+ * Two tools instead of four. `indodax_account` absorbed `indodax_balances`
+ * through a `zeroBalances` flag, and `indodax_capabilities` absorbed
+ * `indodax_auth_status` through a `credentialsSource` block. Both absorbed
+ * surfaces were strict subsets: balances were the same `toBalanceViews` call
+ * over the same `getAccount()` read, and auth status was exactly
+ * `credentialsConfigured` plus `mode`, which capabilities already reported.
+ */
+const account = defineTool(
+  {
+    name: "indodax_account",
+    title: "Account information",
+    description:
+      "Read-only, needs credentials. Account identity, permissions, and balances, with free, locked, and total per asset. Fails cleanly without credentials. Replaces the former indodax_balances: pass zeroBalances false to keep only non-zero rows. assets lists the returned assets and nonZeroBalances counts them either way.",
+    ...AUTH_READ,
+  },
+  { zeroBalances: z.boolean().optional().describe("Set false to keep only non-zero rows") },
+);
+
+const capabilities = defineTool(
+  {
+    name: "indodax_capabilities",
+    title: "Capabilities",
+    description:
+      "Read-only. Which capabilities this server unlocks from its configuration, and where the credentials came from. Booleans and origin names only, never secret values. Replaces the former indodax_auth_status: its credentialsConfigured and mode are now credentialsSource.credentialsPresent and the top-level mode. See liveGate for the per-requirement checklist, and indodax_system_capabilities for the policy view.",
+    ...SYSTEM_READ,
+  },
+  {},
+);
 
 export function registerAccountTools(
   registry: Registry,
   handlers: ServerHandlers,
   app: AppServices,
 ): void {
-  registry.registerTool({
-    metadata: {
-      name: "indodax_account",
-      title: "Account information",
-      description:
-        "Read-only, needs credentials. Account identity, permissions, and all balances. Fails cleanly without credentials.",
-      capability: "READ",
-      riskClass: "read",
-      environmentRequirement: "any",
-      authRequirement: "credentials",
-      destructive: false,
-      idempotencyClass: "none",
-      auditClass: "read",
-    },
-    inputSchema: z.object({}),
-  });
-  registry.registerTool({
-    metadata: {
-      name: "indodax_balances",
-      title: "Balances",
-      description:
-        "Read-only, needs credentials. Non-zero balances with free, locked, and total amounts.",
-      capability: "READ",
-      riskClass: "read",
-      environmentRequirement: "any",
-      authRequirement: "credentials",
-      destructive: false,
-      idempotencyClass: "none",
-      auditClass: "read",
-    },
-    inputSchema: z.object({}),
-  });
-  registry.registerTool({
-    metadata: {
-      name: "indodax_capabilities",
-      title: "Capabilities",
-      description:
-        "Read-only. Which capabilities this server unlocks from its configuration. Booleans only, never secrets. For the per-gate breakdown see the liveGate object in the response; for policy detail use indodax_system_capabilities.",
-      capability: "SYSTEM",
-      riskClass: "read",
-      environmentRequirement: "any",
-      authRequirement: "none",
-      destructive: false,
-      idempotencyClass: "none",
-      auditClass: "read",
-    },
-    inputSchema: z.object({}),
+  registry.registerTool(account);
+  registry.registerTool(capabilities);
+
+  handlers.tools.set("indodax_account", async (raw) => {
+    try {
+      const args = parseArgs(account.inputSchema, raw);
+      if (!app.accountClient) throw credentialError();
+      const info = await app.accountClient.getAccount();
+      app.accountSyncedAt = Date.now();
+      const views = toBalanceViews(info);
+      const rows = args.zeroBalances === false ? views.filter((view) => view.total !== "0") : views;
+      return ok({
+        ...info,
+        balances: rows,
+        balanceCount: rows.length,
+        nonZeroBalances: views.filter((view) => view.total !== "0").length,
+        assets: rows.map((view) => view.asset),
+        syncedAt: new Date(app.accountSyncedAt).toISOString(),
+        summary: `account ${info.uid ?? "unknown"} with ${rows.length} balance row(s), trading ${info.canTrade ? "enabled" : "disabled"}`,
+        note:
+          args.zeroBalances === false
+            ? "zeroBalances false applied, so only non-zero rows are listed."
+            : "Balances include zero rows. Pass zeroBalances false to keep only non-zero rows.",
+      });
+    } catch (error) {
+      return fail(error);
+    }
   });
 
-  handlers.tools.set("indodax_account", async () => {
-    try {
-      if (!app.accountClient) throw credentialError();
-      const account = await app.accountClient.getAccount();
-      app.accountSyncedAt = Date.now();
-      const views = toBalanceViews(account);
-      return ok({
-        ...account,
-        balances: views,
-        balanceCount: views.length,
-        nonZeroBalances: views.filter((view) => view.total !== "0").length,
-        syncedAt: new Date(app.accountSyncedAt).toISOString(),
-        summary: `account ${account.uid ?? "unknown"} with ${views.length} balance row(s), trading ${account.canTrade ? "enabled" : "disabled"}`,
-      });
-    } catch (error) {
-      return fail(error);
-    }
-  });
-  handlers.tools.set("indodax_balances", async () => {
-    try {
-      if (!app.accountClient) throw credentialError();
-      const account = await app.accountClient.getAccount();
-      app.accountSyncedAt = Date.now();
-      const views = toBalanceViews(account).filter((view) => view.total !== "0");
-      return ok({
-        count: views.length,
-        balances: views,
-        assets: views.map((view) => view.asset),
-        syncedAt: new Date(app.accountSyncedAt).toISOString(),
-        summary: `${views.length} non-zero balance(s)`,
-      });
-    } catch (error) {
-      return fail(error);
-    }
-  });
   handlers.tools.set("indodax_capabilities", async () => {
     const liveAllowed =
       app.env.APP_ENV === "live" &&
@@ -102,6 +96,9 @@ export function registerAccountTools(
       app.policy.allowedModes.includes("live") &&
       app.policy.allowedCapabilities.includes("TRADE") &&
       app.accountClient !== null;
+    // Provenance of the credentials, never their values. This is what the
+    // former indodax_auth_status answered, folded in so the whole capability
+    // story is a single read.
     return ok({
       "market.read": true,
       "account.read": app.accountClient !== null,
@@ -110,6 +107,13 @@ export function registerAccountTools(
       "funding.withdraw": false,
       "paper.*": true,
       mode: app.env.APP_ENV,
+      credentialsSource: {
+        credentialsPresent: app.accountClient !== null,
+        apiKey: app.configDiagnostic.credentials.INDODAX_API_KEY,
+        apiSecret: app.configDiagnostic.credentials.INDODAX_API_SECRET,
+        repoEnvFileFound: app.configDiagnostic.repoEnvFileFound,
+        note: "origin names only, never values",
+      },
       policy: {
         allowedModes: app.policy.allowedModes,
         allowedCapabilities: app.policy.allowedCapabilities,

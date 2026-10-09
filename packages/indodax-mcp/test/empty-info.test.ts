@@ -24,7 +24,7 @@ describe("empty and informational responses", () => {
     const harness = await withInMemoryServer(server);
     try {
       const events = await envelopeOf(
-        harness.client.callTool({ name: "indodax_audit_events", arguments: {} }),
+        harness.client.callTool({ name: "indodax_audit", arguments: {} }),
       );
       const eventData = events.data as { count: number; total: number; entries: unknown[] };
       expect(eventData.count).toBe(0);
@@ -34,13 +34,13 @@ describe("empty and informational responses", () => {
       );
       const trace = await envelopeOf(
         harness.client.callTool({
-          name: "indodax_execution_trace",
+          name: "indodax_audit",
           arguments: { correlationId: "never-seen" },
         }),
       );
-      const traceData = trace.data as { count: number; trace: unknown[] };
+      const traceData = trace.data as { count: number; entries: unknown[] };
       expect(traceData.count).toBe(0);
-      expect(traceData.trace).toEqual([]);
+      expect(traceData.entries).toEqual([]);
       expect(trace.warnings?.[0] ?? "").toContain("never-seen");
     } finally {
       await harness.close();
@@ -59,7 +59,10 @@ describe("empty and informational responses", () => {
     const harness = await withInMemoryServer(built.server);
     try {
       const body = await envelopeOf(
-        harness.client.callTool({ name: "indodax_reconcile_balances", arguments: {} }),
+        harness.client.callTool({
+          name: "indodax_reconcile_exchange",
+          arguments: { scope: "balances" },
+        }),
       );
       const data = body.data as { balances: { state: string }[]; note: string };
       expect(data.balances[0]?.state).toBe("MISMATCH");

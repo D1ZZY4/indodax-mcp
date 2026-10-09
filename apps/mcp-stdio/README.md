@@ -86,9 +86,31 @@ unreachable mirror is visible as `configured_unreachable`.
   `indodax_stop_check` or the autopoll evaluates them. Take-profit limits rest
   on the exchange and survive an outage; stops do not. Use the exchange Deadman
   if you need protection that fails closed without this process.
-- **Reconcile fully.** `indodax_reconcile_full` compares paper against live
-  exchange reads, but it is not a complete exchange-state reconciliation
-  workflow.
+- **Reconcile fully.** `indodax_reconcile_exchange` with `scope: "full"`
+  compares paper against live exchange reads, but it is not a complete
+  exchange-state reconciliation workflow.
+
+## Upgrading from 1.x
+
+Version 2.0.0 consolidated 91 tools into 68. The consolidation retired 25 tool
+names without dropping any capability, and each replacement is named in the
+"what replaced the removed tools" table of the relevant area page under
+`docs/tools`. The retired set is:
+
+`indodax_propose_order`, `indodax_balances`, `indodax_auth_status`,
+`indodax_readiness`, `indodax_audit_events`, `indodax_execution_trace`,
+`indodax_audit_risk`, `indodax_paper_status`, `indodax_paper_account`,
+`indodax_paper_orders`, `indodax_paper_snapshots`, `indodax_positions`,
+`indodax_pnl`, `indodax_strategy`, `indodax_strategy_validate`,
+`indodax_backtest_get`, `indodax_backtest_compare`, `indodax_private_connect`,
+`indodax_private_disconnect`, `indodax_risk_limits`,
+`indodax_reconciliation_state`, `indodax_reconcile_orders`,
+`indodax_reconcile_balances`, `indodax_reconcile_trades`,
+`indodax_reconcile_full`, `indodax_withdraw_history`, `indodax_deposit_history`,
+`indodax_fiat_history`, `indodax_deposit_address`, `indodax_withdraw_fee`.
+
+One accepted input narrowed: `indodax_private_channel` now requires credentials
+for both actions, so disconnecting needs a configured key.
 
 ## Reading the responses
 

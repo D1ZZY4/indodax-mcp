@@ -4,7 +4,8 @@ import type { Registry } from "@indodax-mcp/mcp-registry";
 import type { ServerHandlers } from "@indodax-mcp/mcp-core";
 import { formatMoney } from "@indodax-mcp/core";
 import { equityIdr, pnl } from "@indodax-mcp/indodax-portfolio";
-import { fail, ok } from "@indodax-mcp/mcp-app/respond";
+import { fail, ok, parseArgs } from "@indodax-mcp/mcp-app/respond";
+import { defineTool } from "@indodax-mcp/mcp-app/tools/define";
 import type { AppServices } from "@indodax-mcp/mcp-app/composition";
 
 const READ = {
@@ -17,86 +18,46 @@ const READ = {
   auditClass: "read" as const,
 };
 
+/**
+ * One tool for the three paper valuation reads.
+ *
+ * `portfolio`, `positions`, and `pnl` all called the same local `livePrices()`
+ * helper over the same `app.paper.snapshot()`, and `pnl` emitted fields that
+ * `positions` already computed. A `view` argument replaces the two absorbed
+ * tools; every view still carries the asset rows so nothing is unreachable.
+ */
+const portfolio = defineTool(
+  {
+    name: "indodax_portfolio",
+    title: "Portfolio",
+    description:
+      "Read-only. Paper holdings valued at live prices. Absorbs the former indodax_positions and indodax_pnl. Args: view selects the emphasis. summary (default) returns equity in IDR plus the prices used. positions returns one row per asset with current, initial, per-asset PnL, and valueIdr. pnl returns the total PnL in IDR with the valued and unpriced counts. Every view includes positions and incomplete, so a leg that cannot be priced is visible in all of them and is never valued at zero.",
+    ...READ,
+  },
+  {
+    view: z.enum(["summary", "positions", "pnl"]).optional().describe("Default summary"),
+  },
+);
+
 export function registerPortfolioTools(
   registry: Registry,
   handlers: ServerHandlers,
   app: AppServices,
 ): void {
-  registry.registerTool({
-    metadata: {
-      name: "indodax_portfolio",
-      title: "Portfolio",
-      description:
-        "Read-only. Paper holdings valued at live prices with equity total. Takes no arguments.",
-      ...READ,
-    },
-    inputSchema: z.object({}),
-  });
-  registry.registerTool({
-    metadata: {
-      name: "indodax_positions",
-      title: "Positions",
-      description: "Read-only. Paper positions against initial balances with per-asset PnL.",
-      ...READ,
-    },
-    inputSchema: z.object({}),
-  });
-  registry.registerTool({
-    metadata: {
-      name: "indodax_pnl",
-      title: "PnL",
-      description: "Read-only. Total paper profit and loss in IDR at live prices.",
-      ...READ,
-    },
-    inputSchema: z.object({}),
-  });
+  registry.registerTool(portfolio);
 
-  const snapshot = () => {
-    const state = app.paper.snapshot();
-    return { state };
-  };
-
-  handlers.tools.set("indodax_portfolio", async () => {
+  handlers.tools.set("indodax_portfolio", async (raw) => {
     try {
-      const { state } = snapshot();
-      const { prices, incomplete } = await livePrices();
-      const holdings = Object.entries(state.balances).map(([asset, amount]) => ({
-        asset,
-        available: new Decimal(amount),
-        locked: new Decimal(0),
-      }));
-      const priceMap = new Map(
-        Object.entries(prices).map(([pair, last]) => [pair, new Decimal(last)]),
-      );
-      const { equity, positions } = equityIdr(holdings, priceMap);
-      return ok({
-        balances: state.balances,
-        initialBalances: state.initialBalances,
-        equityIdr: formatMoney(equity, 0),
-        positions,
-        positionCount: Object.keys(state.balances).length,
-        prices,
-        incomplete,
-        tradeCount: state.tradeCount,
-        totalFees: state.totalFees,
-        checkedAt: new Date().toISOString(),
-        summary: `equity ${formatMoney(equity, 0)} IDR across ${Object.keys(state.balances).length} asset(s)`,
-      });
-    } catch (error) {
-      return fail(error);
-    }
-  });
-  handlers.tools.set("indodax_positions", async () => {
-    try {
-      const { state } = snapshot();
-      const initial = state.initialBalances;
+      const args = parseArgs(portfolio.inputSchema, raw);
+      const view = args.view ?? "summary";
+      const state = app.paper.snapshot();
       const { prices, incomplete } = await livePrices();
       const priceMap = new Map(
         Object.entries(prices).map(([pair, last]) => [pair, new Decimal(last)]),
       );
       const rows = Object.entries(state.balances).map(([asset, amount]) => {
         const current = new Decimal(amount);
-        const start = new Decimal(initial[asset] ?? "0");
+        const start = new Decimal(state.initialBalances[asset] ?? "0");
         const price = asset === "idr" ? new Decimal(1) : (priceMap.get(`${asset}_idr`) ?? null);
         return {
           asset,
@@ -107,48 +68,58 @@ export function registerPortfolioTools(
           price: price?.toString() ?? null,
         };
       });
-      return ok({
-        count: rows.length,
-        positions: rows,
-        incomplete,
-        summary: `${rows.length} position row(s) against initial balances`,
-      });
-    } catch (error) {
-      return fail(error);
-    }
-  });
-  handlers.tools.set("indodax_pnl", async () => {
-    try {
-      const { state } = snapshot();
-      const { prices, incomplete } = await livePrices();
-      const priceMap = new Map(
-        Object.entries(prices).map(([pair, last]) => [pair, new Decimal(last)]),
+      const { equity, positions } = equityIdr(
+        Object.entries(state.balances).map(([asset, amount]) => ({
+          asset,
+          available: new Decimal(amount),
+          locked: new Decimal(0),
+        })),
+        priceMap,
       );
-      let total = new Decimal(0);
+      // Recomputed from the rows rather than from a second pass, so the total
+      // and the per-leg numbers can never disagree.
+      let totalPnl = new Decimal(0);
       let valued = 0;
-      for (const [asset, amount] of Object.entries(state.balances)) {
-        const current = new Decimal(amount);
-        const start = new Decimal(state.initialBalances[asset] ?? "0");
-        const diff = pnl(current, start);
-        if (asset === "idr") {
-          total = total.plus(diff);
-          valued += 1;
-          continue;
-        }
-        const price = priceMap.get(`${asset}_idr`);
-        if (!price) continue;
-        total = total.plus(diff.mul(price));
+      for (const row of rows) {
+        const price = row.asset === "idr" ? new Decimal(1) : priceMap.get(`${row.asset}_idr`);
+        if (price === undefined) continue;
+        totalPnl = totalPnl.plus(new Decimal(row.pnl).mul(price));
         valued += 1;
       }
-      return ok({
-        tradeCount: state.tradeCount,
-        totalFees: state.totalFees,
-        pnlIdr: formatMoney(total, 2),
-        valuedAssets: valued,
-        totalAssets: Object.keys(state.balances).length,
+      const base = {
+        view,
+        balances: state.balances,
+        positions: rows,
         incomplete,
         prices,
-        summary: `PnL ${formatMoney(total, 2)} IDR across ${valued} valued asset(s), fees ${state.totalFees}`,
+        tradeCount: state.tradeCount,
+        totalFees: state.totalFees,
+      };
+      if (view === "positions") {
+        return ok({
+          ...base,
+          count: rows.length,
+          summary: `${rows.length} position row(s) against initial balances`,
+        });
+      }
+      if (view === "pnl") {
+        return ok({
+          ...base,
+          pnlIdr: formatMoney(totalPnl, 2),
+          equityIdr: formatMoney(equity, 0),
+          valuedAssets: valued,
+          totalAssets: Object.keys(state.balances).length,
+          summary: `PnL ${formatMoney(totalPnl, 2)} IDR across ${valued} valued asset(s), fees ${state.totalFees}`,
+        });
+      }
+      return ok({
+        ...base,
+        initialBalances: state.initialBalances,
+        equityIdr: formatMoney(equity, 0),
+        positionCount: Object.keys(state.balances).length,
+        positionCountValued: positions,
+        pnlIdr: formatMoney(totalPnl, 2),
+        summary: `equity ${formatMoney(equity, 0)} IDR across ${Object.keys(state.balances).length} asset(s)`,
       });
     } catch (error) {
       return fail(error);

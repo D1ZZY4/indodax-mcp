@@ -32,11 +32,11 @@ The current official Trade API v2 documentation specifies HMAC-SHA256 signatures
 | DELETE /api/v2/order | LiveExecutor.cancelByExchangeId by orderId or origClientOrderId | indodax_cancel_order | adapter implemented, live gated |
 | GET /api/v2/openOrders | AccountClient.openOrders | indodax_open_orders | implemented |
 | GET /api/v2/order | AccountClient.getOrder | indodax_order | implemented |
-| GET /api/v2/account | AccountClient.getAccount | indodax_account, indodax_balances | implemented |
-| GET /api/v2/capital/withdraw/history | funding helper | indodax_withdraw_history | read-only |
-| GET /api/v2/capital/deposit/hisrec | funding helper | indodax_deposit_history | read-only |
-| GET /api/v2/fiat/orders | funding helper | indodax_fiat_history | read-only |
-| GET /api/v2/capital/deposit/address/list | funding helper | indodax_deposit_address | read-only |
+| GET /api/v2/account | AccountClient.getAccount | indodax_account | implemented |
+| GET /api/v2/capital/withdraw/history | funding helper | indodax_funding (kind withdrawHistory) | read-only |
+| GET /api/v2/capital/deposit/hisrec | funding helper | indodax_funding (kind depositHistory) | read-only |
+| GET /api/v2/fiat/orders | funding helper | indodax_funding (kind fiatHistory) | read-only |
+| GET /api/v2/capital/deposit/address/list | funding helper | indodax_funding (kind depositAddress) | read-only |
 | GET /api/v2/order/histories | AccountClient.orderHistories | indodax_order_history | implemented |
 | GET /api/v2/myTrades | AccountClient.myTrades | indodax_trade_history | implemented |
 | POST /api/v2/capital/withdraw/apply | not implemented | withdrawal tool | always denied |
@@ -44,7 +44,7 @@ The current official Trade API v2 documentation specifies HMAC-SHA256 signatures
 
 ## Private WebSocket
 
-Token endpoint `POST https://indodax.com/api/private_ws/v1/generate_token` (HMAC-SHA512 over `client=tapi&tapi_key=KEY`) is implemented in `requestPrivateToken` with the official `connect`/`subscribe` dialect and push parsing. Live channel connect runs through `indodax_private_connect`, which returns channel and state but never the token. No auto-connect on boot.
+Token endpoint `POST https://indodax.com/api/private_ws/v1/generate_token` (HMAC-SHA512 over `client=tapi&tapi_key=KEY`) is implemented in `requestPrivateToken` with the official `connect`/`subscribe` dialect and push parsing. Live channel connect runs through `indodax_private_channel` with `action: "connect"`, which returns channel and state but never the token. No auto-connect on boot.
 
 ## Official contract notes
 

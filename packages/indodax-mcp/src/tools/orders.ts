@@ -53,30 +53,7 @@ export function registerOrderTools(
       name: "indodax_validate_order",
       title: "Validate order",
       description:
-        "Executes nothing. Validate shape plus risk for a hypothetical order. Returns the risk decision with reasons and executed:false. Writes audit entries for traceability. Accepts optional riskBudget in quote units plus optional stopPrice: the response then carries notionalMultiple for sizing and, with a stop, the real stop-distance riskMultiple, which warns above 1x.",
-      ...base,
-      riskClass: "read",
-      auditClass: "read",
-    },
-    {
-      pair: pairArg,
-      side: sideArg,
-      quantity: quantityArg,
-      price: priceArg.optional(),
-      mode: modeArg,
-      timeInForce: timeInForceArg,
-      stpMode: stpModeArg,
-      riskBudget: riskBudgetArg,
-      stopPrice: stopPriceArg,
-    },
-  );
-  registry.registerTool(validateOrder);
-  const proposeOrder = defineTool(
-    {
-      name: "indodax_propose_order",
-      title: "Propose order",
-      description:
-        "Executes nothing and creates no order. Build a validated proposal through risk with executed:false. A proposal is not an order. Writes audit entries for traceability. Accepts optional riskBudget in quote units plus optional stopPrice for a notional multiple and a real stop-distance risk assessment.",
+        "Executes nothing and creates no order. Validate shape plus risk for a hypothetical order, and build the proposal that indodax_create_order would place. Returns the risk decision with reasons and executed:false. Writes audit entries for traceability. Accepts optional reason as free text for the audit trail. Accepts optional riskBudget in quote units plus optional stopPrice: the response then carries notionalMultiple for sizing and, with a stop, the real stop-distance riskMultiple, which warns above 1x.",
       ...base,
       riskClass: "read",
       auditClass: "read",
@@ -94,7 +71,7 @@ export function registerOrderTools(
       stopPrice: stopPriceArg,
     },
   );
-  registry.registerTool(proposeOrder);
+  registry.registerTool(validateOrder);
   const createOrder = defineTool(
     {
       name: "indodax_create_order",
@@ -145,23 +122,6 @@ export function registerOrderTools(
   handlers.tools.set("indodax_validate_order", async (raw) => {
     try {
       const args = parseArgs(validateOrder.inputSchema, raw);
-      const { proposal, order, decision, incrementWarning } = await reviewHypothetical(app, args);
-      const warnings = ["proposal only: nothing was placed and no funds moved"];
-      if (incrementWarning !== null) warnings.push(`quantity increment: ${incrementWarning}`);
-      const budget = budgetFields(order, args.riskBudget, args.stopPrice, app);
-      if (budget.riskWarning !== null) warnings.push(budget.riskWarning);
-      return ok(
-        { proposal: proposal.correlationId, order, decision, executed: false, ...budget },
-        warnings,
-      );
-    } catch (error) {
-      return fail(error);
-    }
-  });
-
-  handlers.tools.set("indodax_propose_order", async (raw) => {
-    try {
-      const args = parseArgs(proposeOrder.inputSchema, raw);
       const { proposal, order, decision, incrementWarning } = await reviewHypothetical(app, args);
       const warnings = ["proposal only: nothing was placed and no funds moved"];
       if (incrementWarning !== null) warnings.push(`quantity increment: ${incrementWarning}`);

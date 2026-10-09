@@ -53,8 +53,8 @@ describe("reconcile_full open order rows", () => {
     const harness = await withInMemoryServer(built.server);
     try {
       const result = (await harness.client.callTool({
-        name: "indodax_reconcile_full",
-        arguments: { symbol: "honeyidr" },
+        name: "indodax_reconcile_exchange",
+        arguments: { scope: "full", symbol: "honeyidr" },
       })) as { content: { type: string; text: string }[]; isError?: boolean };
       expect(result.isError).not.toBe(true);
       const data = (
@@ -90,8 +90,8 @@ describe("reconcile_full open order rows", () => {
     const harness = await withInMemoryServer(built.server);
     try {
       const result = (await harness.client.callTool({
-        name: "indodax_reconcile_full",
-        arguments: { symbol: "honeyidr" },
+        name: "indodax_reconcile_exchange",
+        arguments: { scope: "full", symbol: "honeyidr" },
       })) as { content: { type: string; text: string }[] };
       const data = (
         JSON.parse(result.content[0]?.text ?? "{}") as {
@@ -114,8 +114,8 @@ describe("reconcile_full open order rows", () => {
     const harness = await withInMemoryServer(built.server);
     try {
       const result = (await harness.client.callTool({
-        name: "indodax_reconcile_full",
-        arguments: { symbol: "honeyidr" },
+        name: "indodax_reconcile_exchange",
+        arguments: { scope: "full", symbol: "honeyidr" },
       })) as { content: { type: string; text: string }[] };
       const data = (
         JSON.parse(result.content[0]?.text ?? "{}") as {

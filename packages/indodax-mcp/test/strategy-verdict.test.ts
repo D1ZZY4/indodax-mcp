@@ -105,8 +105,8 @@ describe("strategy signal verdicts", () => {
       expect(backtest.isError).toBe(true);
       expect(backtest.content.map((block) => block.text).join("\n")).toContain("data.bars[].close");
       const validated = (await harness.client.callTool({
-        name: "indodax_strategy_validate",
-        arguments: { id: "ma-cross", closes: [] },
+        name: "indodax_strategy_evaluate",
+        arguments: { id: "ma-cross", closes: [], validateOnly: true },
       })) as { content: { text: string }[]; isError?: boolean };
       expect(validated.isError).not.toBe(true);
       expect(validated.content.map((block) => block.text).join("\n")).toContain(
@@ -138,15 +138,15 @@ describe("strategy signal verdicts", () => {
     }
   });
 
-  it("keeps the strategy validation tool strict", async () => {
-    // indodax_strategy_validate is the tool for rejecting inputs, so it must
-    // still report a too-narrow window as an error rather than a soft verdict.
+  it("keeps the validateOnly path strict", async () => {
+    // The validateOnly path is the former indodax_strategy_validate: it reports a
+    // too-narrow window as invalid rather than as a soft verdict.
     const { server } = build();
     const harness = await withInMemoryServer(server);
     try {
       const result = (await harness.client.callTool({
-        name: "indodax_strategy_validate",
-        arguments: { id: "ma-cross", closes: [6105, 6200], window: 8 },
+        name: "indodax_strategy_evaluate",
+        arguments: { id: "ma-cross", closes: [6105, 6200], window: 8, validateOnly: true },
       })) as { content: { text: string }[]; isError?: boolean };
       const envelope = JSON.parse(result.content[0]?.text ?? "{}") as {
         data: { valid: boolean; errors: string[] };

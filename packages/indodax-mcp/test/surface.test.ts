@@ -70,7 +70,7 @@ describe("indodax-mcp surface", () => {
         arguments: { pair: "btc_idr", side: "BUY", price: 1000, quantity: 100 },
       });
       expect(placed.isError).not.toBe(true);
-      const status = await harness.client.callTool({ name: "indodax_paper_status", arguments: {} });
+      const status = await harness.client.callTool({ name: "indodax_paper_ledger", arguments: {} });
       expect(status.isError).not.toBe(true);
     } finally {
       await harness.close();
@@ -138,7 +138,7 @@ describe("indodax-mcp surface", () => {
     expect(app.env.DATABASE_URL).toBeUndefined();
     const harness = await withInMemoryServer(build().server);
     try {
-      const events = await harness.client.callTool({ name: "indodax_audit_events", arguments: {} });
+      const events = await harness.client.callTool({ name: "indodax_audit", arguments: {} });
       expect(events.isError).not.toBe(true);
     } finally {
       await harness.close();
@@ -170,7 +170,10 @@ describe("indodax-mcp surface", () => {
     const harness = await withInMemoryServer(server);
     try {
       const empty = await bodyOf(
-        harness.client.callTool({ name: "indodax_reconciliation_state", arguments: {} }),
+        harness.client.callTool({
+          name: "indodax_reconcile_paper",
+          arguments: { scope: "state" },
+        }),
       );
       expect((empty.data as { state: string; checkedOrders: number }).state).toBe("MATCH");
       expect((empty.data as { checkedOrders: number }).checkedOrders).toBe(0);
@@ -181,7 +184,10 @@ describe("indodax-mcp surface", () => {
       });
       expect(placed.isError).not.toBe(true);
       const filled = await bodyOf(
-        harness.client.callTool({ name: "indodax_reconciliation_state", arguments: {} }),
+        harness.client.callTool({
+          name: "indodax_reconcile_paper",
+          arguments: { scope: "state" },
+        }),
       );
       expect((filled.data as { state: string }).state).toBe("MATCH");
       expect((filled.data as { checkedOrders: number }).checkedOrders).toBe(1);
@@ -222,8 +228,8 @@ describe("indodax-mcp surface", () => {
     const harness = await withInMemoryServer(server);
     try {
       const denied = await harness.client.callTool({
-        name: "indodax_reconcile_full",
-        arguments: { symbol: "btcidr" },
+        name: "indodax_reconcile_exchange",
+        arguments: { scope: "full", symbol: "btcidr" },
       });
       expect(denied.isError).toBe(true);
     } finally {
@@ -317,8 +323,8 @@ describe("indodax-mcp surface", () => {
     const harness = await withInMemoryServer(server);
     try {
       const denied = await harness.client.callTool({
-        name: "indodax_private_connect",
-        arguments: {},
+        name: "indodax_private_channel",
+        arguments: { action: "connect" },
       });
       expect(denied.isError).toBe(true);
     } finally {

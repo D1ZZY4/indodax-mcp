@@ -32,7 +32,7 @@ Definitions:
 | Event bus | yes | daemon | yes | daemon path |
 | Scheduler | yes | daemon plus opt-in server autopoll | yes | daemon lifecycle |
 | Observability | yes | yes | yes | health/runtime path |
-| MCP tools | 91 | yes | yes | protocol harness |
+| MCP tools | 68 | yes | yes | protocol harness |
 | MCP resources | 12 | yes | protocol | protocol path |
 | MCP prompts | 5 | yes | protocol | protocol path |
 | MCP metadata contracts | yes | guard for env/credentials plus tool annotations on every tool | schema tests, guard and annotation tests | handler plus risk checks stay downstream |

@@ -12,11 +12,11 @@ as validation failures with corrected arguments. Branch on `code` and the
 | `ValidationError` | Bad arguments, unknown pair, or a state that cannot satisfy the request. | Fix the arguments and retry once. For pairs, resolve with `indodax_search_symbols` first. |
 | `PAIR_UNAVAILABLE` (`reason`) | The market answered without a quotable book: delisted, suspended, or too thin. | Skip the pair; check `tradable` on `indodax_pairs`. Do not retry as a transient failure. |
 | `DUPLICATE_STOP` (`reason`) | A stop already arms the same pair, side, and quantity. | Cancel the named stop with `indodax_stop_cancel` before attaching another. |
-| `FIAT_USE_FIAT_HISTORY` (`reason`) | A coin-only funding endpoint received a fiat code such as IDR. | Call `indodax_fiat_history` for IDR instead. |
+| `FIAT_USE_FIAT_HISTORY` (`reason`) | A coin-only funding read received a fiat code such as IDR. | Call `indodax_funding` with `kind: "fiatHistory"` for IDR instead. |
 | `FUNDING_UNAUTHORIZED` (`reason`) | The key lacks the funding grant for the refusing tool (`haveGrant: false`, `needGrant`, `tool` named). | Use a key with a funding grant, or treat funding as unavailable; market, paper, and trade paths are unaffected. |
 | `possible_ip_not_allowlisted` (`reason`) | HTTP 403/401 arrived with no machine-readable code, most often an IP allowlist block. | Allowlist the egress address (`egressCidrV4`/`egressCidrV6`) for the matching family, or confirm the key has no IP restrictions. |
 | `ip_not_allowlisted` (`reason`, exchange code `-2015`) | The exchange confirmed an unauthorized IP. | Same allowlist action as above; the signature itself was accepted. |
-| `insufficient_balance` (`reason`, exchange code `-2010`) | The quantity is not free, often reserved by a resting take-profit. | Check `indodax_balances` versus open orders; link the stop with `indodax_oco_attach` so the trigger releases the quantity first. |
+| `insufficient_balance` (`reason`, exchange code `-2010`) | The quantity is not free, often reserved by a resting take-profit. | Check `indodax_account` versus open orders; link the stop with `indodax_oco_attach` so the trigger releases the quantity first. |
 | `order_not_found` (`reason`, codes `-2011`, `-2013`) | The exchange does not know the order id. | Confirm with `indodax_order_history` before assuming the position is open. |
 | `invalid_symbol` (`reason`, code `-1121`) | Unknown trading symbol. | Resolve with `indodax_search_symbols` and pass a listed spelling such as `w3f_idr`; common spellings are normalized per endpoint. |
 | `order_already_completed` (`reason`, code `-2012`) | The order already filled or cancelled. | Do not retry; read final state from `indodax_order` or history. |
@@ -28,3 +28,7 @@ as validation failures with corrected arguments. Branch on `code` and the
 Withdrawal is always `funding.withdraw is disabled and needs a separate grant`
 by design; no flag enables it. When evidence is incomplete, report uncertainty
 instead of inventing a fill, balance, or reconciliation result.
+
+Since 2.0.0 the `FUNDING_UNAUTHORIZED` `tool` field names a `kind` such as
+`indodax_funding withdrawFee` rather than a separate tool name, because the
+five funding reads became one tool with a `kind` argument.

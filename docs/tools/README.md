@@ -6,22 +6,27 @@ shapes, errors, and worked usage. Start here, then open one area file.
 | Area | File | Tools |
 | --- | --- | --- |
 | Market | [market.md](market.md) | server_time, pairs, ticker, tickers_all, orderbook, trades, candles, price_increments, summaries, quote, search_symbols, round_order, suggest_stop |
-| Account | [account.md](account.md) | account, balances, capabilities, positions_live, portfolio_snapshot |
-| Orders | [orders.md](orders.md) | validate_order, propose_order, create_order, cancel_order, oco_bundle |
-| Paper | [paper.md](paper.md) | paper_account, paper_status, paper_orders, paper_snapshots, paper_fills, paper_order, paper_fill, paper_cancel, paper_reset |
-| Portfolio | [portfolio.md](portfolio.md) | portfolio, positions, pnl, exposure |
+| Account | [account.md](account.md) | account, capabilities, positions_live, portfolio_snapshot |
+| Orders | [orders.md](orders.md) | validate_order, create_order, cancel_order, oco_bundle |
+| Paper | [paper.md](paper.md) | paper_ledger, paper_fills, paper_order, paper_fill, paper_cancel, paper_reset |
+| Portfolio | [portfolio.md](portfolio.md) | portfolio, exposure |
 | Risk | [risk.md](risk.md) | risk_limits, risk_state, risk_evaluate |
-| Strategy | [strategy.md](strategy.md) | strategies, strategy, strategy_evaluate, strategy_validate, backtest_run, backtest_get, backtest_compare |
+| Strategy | [strategy.md](strategy.md) | strategies, strategy_evaluate, backtest_run, backtest |
 | Alerts | [alerts.md](alerts.md) | alerts, alert_create, alert_cancel, alert_check |
-| Reconciliation | [reconcile.md](reconcile.md) | reconcile_balances, reconcile_orders, reconciliation_state, reconcile_full, reconcile_trades |
-| Audit | [audit.md](audit.md) | audit_events, execution_trace, audit_risk |
-| System | [system.md](system.md) | health, readiness, version, system_capabilities, config_status, runtime_status, auth_status, funding_withdraw, ws_status, ws_ticker |
-| Funding | [funding.md](funding.md) | withdraw_history, deposit_history, fiat_history, deposit_address, withdraw_fee |
+| Reconciliation | [reconcile.md](reconcile.md) | reconcile_paper, reconcile_exchange |
+| Audit | [audit.md](audit.md) | audit |
+| System | [system.md](system.md) | health, version, system_capabilities, config_status, runtime_status, funding_withdraw, ws_status, ws_ticker |
+| Funding | [funding.md](funding.md) | funding |
 | History | [history.md](history.md) | open_orders, order, order_history, trade_history, paper_fills |
-| Operations | [ops.md](ops.md) | backtest_get, backtest_compare, strategy_validate, reconcile_trades, audit_risk, exposure, ws_reconnect, private_connect, private_disconnect |
+| Operations | [ops.md](ops.md) | backtest, exposure, ws_reconnect, private_channel |
 | Deadman | [deadman.md](deadman.md) | deadman_arm, deadman_status, deadman_disarm, deadman_heartbeat |
 | Stops and OCO | [stops.md](stops.md) | stop_create, stops, stop_cancel, stop_check, stop_retry, oco_attach |
 | Meta | [docs.md](docs.md) | docs |
+
+Every area page carries a "What replaced the removed tools" section listing the
+names this release retired and the argument that reaches the same answer.
+Version 2.0.0 consolidated 91 tools into 68; no capability was dropped, but any
+harness calling a removed name must be updated.
 
 Conventions used on every page: money serializes as strings, pair
 spellings are accepted flexibly and normalized per endpoint, errors are

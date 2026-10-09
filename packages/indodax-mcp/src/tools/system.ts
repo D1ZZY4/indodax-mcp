@@ -42,19 +42,28 @@ const wsTicker = defineTool(
   { pair: pairArg.optional() },
 );
 
+const health = defineTool(
+  {
+    name: "indodax_health",
+    title: "System health",
+    description:
+      "Read-only. Service health rollup with per-component wiring and next action. Replaces the former indodax_readiness: pass readiness true to add the ready flag, degradedReasons, and degradedDetail to the same response. Args: readiness optional boolean.",
+    ...SYSTEM,
+  },
+  { readiness: z.boolean().optional().describe("Add the readiness verdict to the response") },
+);
+
 export function registerSystemTools(
   registry: Registry,
   handlers: ServerHandlers,
   app: AppServices,
 ): void {
+  registry.registerTool(health);
   const defs: { name: string; description: string }[] = [
-    { name: "indodax_health", description: "Read-only. Service health rollup with checks." },
     {
-      name: "indodax_readiness",
-      description:
-        "Read-only. Whether the server can serve traffic: ready only when overall health is healthy, with degradedReasons otherwise.",
+      name: "indodax_version",
+      description: "Read-only. Server name, version, and mode.",
     },
-    { name: "indodax_version", description: "Read-only. Server name, version, and mode." },
     {
       name: "indodax_system_capabilities",
       description:
@@ -67,10 +76,6 @@ export function registerSystemTools(
     {
       name: "indodax_runtime_status",
       description: "Read-only. Scheduler jobs, sockets, metrics counters, deadman state.",
-    },
-    {
-      name: "indodax_auth_status",
-      description: "Read-only. Whether API credentials are configured. Booleans only.",
     },
     {
       name: "indodax_funding_withdraw",
@@ -99,86 +104,96 @@ export function registerSystemTools(
   registry.registerTool(wsStatus);
   registry.registerTool(wsTicker);
 
-  handlers.tools.set("indodax_health", async () => {
-    const snapshot = app.health.snapshot();
-    const wiring: Record<string, { wired: boolean; action: string }> = {
-      database: {
-        wired: true,
-        action:
-          "set DATABASE_URL to mirror paper/audit/alerts/stops/deadman; " +
-          "config_status reports whether the connection is actually reachable",
-      },
-      exchangeRest: {
-        wired: false,
-        action: "public market reads probe on demand; no static check",
-      },
-      exchangeWs: {
-        wired: false,
-        action: "sockets connect on demand via indodax_ws_ticker/reconnect",
-      },
-      mcpTransport: {
-        wired: true,
-        action: "registry built; transports stdio + Streamable HTTP share it",
-      },
-      scheduler: { wired: true, action: "jobs listed in scheduler; failures in schedulerFailures" },
-      queue: { wired: false, action: "no external queue; scheduler runs in-process" },
-      deadman: { wired: true, action: "see indodax_deadman_status for ARMED/STALE/EXPIRED" },
-      configuration: { wired: true, action: "environment parsed; see indodax_config_status" },
-      runtime: { wired: true, action: "server composed; see indodax_runtime_status" },
-    };
-    const components = Object.fromEntries(
-      Object.entries(snapshot).map(([name, component]) => {
-        const meta = wiring[name] ?? { wired: false, action: "see runbook" };
-        const base =
-          component.status === "unknown" && !("detail" in component)
-            ? { ...component, detail: "check not wired, not a failure" }
-            : component;
-        return [
-          name,
-          {
-            ...base,
-            wired: meta.wired,
-            action: meta.action,
-            checkedAt: new Date().toISOString(),
-          },
-        ];
-      }),
-    );
-    const overall = app.health.overall();
-    return ok({
-      status: overall,
-      components,
-      healthy: Object.values(snapshot).filter((c) => c.status === "healthy").length,
-      total: Object.keys(snapshot).length,
-      checkedAt: new Date().toISOString(),
-      summary: `overall ${overall} with ${Object.values(snapshot).filter((c) => c.status === "healthy").length}/${Object.keys(snapshot).length} healthy components`,
-      note: "Unwired checks report complete detail with wiring and next action instead of a bare code.",
-    });
-  });
-  handlers.tools.set("indodax_readiness", async () => {
-    const status = app.health.overall();
-    const snapshot = app.health.snapshot();
-    const degraded = Object.entries(snapshot).filter(
-      ([, component]) => component.status !== "healthy",
-    );
-    return ok({
-      ready: status === "healthy",
-      status,
-      degradedCount: degraded.length,
-      degradedReasons: degraded.map(([name, component]) => `${name}:${component.status}`),
-      degradedDetail: degraded.map(([name, component]) => ({
-        component: name,
-        status: component.status,
-        detail:
-          "detail" in component ? component.detail : "see indodax_health for wiring and action",
-        action: "see indodax_health for wiring and next step",
-      })),
-      checkedAt: new Date().toISOString(),
-      summary:
-        status === "healthy"
-          ? "ready to serve traffic"
-          : `not ready: ${degraded.length} non-healthy component(s) listed with detail`,
-    });
+  handlers.tools.set("indodax_health", async (raw) => {
+    try {
+      const args = parseArgs(health.inputSchema, raw);
+      const snapshot = app.health.snapshot();
+      const wiring: Record<string, { wired: boolean; action: string }> = {
+        database: {
+          wired: true,
+          action:
+            "set DATABASE_URL to mirror paper/audit/alerts/stops/deadman; " +
+            "config_status reports whether the connection is actually reachable",
+        },
+        exchangeRest: {
+          wired: false,
+          action: "public market reads probe on demand; no static check",
+        },
+        exchangeWs: {
+          wired: false,
+          action: "sockets connect on demand via indodax_ws_ticker/reconnect",
+        },
+        mcpTransport: {
+          wired: true,
+          action: "registry built; transports stdio + Streamable HTTP share it",
+        },
+        scheduler: {
+          wired: true,
+          action: "jobs listed in scheduler; failures in schedulerFailures",
+        },
+        queue: { wired: false, action: "no external queue; scheduler runs in-process" },
+        deadman: { wired: true, action: "see indodax_deadman_status for ARMED/STALE/EXPIRED" },
+        configuration: { wired: true, action: "environment parsed; see indodax_config_status" },
+        runtime: { wired: true, action: "server composed; see indodax_runtime_status" },
+      };
+      const components = Object.fromEntries(
+        Object.entries(snapshot).map(([name, component]) => {
+          const meta = wiring[name] ?? { wired: false, action: "see runbook" };
+          const base =
+            component.status === "unknown" && !("detail" in component)
+              ? { ...component, detail: "check not wired, not a failure" }
+              : component;
+          return [
+            name,
+            {
+              ...base,
+              wired: meta.wired,
+              action: meta.action,
+              checkedAt: new Date().toISOString(),
+            },
+          ];
+        }),
+      );
+      const overall = app.health.overall();
+      const healthy = Object.values(snapshot).filter((c) => c.status === "healthy").length;
+      const total = Object.keys(snapshot).length;
+      /**
+       * The readiness verdict is derived from the same two values already in this
+       * response, so it is opt-in rather than a second tool. Always true here
+       * would put the degraded detail on the path of every health poll.
+       */
+      const readiness =
+        args.readiness === true
+          ? {
+              ready: overall === "healthy",
+              degradedCount: total - healthy,
+              degradedReasons: Object.entries(snapshot)
+                .filter(([, component]) => component.status !== "healthy")
+                .map(([name, component]) => `${name}:${component.status}`),
+              degradedDetail: Object.entries(snapshot)
+                .filter(([, component]) => component.status !== "healthy")
+                .map(([name, component]) => ({
+                  component: name,
+                  status: component.status,
+                  detail:
+                    "detail" in component ? component.detail : "see indodax_health for wiring",
+                  action: "see indodax_health for wiring and next step",
+                })),
+            }
+          : null;
+      return ok({
+        status: overall,
+        components,
+        healthy,
+        total,
+        ...(readiness === null ? {} : { readiness }),
+        checkedAt: new Date().toISOString(),
+        summary: `overall ${overall} with ${healthy}/${total} healthy components`,
+        note: "Unwired checks report complete detail with wiring and next action instead of a bare code.",
+      });
+    } catch (error) {
+      return fail(error);
+    }
   });
   handlers.tools.set("indodax_version", async () =>
     ok({
@@ -293,9 +308,6 @@ export function registerSystemTools(
             : "memory-only: a restart resets paper, audit, alerts, stops, and deadman state",
       },
     }),
-  );
-  handlers.tools.set("indodax_auth_status", async () =>
-    ok({ credentialsConfigured: app.accountClient !== null, mode: app.env.APP_ENV }),
   );
   handlers.tools.set("indodax_funding_withdraw", async () =>
     fail(AuthorizationError("funding.withdraw is disabled and needs a separate grant")),

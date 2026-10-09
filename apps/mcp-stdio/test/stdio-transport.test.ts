@@ -120,7 +120,9 @@ describe("stdio transport", () => {
       // properties are asserted here rather than the in-process Zod shape.
       // `stopPrice` joins `riskBudget` as the advisory stop-distance input the
       // risk-budget work added; it must reach the handler or the assessment
-      // silently degrades to a notional multiple.
+      // silently degrades to a notional multiple. `reason` arrived with 2.0.0,
+      // when indodax_validate_order absorbed indodax_propose_order, so the
+      // free-text audit reason still reaches the handler over the wire.
       const properties = Object.keys(
         (validate?.inputSchema as { properties?: Record<string, unknown> } | undefined)
           ?.properties ?? {},
@@ -130,6 +132,7 @@ describe("stdio transport", () => {
         "pair",
         "price",
         "quantity",
+        "reason",
         "riskBudget",
         "side",
         "stopPrice",

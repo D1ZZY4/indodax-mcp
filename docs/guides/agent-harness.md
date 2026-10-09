@@ -14,6 +14,10 @@ sequenceDiagram
 
 How an AI agent should operate the current Indodax MCP surface without treating documentation as execution authority.
 
+The surface is 68 tools as of 2.0.0, consolidated from 91. Each area page under
+`docs/tools` carries a "What replaced the removed tools" table, so a harness
+written against 1.x can find the replacement for any retired name.
+
 ## 0. Install
 
 The server publishes as `@indodax-mcp/indodax-mcp` and needs no clone. Bun is required.
@@ -45,7 +49,7 @@ The current capability response should be treated as the **active server policy*
 
 Use indodax_ticker for one pair, indodax_tickers_all for scans, and indodax_orderbook for spread and depth.
 
-Use indodax_account and indodax_balances for authenticated reads.
+Use indodax_account for authenticated reads, with `zeroBalances: false` when only non-zero rows matter.
 
 Use indodax_order_history and indodax_trade_history for the current v2 history endpoints.
 
@@ -53,10 +57,9 @@ Use indodax_order_history and indodax_trade_history for the current v2 history e
 
 For paper execution:
 
-1. indodax_validate_order for risk-only validation.
-2. indodax_propose_order for a proposal and correlation id.
-3. indodax_create_order or indodax_paper_order for paper execution.
-4. indodax_paper_fill or indodax_paper_cancel for the next paper action.
+1. indodax_validate_order for risk-only validation and the proposal correlation id.
+2. indodax_create_order or indodax_paper_order for paper execution.
+3. indodax_paper_fill or indodax_paper_cancel for the next paper action.
 
 **A proposal is not an execution receipt.**
 

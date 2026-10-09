@@ -29,7 +29,6 @@ async function envelopeOf(call: Promise<unknown>): Promise<Envelope> {
 describe("proposal safety", () => {
   it.each([
     ["indodax_validate_order", { pair: "btc_idr", side: "BUY", quantity: 100, price: 1000 }],
-    ["indodax_propose_order", { pair: "btc_idr", side: "BUY", quantity: 100, price: 1000 }],
   ] as [string, Record<string, unknown>][])(
     "%s is unmistakably not an order",
     async (name, args) => {

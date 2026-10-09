@@ -48,20 +48,11 @@ const strategiesList = defineTool(
   {
     name: "indodax_strategies",
     title: "Strategies",
-    description: "Read-only. List builtin strategies. Strategies emit signals, never orders.",
+    description:
+      "Read-only. The builtin strategy catalog. Strategies emit signals, never orders. Absorbs the former indodax_strategy: pass id to get one strategy instead of the whole list.",
     ...READ,
   },
-  {},
-);
-
-const strategyDetail = defineTool(
-  {
-    name: "indodax_strategy",
-    title: "Strategy detail",
-    description: "Read-only. Describe one builtin strategy by id. Args: id.",
-    ...READ,
-  },
-  { id: z.string().min(1) },
+  { id: z.string().min(1).optional().describe("Return only this strategy") },
 );
 
 const strategyEvaluate = defineTool(
@@ -69,13 +60,15 @@ const strategyEvaluate = defineTool(
     name: "indodax_strategy_evaluate",
     title: "Evaluate signal",
     description:
-      "No side effects. Evaluate a moving-average signal over closes. Output is a signal, not an order.",
+      "No side effects. Evaluate a moving-average signal over closes, or check the inputs without computing. Absorbs the former indodax_strategy_validate. Args: pair and closes for the signal path, window default 5, and validateOnly to return valid plus errors instead. In validateOnly mode nothing throws: shape problems come back as errors in the result, and id defaults to ma-cross when omitted. Output is a signal, not an order.",
     ...READ,
   },
   {
-    pair: pairArg,
+    pair: pairArg.optional().describe("Required unless validateOnly"),
+    id: z.string().min(1).optional().describe("Strategy id for the validate path"),
     closes: closesArg,
     window: z.number().int().positive().optional(),
+    validateOnly: z.boolean().optional().describe("Check inputs only, return valid and errors"),
   },
 );
 
@@ -102,20 +95,20 @@ export function registerStrategyTools(
 ): void {
   void _app;
   registry.registerTool(strategiesList);
-  registry.registerTool(strategyDetail);
   registry.registerTool(strategyEvaluate);
   registry.registerTool(backtestRun);
 
-  handlers.tools.set("indodax_strategies", async () =>
-    ok({
-      count: BUILTIN_STRATEGIES.length,
-      strategies: BUILTIN_STRATEGIES.map((s) => ({ ...s, executesOrders: false })),
-      summary: `${BUILTIN_STRATEGIES.length} builtin strategies; all emit signals, never orders`,
-    }),
-  );
-  handlers.tools.set("indodax_strategy", async (raw) => {
+  handlers.tools.set("indodax_strategies", async (raw) => {
     try {
-      const args = parseArgs(strategyDetail.inputSchema, raw);
+      const args = parseArgs(strategiesList.inputSchema, raw);
+      const all = BUILTIN_STRATEGIES.map((s) => ({ ...s, executesOrders: false }));
+      if (args.id === undefined) {
+        return ok({
+          count: all.length,
+          strategies: all,
+          summary: `${all.length} builtin strategies; all emit signals, never orders`,
+        });
+      }
       const strategy = BUILTIN_STRATEGIES.find((item) => item.id === args.id);
       if (!strategy) throw ValidationError("unknown strategy, see indodax_strategies");
       return ok({
@@ -130,9 +123,44 @@ export function registerStrategyTools(
   handlers.tools.set("indodax_strategy_evaluate", async (raw) => {
     try {
       const args = parseArgs(strategyEvaluate.inputSchema, raw);
+      const window = args.window ?? 5;
+      const id = args.id ?? "ma-cross";
+      /**
+       * The validate path reports instead of throwing. This is what the former
+       * indodax_strategy_validate did, and the difference matters: a caller
+       * checking inputs before a scan wants the whole error list in one
+       * response, not an exception on the first problem.
+       */
+      if (args.validateOnly === true) {
+        if (id !== "ma-cross" && id !== "momentum-threshold") {
+          throw ValidationError("unknown strategy, see indodax_strategies");
+        }
+        const errors: string[] = [];
+        if (args.closes.length === 0) {
+          errors.push(
+            "closes is empty; extract closing prices from indodax_candles bars as " +
+              "data.bars[].close (lowercase close, decimal strings)",
+          );
+        } else if (args.closes.length < 2) {
+          errors.push("closes needs at least two numbers");
+        }
+        if (window > args.closes.length) errors.push("window must fit inside closes");
+        return ok({
+          id,
+          valid: errors.length === 0,
+          errors,
+          closes: args.closes.length,
+          window,
+          summary:
+            errors.length === 0 ? `strategy ${id} inputs valid` : `invalid: ${errors.join("; ")}`,
+        });
+      }
+      if (args.pair === undefined) {
+        throw ValidationError("pair is required unless validateOnly is true");
+      }
       const symbol = parseSymbolFlexible(args.pair);
       if (!symbol) throw ValidationError(`invalid pair: ${args.pair}`);
-      const input = { symbol, closes: args.closes, window: args.window ?? 5 };
+      const input = { symbol, closes: args.closes, window };
       const errors = validateSignalInput(input);
       // Shape faults (too few closes, non-positive prices) stay validation
       // errors. A window wider than the available history is separated out,
