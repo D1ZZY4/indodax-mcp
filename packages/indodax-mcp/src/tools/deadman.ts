@@ -168,7 +168,13 @@ export function registerDeadmanTools(
     try {
       const args = parseArgs(deadmanDisarm.inputSchema, raw);
       if (args.acknowledged !== true) {
-        throw AuthorizationError("disarming deadman needs acknowledged true");
+        const current = app.deadman.snapshot();
+        throw AuthorizationError(
+          `disarming deadman needs acknowledged true; the switch stays ${current.state}` +
+            (current.pairs.length > 0 ? ` for ${current.pairs.join(", ")}` : "") +
+            " with heartbeat protection intact. Pass acknowledged true only when removing " +
+            "the safety net is intended",
+        );
       }
       const status = app.deadman.disarm();
       app.health.set("deadman", { status: "healthy", detail: "disarmed" });

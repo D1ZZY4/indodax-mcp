@@ -47,3 +47,11 @@ describe("deadman switch", () => {
     ).toThrow();
   });
 });
+
+describe("deadman arm scope", () => {
+  it("replaces the pair set instead of merging", () => {
+    const deadman = new DeadmanSwitch();
+    deadman.arm(["w3f_idr"], 120_000);
+    expect(deadman.arm(["tel_idr", "ab_idr"], 120_000).pairs).toEqual(["tel_idr", "ab_idr"]);
+  });
+});

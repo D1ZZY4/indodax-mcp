@@ -11,9 +11,9 @@ Two separate safety layers share one state machine (`DISARMED`, `ARMED`,
 
 | Tool | Parameters | Response `data` | Notes |
 | --- | --- | --- | --- |
-| `indodax_deadman_arm` | `pairs` non-empty, `countdownMs` positive | Status snapshot | Local only. |
+| `indodax_deadman_arm` | `pairs` non-empty, `countdownMs` positive | Status snapshot | Local only. Arming REPLACES the pair set (it does not merge): arming `[tel,ab]` after `[w3f]` leaves only `[tel,ab]` protected. |
 | `indodax_deadman_status` | none | `{ state, pairs, countdownMs, countdownHuman, lastRefreshAt, consecutiveFailures, exchange }` | `countdownHuman` renders `24h`/`90s` style alongside ms. `exchange` reports whether the exchange countdown endpoint is reachable (`available`, `lastError`, `observedAt`); an ARMED local switch with an unreachable exchange is not protection. |
-| `indodax_deadman_disarm` | `acknowledged: true` required | Status snapshot | Disarming removes heartbeat protection globally; hence the gate. With `DATABASE_URL` set, arm/disarm/heartbeat mirror to Postgres and survive restarts. |
+| `indodax_deadman_disarm` | `acknowledged: true` required | Status snapshot | Disarming removes heartbeat protection globally; hence the gate. Without `acknowledged: true` the call is refused and the switch stays armed. With `DATABASE_URL` set, arm/disarm/heartbeat mirror to Postgres and survive restarts. |
 | `indodax_deadman_heartbeat` | `countdownMs` non-negative, `pairs`? (default armed pairs), `acknowledged: true` required | `{ pairs, countdownMs, state }` | Live exchange call: needs the full live gate (APP_ENV, TRADE_ENABLED, credentials). Success records a local refresh; a transient failure records a refresh failure (3 consecutive = EXPIRED). A refusal the key can never satisfy (access denied, unauthorized IP) does not advance the counter; it fails loudly and marks the exchange unreachable instead. |
 
 Heartbeat cadence tip: refresh well inside the window (e.g. every 30s for a
