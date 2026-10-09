@@ -33,7 +33,21 @@ describe("proposal safety", () => {
   ] as [string, Record<string, unknown>][])(
     "%s is unmistakably not an order",
     async (name, args) => {
-      const { server } = buildIndodaxServer(loadEnv({}));
+      // Risk review resolves market context, so an unstubbed build makes a live
+      // ticker request and the suite's runtime tracks network latency.
+      clearCache();
+      const built = buildIndodaxServer(loadEnv({}));
+      built.app.publicClient = {
+        ticker: async () => ({
+          high: "1000",
+          low: "1000",
+          last: "1000",
+          buy: "1000",
+          sell: "1000",
+        }),
+        pairs: async () => [],
+      } as unknown as PublicClient;
+      const { server } = built;
       const harness = await withInMemoryServer(server);
       try {
         const body = await envelopeOf(harness.client.callTool({ name, arguments: args }));

@@ -1,10 +1,27 @@
 import { describe, expect, it } from "vitest";
 import { loadEnv } from "@indodax-mcp/config";
+import type { PublicClient } from "@indodax-mcp/indodax-client";
+import { clearCache } from "@indodax-mcp/indodax-market";
 import { withInMemoryServer } from "@indodax-mcp/mcp-testing";
 import { buildIndodaxServer } from "@indodax-mcp/mcp-app";
 
-function build() {
-  return buildIndodaxServer(loadEnv({}));
+/**
+ * The paper lifecycle assertions below run through risk review, which resolves
+ * market context. Without a substituted client that is a live ticker request, so
+ * the suite's runtime tracked network latency and timed out on a cold CI runner.
+ */
+function stubMarket(): PublicClient {
+  return {
+    ticker: async () => ({ high: "1000", low: "1000", last: "1000", buy: "1000", sell: "1000" }),
+    pairs: async () => [],
+  } as unknown as PublicClient;
+}
+
+function build(env: Record<string, string> = {}) {
+  const built = buildIndodaxServer(loadEnv(env));
+  built.app.publicClient = stubMarket();
+  clearCache();
+  return built;
 }
 
 async function bodyOf(call: Promise<unknown>): Promise<{ data: never }> {
@@ -215,7 +232,7 @@ describe("indodax-mcp surface", () => {
   });
 
   it("requires TRADE_ENABLED for live placement", async () => {
-    const live = buildIndodaxServer(loadEnv({ APP_ENV: "live" }));
+    const live = build({ APP_ENV: "live" });
     const harness = await withInMemoryServer(live.server);
     try {
       const denied = await harness.client.callTool({
@@ -240,7 +257,7 @@ describe("indodax-mcp surface", () => {
   });
 
   it("reports healthy local components at boot", async () => {
-    const { app } = buildIndodaxServer(loadEnv({}));
+    const { app } = build();
     const snapshot = app.health.snapshot();
     expect(snapshot.configuration.status).toBe("healthy");
     expect(snapshot.runtime.status).toBe("healthy");
@@ -249,7 +266,7 @@ describe("indodax-mcp surface", () => {
   });
 
   it("gates live execution on APP_ENV plus credentials", async () => {
-    const live = buildIndodaxServer(loadEnv({ APP_ENV: "live" }));
+    const live = build({ APP_ENV: "live" });
     expect(live.app.policy.allowedModes).toContain("live");
     const harness = await withInMemoryServer(live.server);
     try {

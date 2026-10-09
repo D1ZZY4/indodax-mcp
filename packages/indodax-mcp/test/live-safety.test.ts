@@ -6,6 +6,8 @@ import {
   OrderRejectedError,
   isAppError,
 } from "@indodax-mcp/errors";
+import type { PublicClient } from "@indodax-mcp/indodax-client";
+import { clearCache } from "@indodax-mcp/indodax-market";
 import { withInMemoryServer } from "@indodax-mcp/mcp-testing";
 import { buildIndodaxServer } from "@indodax-mcp/mcp-app";
 import { ambiguousToUnknown, placeLiveOrder } from "@indodax-mcp/mcp-app/tools/order-intent";
@@ -19,6 +21,14 @@ function liveApp() {
       INDODAX_API_SECRET: "s",
     }),
   );
+  // placeLiveOrder resolves risk context before it reaches the backend, so an
+  // unstubbed market client turns a test about error mapping into a live ticker
+  // request whose latency decides whether the 5s budget holds.
+  app.publicClient = {
+    ticker: async () => ({ high: "1000", low: "1000", last: "1000", buy: "1000", sell: "1000" }),
+    pairs: async () => [],
+  } as unknown as PublicClient;
+  clearCache();
   const live = app.liveExecutor;
   if (!live) throw new Error("live executor requires credentials");
   return { app, server, live };

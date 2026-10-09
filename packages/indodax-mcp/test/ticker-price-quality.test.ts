@@ -111,7 +111,10 @@ describe("ticker price quality is explicit", () => {
     const harness = await withInMemoryServer(built.server);
     try {
       const first = await ticker(harness, "btc_idr");
-      expect(first.data.ageMs).toBe(0);
+      // A just-fetched row is fresh by construction. Asserting exactly 0 raced
+      // the clock: ageMs is derived from two Date.now() calls, so a millisecond
+      // boundary between them made this fail intermittently.
+      expect(first.data.ageMs).toBeLessThan(50);
       await new Promise((resolve) => setTimeout(resolve, 1100));
       const second = await ticker(harness, "btc_idr");
       expect(second.data.source).toBe("cache");

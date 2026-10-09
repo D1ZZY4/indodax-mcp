@@ -111,7 +111,16 @@ describe("reconcile explicit reasons", () => {
   });
 
   it("order rows name unreadable markets instead of bare unfillable", async () => {
+    // The paper placement below runs through risk review, which reads the
+    // market, so the client is stubbed for that step and only then replaced with
+    // one that throws. Leaving the first placement live made this suite depend
+    // on network latency.
     const built = buildIndodaxServer(loadEnv({}));
+    built.app.publicClient = {
+      ticker: async () => ({ high: "1000", low: "1000", last: "1000", buy: "1000", sell: "1000" }),
+      pairs: async () => [],
+    } as unknown as PublicClient;
+    clearCache();
     const harness = await withInMemoryServer(built.server);
     try {
       const placed = await harness.client.callTool({
