@@ -74,8 +74,8 @@ Schema changes belong in packages/db/src/schema.ts.
 Generate and review migrations before applying them:
 
 ~~~bash
-bun --filter @indodax-mcp/db db:generate
-bun --filter @indodax-mcp/db db:migrate
+bun --filter @d1zzy4-jethools/db db:generate
+bun --filter @d1zzy4-jethools/db db:migrate
 ~~~
 
 The database package is not yet the runtime source of truth for the main MCP composition. Do not document persistence as complete until application wiring has been updated and tested.

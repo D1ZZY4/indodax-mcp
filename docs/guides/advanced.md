@@ -62,7 +62,7 @@ This is operational scaffolding, not a durable live trading engine.
 Set DATABASE_URL when working with the database package:
 
 ~~~bash
-bun --filter @indodax-mcp/db db:migrate
+bun --filter @d1zzy4-jethools/db db:migrate
 ~~~
 
 The current main composition does not use PostgreSQL as its runtime source of truth.

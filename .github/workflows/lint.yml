@@ -75,6 +75,6 @@ jobs:
         with:
           bun-version: "1.4.2"
       - run: bun install --frozen-lockfile
-      - run: bun --filter @indodax-mcp/db db:generate
+      - run: bun --filter @d1zzy4-jethools/db db:generate
       - name: Fail when generated migration drifts from schema
         run: git diff --exit-code -- packages/db/drizzle

@@ -56,7 +56,7 @@ stateDiagram-v2
     RECONCILED --> [*]
 ```
 
-Canonical order states live in @indodax-mcp/indodax-orders.
+Canonical order states live in @d1zzy4-jethools/indodax-orders.
 
 ## Live execution boundary
 
