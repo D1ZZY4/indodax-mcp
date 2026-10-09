@@ -237,6 +237,12 @@ describe("market robustness", () => {
       expect(data.flow.sellCount).toBe(93);
       expect(data.flow.buyRatio).toBe(0.07);
       expect(data.flowWarning).toContain("seller-dominated");
+      // Rows carry both spellings: `type` is the exchange spelling and `side`
+      // is the canonical alias, so a caller reading either one gets a side.
+      const rows = (data as unknown as { trades: { type: string; side: string }[] }).trades;
+      expect(rows).toHaveLength(100);
+      expect(new Set(rows.map((row) => row.side))).toEqual(new Set(["buy", "sell"]));
+      expect(rows.every((row) => row.side === row.type)).toBe(true);
     } finally {
       await harness.close();
     }

@@ -95,7 +95,12 @@ export function registerMarketTools(
 
   handlers.tools.set("indodax_server_time", async () => {
     try {
-      return ok(await app.publicClient.serverTime());
+      // Exchange round-trip latency in ms. Clock sync only works when the
+      // reply is fast relative to recvWindow, so the cost is reported
+      // honestly instead of hidden behind a bare timestamp.
+      const started = Date.now();
+      const time = await app.publicClient.serverTime();
+      return ok({ ...time, latencyMs: Date.now() - started });
     } catch (error) {
       return fail(error);
     }
@@ -195,6 +200,10 @@ export function registerMarketTools(
         levels,
         buy,
         sell,
+        // Canonical aliases: `bids` is `buy`, `asks` is `sell`. Both spellings
+        // stay so existing harnesses keep working.
+        bids: buy,
+        asks: sell,
         buyCount: buy.length,
         sellCount: sell.length,
         bestBid: bestBid?.toString() ?? null,
@@ -223,14 +232,15 @@ export function registerMarketTools(
       const tradeRows = await app.publicClient.trades(toCompactPair(args.pair));
       const sliced = args.limit === undefined ? tradeRows : tradeRows.slice(0, args.limit);
       // Taker-flow summary in the response so a screening loop does not fetch
-      // 100 trades per candidate and count sides by hand.
+      // 100 trades per candidate and count sides by hand. Rows carry both
+      // `type` (exchange spelling) and `side` (canonical alias).
       const flow = flowOf(sliced.map((trade) => (trade.type === "buy" ? "buy" : "sell")));
       return ok({
         pair: canonicalPair(args.pair),
         count: sliced.length,
         total: tradeRows.length,
         limit: args.limit ?? null,
-        trades: sliced,
+        trades: sliced.map((trade) => ({ ...trade, side: trade.type })),
         flow,
         ...(flow.flowWarning === null ? {} : { flowWarning: flow.flowWarning }),
         summary: `${sliced.length} recent trade(s) for ${canonicalPair(args.pair)} (${flow.buyCount} buys)`,

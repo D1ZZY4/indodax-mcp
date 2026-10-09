@@ -58,6 +58,10 @@ describe("orderbook top of book", () => {
       expect(data.bestBidQty).toBe("68.81");
       expect(data.bestAskQty).toBe("2.65");
       expect(data.empty).toBe(false);
+      // Canonical aliases: `bids` is `buy` and `asks` is `sell`, so a harness
+      // reading either spelling sees the same levels.
+      expect(data.bids).toEqual(data.buy);
+      expect(data.asks).toEqual(data.sell);
       // (6249 - 6105) / 6177 mid = 2.33%
       expect(data.spread).toBe("144");
       expect(data.spreadPct).toBe("2.33");
