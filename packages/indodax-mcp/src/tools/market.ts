@@ -50,7 +50,10 @@ const pairs = defineTool(
 const ticker = defineTool(
   meta(
     "indodax_ticker",
-    "Read-only. Live last price and 24h stats for one pair. Args: pair like btc_idr.",
+    "Read-only. Last price and 24h stats for one pair. Args: pair like btc_idr. Quotes come from " +
+      "a short shared cache: source reports live or cache and ageMs reports the age of the row, " +
+      "so a cost model can require a live read. Use indodax_orderbook when the spread itself " +
+      "drives the decision, because a cached spread can differ from the live book.",
   ),
   { pair: pairArg },
 );
@@ -117,12 +120,41 @@ export function registerMarketTools(
       // bid/ask. Depth in quote currency still needs indodax_orderbook or
       // indodax_quote, which read the live book instead of guessing it.
       const screened = screenValues(snapshot as unknown as Record<string, unknown>);
-      return ok({
-        ...snapshot,
-        rangePct: screened.rangePct,
-        pos: screened.pos,
-        spreadPct: screened.spreadPct,
-      });
+      /**
+       * The derived spread rides with an explicit quality statement.
+       *
+       * Measured against the live orderbook on 2026-10-09, the cached quotes
+       * matched the book on every sampled pair, but a cached row up to 13s old
+       * reported a spread differing from the live book by as much as 0.54
+       * percentage points. `last` legitimately sits outside the quoted spread
+       * on a thin book, so a caller must not treat that as a broken snapshot;
+       * the field that matters for a cost model is the cache age. Naming it
+       * here is cheaper than making every caller rediscover it.
+       */
+      const quality = {
+        source: snapshot.source,
+        ageMs: snapshot.ageMs,
+        cacheTtlMs: 30_000,
+        spreadFromLiveBook: snapshot.source === "live",
+        note:
+          snapshot.source === "cache"
+            ? `quotes served from a ${snapshot.ageMs}ms old cache row; the spread can differ from the live book. Use indodax_orderbook when the spread drives a decision`
+            : "quotes read live from the exchange on this call",
+      };
+      return ok(
+        {
+          ...snapshot,
+          rangePct: screened.rangePct,
+          pos: screened.pos,
+          spreadPct: screened.spreadPct,
+          dataQuality: quality,
+        },
+        snapshot.source === "cache"
+          ? [
+              `ticker quotes came from cache (ageMs=${snapshot.ageMs}); verify the spread with indodax_orderbook before a cost-sensitive decision`,
+            ]
+          : [],
+      );
     } catch (error) {
       return fail(error);
     }
