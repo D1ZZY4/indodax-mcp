@@ -26,7 +26,11 @@ INDODAX_API_KEY=... INDODAX_API_SECRET=... indodax-daemon
 
 ## Behavior
 
-- Sends `SIGTERM` for a clean shutdown; the process exits 0.
+- Handles `SIGINT` and `SIGTERM` with a clean shutdown that stops the interval
+  jobs and runs the shutdown hooks, then exits 0. A signal that arrives in the
+  first moments of startup, before the handlers are installed, terminates the
+  process by signal instead; nothing is persisted at that point, so there is
+  nothing to flush.
 - The interval jobs are in-memory. Restarting the daemon clears them.
 - It never places, cancels, or withdraws an order. Order placement belongs to
   the MCP server, behind risk review.

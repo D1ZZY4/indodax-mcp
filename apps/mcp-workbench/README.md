@@ -18,10 +18,10 @@ bun run dev:workbench
 ## Connecting
 
 The workbench expects an MCP endpoint on the same origin at `/mcp`. Point it at
-a running gateway:
+a running gateway, which listens on 127.0.0.1:8000 unless told otherwise:
 
 ```bash
-MCP_HTTP_PORT=8080 bunx @indodax-mcp/mcp-http
+MCP_PORT=8080 bunx @indodax-mcp/mcp-http
 ```
 
 ## Safety

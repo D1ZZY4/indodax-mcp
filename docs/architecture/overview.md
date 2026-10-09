@@ -37,7 +37,7 @@ The main composition defaults to paper execution with in-memory application stat
 - `@indodax-mcp/mcp-testing`: in-memory, stdio, and HTTP test harnesses.
 - `@indodax-mcp/transport`: HTTP retry and rate-limiting primitives.
 - `@indodax-mcp/storage`: repository interfaces and in-memory implementation.
-- `@d1zzy4-jethools/db`: PostgreSQL schema, migrations, and Drizzle repositories.
+- `@indodax-mcp/db`: PostgreSQL schema, migrations, and Drizzle repositories.
 
 ### Exchange and domain
 

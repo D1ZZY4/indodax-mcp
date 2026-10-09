@@ -15,7 +15,7 @@ server-side grant path.** Live order placement requires `APP_ENV=live` plus
 ## Install
 
 ```bash
-bun add -g @d1zzy4-jethools/indodax-mcp
+bun add -g @indodax-mcp/indodax-mcp
 ```
 
 Requires the Bun runtime (the published binary has a `#!/usr/bin/env bun`
@@ -43,7 +43,7 @@ stdio, for an MCP host such as OpenCode:
 Streamable HTTP:
 
 ```bash
-INDODAX_API_KEY=... INDODAX_API_SECRET=... bunx @d1zzy4-jethools/indodax-mcp
+INDODAX_API_KEY=... INDODAX_API_SECRET=... bunx @indodax-mcp/indodax-mcp
 ```
 
 The gateway binds `127.0.0.1` on port 8000 by default. Override with `MCP_HOST`

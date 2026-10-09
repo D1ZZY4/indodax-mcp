@@ -1,6 +1,6 @@
 ---
-"@d1zzy4-jethools/indodax-mcp": minor
-"@d1zzy4-jethools/indodax-mcp-cli": minor
+"@indodax-mcp/indodax-mcp": minor
+"@indodax-mcp/cli": minor
 ---
 
 Audit fixes across the MCP surface, the trading gate, and the CLI.

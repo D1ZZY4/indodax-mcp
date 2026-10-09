@@ -3,8 +3,8 @@
 ## 1.1.1
 
 First published release of the TypeScript/Bun rebuild. Ships
-`@d1zzy4-jethools/indodax-mcp` (stdio and Streamable HTTP server) and
-`@d1zzy4-jethools/indodax-mcp-cli`.
+`@indodax-mcp/indodax-mcp` (stdio and Streamable HTTP server) and
+`@indodax-mcp/cli`.
 
 Correctness and safety fixes in this release, each with regression coverage:
 

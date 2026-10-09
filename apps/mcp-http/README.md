@@ -16,10 +16,11 @@ bun add -g @indodax-mcp/mcp-http
 indodax-mcp-http
 ```
 
-Bind address and port come from the environment:
+Bind address and port come from the environment, and default to `127.0.0.1`
+and `8000`:
 
 ```bash
-MCP_HTTP_HOST=127.0.0.1 MCP_HTTP_PORT=8080 indodax-mcp-http
+MCP_HOST=127.0.0.1 MCP_PORT=8080 indodax-mcp-http
 ```
 
 `GET /health` returns the server version, overall health, and persistence state.

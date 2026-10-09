@@ -68,7 +68,7 @@ The repository currently avoids adding these without a demonstrated requirement:
 - `0.18.20` is reached through `@esbuild-kit/core-utils@3.3.2`, a transitive
   dependency of `drizzle-kit@0.31.11`. The other two come from the current
   `vite` toolchain and are already outside the vulnerable range.
-- `drizzle-kit` is a **devDependency** of `@d1zzy4-jethools/db` and is used only by
+- `drizzle-kit` is a **devDependency** of `@indodax-mcp/db` and is used only by
   the `db:generate` script. It is not a dependency of any application package.
 - The published artifacts contain no esbuild reference at all:
   `apps/mcp-stdio/dist/index.js`, `apps/cli/dist/index.js`,

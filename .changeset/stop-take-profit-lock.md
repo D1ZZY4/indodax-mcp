@@ -1,6 +1,6 @@
 ---
-"@d1zzy4-jethools/indodax-mcp": minor
-"@d1zzy4-jethools/indodax-mcp-cli": minor
+"@indodax-mcp/indodax-mcp": minor
+"@indodax-mcp/cli": minor
 ---
 
 Fix the stop and take-profit deadlock that left live positions unprotected.
