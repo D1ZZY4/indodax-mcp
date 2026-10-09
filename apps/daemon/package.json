@@ -1,10 +1,16 @@
 {
-  "name": "@d1zzy4-jethools/daemon",
+  "name": "@indodax-mcp/daemon",
   "version": "1.1.1",
-  "private": true,
   "type": "module",
+  "bin": {
+    "indodax-daemon": "./dist/index.js"
+  },
+  "files": [
+    "dist/",
+    "README.md"
+  ],
   "scripts": {
-    "build": "bun build ./src/main.ts --outfile ./dist/index.js --target bun && bun ../../scripts/sanitize-bundle.ts ./dist/index.js",
+    "build": "bun build ./src/main.ts --outfile ./dist/index.js --target bun --banner '#!/usr/bin/env bun' && bun ../../scripts/sanitize-bundle.ts ./dist/index.js && chmod +x ./dist/index.js",
     "dev": "bun --watch ./src/main.ts",
     "start": "bun ./src/main.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit",
@@ -14,16 +20,40 @@
     "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
-    "@d1zzy4-jethools/config": "workspace:*",
-    "@d1zzy4-jethools/core": "workspace:*",
-    "@d1zzy4-jethools/indodax-market": "workspace:*",
-    "@d1zzy4-jethools/mcp-app": "workspace:*",
-    "@d1zzy4-jethools/logging": "workspace:*"
+    "@indodax-mcp/config": "workspace:*",
+    "@indodax-mcp/core": "workspace:*",
+    "@indodax-mcp/indodax-market": "workspace:*",
+    "@indodax-mcp/mcp-app": "workspace:*",
+    "@indodax-mcp/logging": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "catalog:",
     "@vitest/coverage-v8": "catalog:",
     "bun-types": "catalog:",
     "vitest": "catalog:"
+  },
+  "description": "Long-running operational daemon for the INDODAX MCP server: market refresh, reconciliation, and portfolio snapshots.",
+  "keywords": [
+    "indodax",
+    "mcp",
+    "model-context-protocol",
+    "trading",
+    "crypto"
+  ],
+  "homepage": "https://github.com/D1ZZY4/indodax-mcp#readme",
+  "bugs": {
+    "url": "https://github.com/D1ZZY4/indodax-mcp/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/D1ZZY4/indodax-mcp.git"
+  },
+  "license": "SSPL-1.0",
+  "author": "D1ZZY4",
+  "engines": {
+    "bun": ">=1.4.2"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }

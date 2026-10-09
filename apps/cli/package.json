@@ -12,10 +12,10 @@
     "test:coverage": "vitest run --coverage"
   },
   "devDependencies": {
-    "@d1zzy4-jethools/config": "workspace:*",
-    "@d1zzy4-jethools/indodax-market": "workspace:*",
-    "@d1zzy4-jethools/mcp-app": "workspace:*",
-    "@d1zzy4-jethools/logging": "workspace:*",
+    "@indodax-mcp/config": "workspace:*",
+    "@indodax-mcp/indodax-market": "workspace:*",
+    "@indodax-mcp/mcp-app": "workspace:*",
+    "@indodax-mcp/logging": "workspace:*",
     "@types/node": "catalog:",
     "@vitest/coverage-v8": "catalog:",
     "bun-types": "catalog:",
