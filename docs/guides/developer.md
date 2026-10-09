@@ -52,9 +52,9 @@ Do not introduce a generic dependency on an INDODAX-specific package just to byp
 anywhere in `packages/*` or `apps/*`:
 
 ```ts
-import type { ToolMetadata } from "@d1zzy4-jethools/mcp-contracts";
-import { parseSymbolFlexible } from "@d1zzy4-jethools/core";
-import { checkPaperConsistency } from "@d1zzy4-jethools/mcp-app/paper-consistency";
+import type { ToolMetadata } from "@indodax-mcp/mcp-contracts";
+import { parseSymbolFlexible } from "@indodax-mcp/core";
+import { checkPaperConsistency } from "@indodax-mcp/mcp-app/paper-consistency";
 ```
 
 The bare name is the package entry point; a trailing path is one module inside that
@@ -89,8 +89,8 @@ Schema changes belong in packages/db/src/schema.ts.
 Generate and review migrations:
 
 ~~~bash
-bun --filter @d1zzy4-jethools/db db:generate
-bun --filter @d1zzy4-jethools/db db:migrate
+bun --filter @indodax-mcp/db db:generate
+bun --filter @indodax-mcp/db db:migrate
 ~~~
 
 The database package contains PostgreSQL schema and repositories, but the main application composition still uses in-memory state. Do not document PostgreSQL as the runtime source of truth until the composition and integration tests prove it.
