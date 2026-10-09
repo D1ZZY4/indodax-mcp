@@ -151,3 +151,59 @@ describe("order rounding", () => {
     expect(bySymbol?.quantityIncrement?.toString()).toBe("0.1");
   });
 });
+
+describe("suggest stop", () => {
+  it("prices a feasible stop with reward-to-risk", async () => {
+    const { server } = stubbed();
+    const harness = await withInMemoryServer(server);
+    try {
+      const r = (await harness.client.callTool({
+        name: "indodax_suggest_stop",
+        arguments: {
+          pair: "rad_idr",
+          side: "SELL",
+          quantity: 20,
+          entryPrice: 1000,
+          targetPct: 5,
+          takeProfitPrice: 1200,
+        },
+      })) as { content: { text: string }[]; isError?: boolean };
+      expect(r.isError).not.toBe(true);
+      const d = JSON.parse(textOf(r)).data as Record<string, unknown>;
+      expect(d.stopPrice).toBe("950");
+      expect(d.stopNotional).toBe("19000");
+      expect(d.meetsMinimum).toBe(true);
+      expect(d.rr).toBe(4);
+    } finally {
+      await harness.close();
+    }
+  });
+
+  it("names the nearest feasible distance when the target cannot clear the floor", async () => {
+    const { server } = stubbed();
+    const harness = await withInMemoryServer(server);
+    try {
+      const r = (await harness.client.callTool({
+        name: "indodax_suggest_stop",
+        arguments: {
+          pair: "rad_idr",
+          side: "SELL",
+          quantity: 10.4,
+          entryPrice: 1000,
+          targetPct: 5,
+        },
+      })) as { content: { text: string }[]; isError?: boolean };
+      expect(r.isError).not.toBe(true);
+      const body = JSON.parse(textOf(r)) as {
+        data: Record<string, unknown>;
+        warnings?: string[];
+      };
+      expect(body.data.meetsMinimum).toBe(false);
+      expect(body.data.maxFeasiblePct).toBe(3.85);
+      expect([...(body.warnings ?? [])].join(" ")).toContain("cannot clear");
+    } finally {
+      await harness.close();
+      clearCache();
+    }
+  });
+});

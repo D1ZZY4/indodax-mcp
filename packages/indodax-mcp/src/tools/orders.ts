@@ -16,7 +16,7 @@ import {
 } from "@indodax-mcp/indodax-mcp/schemas";
 import type { AppServices } from "@indodax-mcp/indodax-mcp/composition";
 import { defineTool, refineTool } from "@indodax-mcp/indodax-mcp/tools/define";
-import { assessRiskBudget } from "@indodax-mcp/indodax-mcp/risk-budget";
+import { assessBudgetSize, assessStopRisk } from "@indodax-mcp/indodax-mcp/risk-budget";
 import {
   ambiguousToUnknown,
   draftIntent,
@@ -43,15 +43,17 @@ export function registerOrderTools(
   // Declared once so the advertised schema and the handler parse cannot drift.
   // timeInForce and stpMode were previously accepted by the handler but absent
   // from the registered schema, so the SDK stripped them before the handler ran.
-  // riskBudget is advisory only: it adds a notional-vs-budget multiple and a
-  // warning to the response without changing the risk verdict.
+  // riskBudget plus stopPrice are advisory only: they add a notional multiple
+  // for sizing and a stop-distance multiple for real risk without changing the
+  // risk verdict.
   const riskBudgetArg = z.number().positive().optional();
+  const stopPriceArg = priceArg.optional();
   const validateOrder = defineTool(
     {
       name: "indodax_validate_order",
       title: "Validate order",
       description:
-        "Executes nothing. Validate shape plus risk for a hypothetical order. Returns the risk decision with reasons and executed:false. Writes audit entries for traceability. Accepts optional riskBudget in quote units; the response then carries riskMultiple plus a warning when the notional exceeds it.",
+        "Executes nothing. Validate shape plus risk for a hypothetical order. Returns the risk decision with reasons and executed:false. Writes audit entries for traceability. Accepts optional riskBudget in quote units plus optional stopPrice: the response then carries notionalMultiple for sizing and, with a stop, the real stop-distance riskMultiple, which warns above 1x.",
       ...base,
       riskClass: "read",
       auditClass: "read",
@@ -65,6 +67,7 @@ export function registerOrderTools(
       timeInForce: timeInForceArg,
       stpMode: stpModeArg,
       riskBudget: riskBudgetArg,
+      stopPrice: stopPriceArg,
     },
   );
   registry.registerTool(validateOrder);
@@ -73,7 +76,7 @@ export function registerOrderTools(
       name: "indodax_propose_order",
       title: "Propose order",
       description:
-        "Executes nothing and creates no order. Build a validated proposal through risk with executed:false. A proposal is not an order. Writes audit entries for traceability. Accepts optional riskBudget in quote units for a notional-vs-budget multiple and warning.",
+        "Executes nothing and creates no order. Build a validated proposal through risk with executed:false. A proposal is not an order. Writes audit entries for traceability. Accepts optional riskBudget in quote units plus optional stopPrice for a notional multiple and a real stop-distance risk assessment.",
       ...base,
       riskClass: "read",
       auditClass: "read",
@@ -88,6 +91,7 @@ export function registerOrderTools(
       timeInForce: timeInForceArg,
       stpMode: stpModeArg,
       riskBudget: riskBudgetArg,
+      stopPrice: stopPriceArg,
     },
   );
   registry.registerTool(proposeOrder);
@@ -144,7 +148,7 @@ export function registerOrderTools(
       const { proposal, order, decision, incrementWarning } = await reviewHypothetical(app, args);
       const warnings = ["proposal only: nothing was placed and no funds moved"];
       if (incrementWarning !== null) warnings.push(`quantity increment: ${incrementWarning}`);
-      const budget = assessRiskBudget(hypotheticalNotional(order), args.riskBudget);
+      const budget = budgetFields(order, args.riskBudget, args.stopPrice, app);
       if (budget.riskWarning !== null) warnings.push(budget.riskWarning);
       return ok(
         { proposal: proposal.correlationId, order, decision, executed: false, ...budget },
@@ -161,7 +165,7 @@ export function registerOrderTools(
       const { proposal, order, decision, incrementWarning } = await reviewHypothetical(app, args);
       const warnings = ["proposal only: nothing was placed and no funds moved"];
       if (incrementWarning !== null) warnings.push(`quantity increment: ${incrementWarning}`);
-      const budget = assessRiskBudget(hypotheticalNotional(order), args.riskBudget);
+      const budget = budgetFields(order, args.riskBudget, args.stopPrice, app);
       if (budget.riskWarning !== null) warnings.push(budget.riskWarning);
       return ok(
         { proposal: proposal.correlationId, order, decision, executed: false, ...budget },
@@ -286,4 +290,36 @@ function hypotheticalNotional(order: { price: string | null; quantity: string })
   if (price === null || quantity === null) return null;
   const notional = price.mul(quantity);
   return notional.isFinite() ? notional : null;
+}
+
+/**
+ * Budget sizing plus stop-distance risk plus the minimum-quantity estimate.
+ *
+ * Bundles the three advisory answers every validation path reports so they
+ * cannot drift apart: how big the order is next to the budget (info only),
+ * how big the planned loss is (warns above 1x), and how much quantity the
+ * floor alone demands at this price.
+ */
+function budgetFields(
+  order: { price: string | null; quantity: string },
+  riskBudget: number | undefined,
+  stopPrice: number | undefined,
+  app: AppServices,
+) {
+  const price = order.price === null ? null : decimalOrNull(order.price);
+  const quantity = decimalOrNull(order.quantity);
+  const notional = hypotheticalNotional(order);
+  const sizing = assessBudgetSize(notional, riskBudget);
+  const stop = assessStopRisk({ price, stopPrice, quantity, budget: riskBudget });
+  const minimumQty = price?.gt(0) ? app.limits.minOrderNotional.div(price).toString() : null;
+  return {
+    ...sizing,
+    riskAmount: stop.riskAmount,
+    riskMultiple: stop.riskMultiple,
+    riskWarning: stop.riskWarning,
+    riskNote: stop.riskNote,
+    minimumQty,
+    currentNotional: notional?.toString() ?? null,
+    minimumNotional: app.limits.minOrderNotional.toString(),
+  };
 }

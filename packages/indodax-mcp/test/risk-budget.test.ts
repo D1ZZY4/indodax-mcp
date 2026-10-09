@@ -5,7 +5,7 @@ import type { PublicClient } from "@indodax-mcp/indodax-client";
 import { clearCache } from "@indodax-mcp/indodax-market";
 import { withInMemoryServer } from "@indodax-mcp/mcp-testing";
 import { buildIndodaxServer } from "@indodax-mcp/indodax-mcp";
-import { assessRiskBudget } from "@indodax-mcp/indodax-mcp/risk-budget";
+import { assessBudgetSize, assessStopRisk } from "@indodax-mcp/indodax-mcp/risk-budget";
 
 const PAIRS = [
   {
@@ -49,19 +49,33 @@ function dataOf(result: { content: { text: string }[]; isError?: boolean }) {
   return (JSON.parse(textOf(result)) as { data: Record<string, unknown> }).data;
 }
 
+/**
+ * Two layers, two jobs: the notional multiple is sizing information that
+ * never warns (every placeable order on a small account exceeds a 1%
+ * budget by construction), while the stop-distance multiple is the real
+ * planned loss and warns above 1x.
+ */
 describe("risk budget assessment", () => {
   it("reports nulls when no budget is supplied", () => {
-    expect(assessRiskBudget(new Decimal("100000"), undefined)).toEqual({
+    expect(assessBudgetSize(new Decimal("100000"), undefined)).toEqual({
       riskBudget: null,
-      riskMultiple: null,
-      riskWarning: null,
+      notionalMultiple: null,
     });
+    expect(
+      assessStopRisk({
+        price: new Decimal("100"),
+        stopPrice: 90,
+        quantity: new Decimal("1"),
+        budget: undefined,
+      }),
+    ).toMatchObject({ riskMultiple: null, riskWarning: null });
   });
 
-  it("flags a notional far above the budget without changing the verdict", async () => {
-    // Live case: 1 unit at 13583 against a 1451 budget is 9.3x. Limits still
-    // pass, so the verdict stays ALLOW and the warning carries the sizing
-    // refusal instead.
+  it("reports the notional multiple as info without warning", async () => {
+    // Live case: 1 unit at 13583 against a 1451 budget is 9.36x notional.
+    // That is normal sizing info on a small account, not a danger signal,
+    // so the verdict stays ALLOW with no warning and guidance toward a
+    // stop-based assessment instead.
     const { server } = stubbed();
     const harness = await withInMemoryServer(server);
     try {
@@ -72,26 +86,67 @@ describe("risk budget assessment", () => {
         })) as { content: { text: string }[]; isError?: boolean },
       );
       expect(data.decision).toMatchObject({ outcome: "ALLOW" });
-      expect(data.riskMultiple).toBe(9.36);
+      expect(data.notionalMultiple).toBe(9.36);
       expect(data.riskBudget).toBe("1451");
-      expect(data.riskWarning).toContain("9.36x");
+      expect(data.riskMultiple).toBeNull();
+      expect(data.riskWarning).toBeNull();
+      expect(data.riskNote).toContain("stopPrice");
     } finally {
       await harness.close();
     }
   });
 
-  it("adds the multiple to risk_evaluate alongside the verdict", async () => {
+  it("warns when the planned stop loss exceeds the budget", async () => {
+    // Entry 13583 with a stop at 12000 risks 1583 against a 1451 budget.
     const { server } = stubbed();
     const harness = await withInMemoryServer(server);
     try {
-      const data = dataOf(
-        (await harness.client.callTool({
-          name: "indodax_risk_evaluate",
-          arguments: { pair: "nova_idr", side: "BUY", quantity: 1, price: 13583, riskBudget: 1451 },
-        })) as { content: { text: string }[]; isError?: boolean },
-      );
-      expect(data.outcome).toBe("ALLOW");
-      expect(data.riskMultiple).toBe(9.36);
+      const result = (await harness.client.callTool({
+        name: "indodax_validate_order",
+        arguments: {
+          pair: "nova_idr",
+          side: "BUY",
+          quantity: 1,
+          price: 13583,
+          riskBudget: 1451,
+          stopPrice: 12000,
+        },
+      })) as { content: { text: string }[]; isError?: boolean };
+      const body = JSON.parse(textOf(result)) as {
+        data: Record<string, unknown>;
+        warnings?: string[];
+      };
+      expect(body.data.riskMultiple).toBe(1.09);
+      expect(body.data.riskAmount).toBe("1583");
+      expect([...(body.warnings ?? [])].join(" ")).toContain("1.09x");
+    } finally {
+      await harness.close();
+    }
+  });
+
+  it("stays quiet when the planned loss fits the budget", async () => {
+    const { server } = stubbed();
+    const harness = await withInMemoryServer(server);
+    try {
+      const result = (await harness.client.callTool({
+        name: "indodax_risk_evaluate",
+        arguments: {
+          pair: "nova_idr",
+          side: "BUY",
+          quantity: 1,
+          price: 13583,
+          riskBudget: 1451,
+          stopPrice: 13000,
+        },
+      })) as { content: { text: string }[]; isError?: boolean };
+      const body = JSON.parse(textOf(result)) as {
+        data: Record<string, unknown>;
+        warnings?: string[];
+      };
+      expect(body.data.outcome).toBe("ALLOW");
+      expect(body.data.riskMultiple).toBe(0.4);
+      expect(body.data.riskWarning).toBeNull();
+      expect(body.warnings ?? []).toHaveLength(0);
     } finally {
       await harness.close();
     }
@@ -109,7 +164,7 @@ describe("risk budget assessment", () => {
         data: Record<string, unknown>;
         warnings?: string[];
       };
-      expect(body.data.riskMultiple).toBe(9.36);
+      expect(body.data.notionalMultiple).toBe(9.36);
       expect([...(body.warnings ?? [])].join(" ")).toContain("pair minimum notional");
     } finally {
       await harness.close();

@@ -4,9 +4,9 @@ import type { Registry } from "@indodax-mcp/mcp-registry";
 import type { ServerHandlers } from "@indodax-mcp/mcp-core";
 import { decimalOrNull, parseSymbolFlexible } from "@indodax-mcp/core";
 import { fail, ok, parseArgs } from "@indodax-mcp/indodax-mcp/respond";
-import { canonicalPair, pairArg } from "@indodax-mcp/indodax-mcp/schemas";
+import { canonicalPair, pairArg, priceArg } from "@indodax-mcp/indodax-mcp/schemas";
 import { defineTool } from "@indodax-mcp/indodax-mcp/tools/define";
-import { assessRiskBudget } from "@indodax-mcp/indodax-mcp/risk-budget";
+import { assessBudgetSize, assessStopRisk } from "@indodax-mcp/indodax-mcp/risk-budget";
 import { checkPaperConsistency } from "@indodax-mcp/indodax-mcp/paper-consistency";
 import { resolveRiskContext } from "@indodax-mcp/indodax-mcp/risk-context";
 import type { AppServices } from "@indodax-mcp/indodax-mcp/composition";
@@ -48,7 +48,7 @@ const riskEvaluate = defineTool(
     name: "indodax_risk_evaluate",
     title: "Evaluate order risk",
     description:
-      "No side effects. Run a hypothetical order through risk. Returns ALLOW, DENY, REVIEW, or HALT with reason codes. Nothing is placed. Accepts optional riskBudget in quote units for a notional-vs-budget multiple and warning alongside the verdict.",
+      "No side effects. Run a hypothetical order through risk. Returns ALLOW, DENY, REVIEW, or HALT with reason codes. Nothing is placed. Accepts optional riskBudget in quote units plus optional stopPrice: the response carries notionalMultiple for sizing and, with a stop, the real stop-distance riskMultiple, which warns above 1x.",
     ...SYSTEM_READ,
     // TRADE after the spread: SYSTEM_READ defaults to SYSTEM, and evaluating an
     // order is a trade-path capability even though it has no side effects.
@@ -61,6 +61,7 @@ const riskEvaluate = defineTool(
     price: z.number().positive(),
     mode: z.enum(["paper", "live"]).optional(),
     riskBudget: z.number().positive().optional(),
+    stopPrice: priceArg.optional(),
   },
 );
 
@@ -137,7 +138,13 @@ export function registerRiskTools(
           pair: args.pair,
         }),
       );
-      const budget = assessRiskBudget(price.mul(quantity), args.riskBudget);
+      const sizing = assessBudgetSize(price.mul(quantity), args.riskBudget);
+      const stop = assessStopRisk({
+        price,
+        stopPrice: args.stopPrice,
+        quantity,
+        budget: args.riskBudget,
+      });
       return ok(
         {
           pair: canonicalPair(args.pair),
@@ -149,14 +156,21 @@ export function registerRiskTools(
           price: price.toString(),
           quantity: quantity.toString(),
           mode,
-          ...budget,
+          ...sizing,
+          riskAmount: stop.riskAmount,
+          riskMultiple: stop.riskMultiple,
+          riskWarning: stop.riskWarning,
+          riskNote: stop.riskNote,
+          minimumQty: app.limits.minOrderNotional.div(price).toString(),
+          currentNotional: price.mul(quantity).toString(),
+          minimumNotional: app.limits.minOrderNotional.toString(),
           limits: {
             minOrderNotional: app.limits.minOrderNotional.toString(),
             maxOrderNotional: app.limits.maxOrderNotional.toString(),
           },
           summary: `${decision.outcome} for ${args.side} ${String(args.quantity)} ${canonicalPair(args.pair)} at ${String(args.price)}`,
         },
-        budget.riskWarning === null ? [] : [budget.riskWarning],
+        stop.riskWarning === null ? [] : [stop.riskWarning],
       );
     } catch (error) {
       return fail(error);
