@@ -1,5 +1,67 @@
 <h1 align="center">Changelog</h1>
 
+## 2.0.0
+
+**Breaking.** The tool surface is consolidated from 91 tools to 68. Twenty-five
+tool names are gone and their capability is reachable through a named
+replacement, so any harness that calls a removed name must be updated. No
+capability was dropped; every absorbed answer is still returned, under a
+documented argument or field.
+
+Why this is MAJOR: `AGENTS.md` classifies removing or renaming an MCP tool as
+a breaking change. The alternative, shipping a smaller surface under the same
+version, would leave existing callers silently broken.
+
+### Removed tools and their replacements
+
+| Removed | Reached through |
+| --- | --- |
+| `indodax_propose_order` | `indodax_validate_order`, with the new optional `reason` |
+| `indodax_balances` | `indodax_account` with `zeroBalances: false` |
+| `indodax_auth_status` | `indodax_capabilities`, in `credentialsSource` |
+| `indodax_readiness` | `indodax_health` with `readiness: true` |
+| `indodax_audit_events` | `indodax_audit` (renamed, same filters) |
+| `indodax_execution_trace` | `indodax_audit` with `correlationId` |
+| `indodax_audit_risk` | `indodax_audit` with `kinds: ["RiskApproved","RiskRejected"]` |
+| `indodax_paper_status`, `indodax_paper_account`, `indodax_paper_orders`, `indodax_paper_snapshots` | `indodax_paper_ledger` with `view` |
+| `indodax_positions`, `indodax_pnl` | `indodax_portfolio` with `view` |
+| `indodax_strategy` | `indodax_strategies` with `id` |
+| `indodax_strategy_validate` | `indodax_strategy_evaluate` with `validateOnly: true` |
+| `indodax_backtest_get`, `indodax_backtest_compare` | `indodax_backtest` with `ids` |
+| `indodax_private_connect`, `indodax_private_disconnect` | `indodax_private_channel` with `action` |
+| `indodax_risk_limits` | `indodax_risk_state`, in `limits` |
+| `indodax_reconciliation_state`, `indodax_reconcile_orders` | `indodax_reconcile_paper` with `scope` |
+| `indodax_reconcile_balances`, `indodax_reconcile_trades`, `indodax_reconcile_full` | `indodax_reconcile_exchange` with `scope` |
+| `indodax_withdraw_history`, `indodax_deposit_history`, `indodax_fiat_history`, `indodax_deposit_address`, `indodax_withdraw_fee` | `indodax_funding` with `kind` |
+
+### Input narrowing to be aware of
+
+- `indodax_private_channel` declares `authRequirement: credentials` because
+  connect needs it, so **disconnecting now also requires a configured key**
+  where it previously did not.
+- `indodax_strategy_evaluate` makes `pair` optional so the validate path can run
+  without one. Supplying neither `pair` nor `validateOnly` is refused.
+- `indodax_funding` validates its per-kind arguments in the handler, so a
+  missing `coin`, `network`, or `currency` is a `ValidationError` at call time
+  rather than a schema rejection at the protocol layer.
+- `indodax_audit` reports `entries` where the trace tool reported `trace`, and
+  `approved`/`rejected` counts are present only on a risk-kind filter.
+
+### Why the reconciliation tools are two and not one
+
+The five reconciliation reads split on a real boundary, so they became two tools
+rather than one. `indodax_reconcile_paper` runs entirely on the in-memory ledger
+and needs no credentials; `indodax_reconcile_exchange` reads the live exchange
+and does. Collapsing them would force a single `authRequirement`, which either
+denies the paper paths on an uncredentialed server or drops `credentials` from
+the metadata and pushes the gate out of the central guard into the handler. One
+slot of context is not worth weakening the guard.
+
+### Shipped surface
+
+**68 MCP tools**, **12 resources**, and **5 prompts**. Resources and prompts are
+unchanged; only the tool list shrank.
+
 ## 1.1.1
 
 First published release of the TypeScript/Bun rebuild. Ships
