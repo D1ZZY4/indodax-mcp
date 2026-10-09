@@ -1,4 +1,4 @@
-import { mkdtempSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -97,9 +97,8 @@ for (const dir of PUBLISHABLE) {
     tmpdir(),
     `${manifest.name.replace("@", "").replace("/", "-")}-${manifest.version}.tgz`,
   );
-  const { existsSync: tarballExists } = await import("node:fs");
-  check(`${manifest.name} pack`, tarballExists(tarball), tarball);
-  if (!tarballExists(tarball)) continue;
+  check(`${manifest.name} pack`, existsSync(tarball), tarball);
+  if (!existsSync(tarball)) continue;
   const listed = Bun.spawnSync(["tar", "tzf", tarball], { cwd: ROOT });
   const contents = listed.stdout.toString();
   check(
@@ -146,13 +145,23 @@ for (const dir of PUBLISHABLE) {
 }
 
 const sandboxBin = mkdtempSync(join(tmpdir(), "consumer-mcp-"));
-const tarballMcp = join(tmpdir(), "indodax-mcp-1.0.0.tgz");
 {
   const packMcp = Bun.spawnSync(["bun", "pm", "pack", "--destination", tmpdir()], {
     cwd: join(ROOT, "apps/mcp-stdio"),
   });
-  if (packMcp.exitCode !== 0) {
-    check("indodax-mcp pack", false, "pack failed");
+  // Bun names a packed tarball after the package name and version, both of
+  // which change: the scope, the package name, and the version are all part of
+  // the filename. Deriving it from the manifest keeps this correct across a
+  // rename or a version bump; a hardcoded name silently installs nothing.
+  const mcpManifest = JSON.parse(
+    readFileSync(join(ROOT, "apps/mcp-stdio/package.json"), "utf8"),
+  ) as { name: string; version: string };
+  const tarballMcp = join(
+    tmpdir(),
+    `${mcpManifest.name.replace("@", "").replace("/", "-")}-${mcpManifest.version}.tgz`,
+  );
+  if (packMcp.exitCode !== 0 || !existsSync(tarballMcp)) {
+    check("indodax-mcp pack", false, `pack failed or produced no ${tarballMcp}`);
   } else {
     Bun.spawnSync(["bun", "init", "-y"], { cwd: sandboxBin });
     Bun.spawnSync(["bun", "add", tarballMcp], { cwd: sandboxBin });
