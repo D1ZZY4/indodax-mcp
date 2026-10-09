@@ -37,6 +37,7 @@
   "description": "HTTP retry, rate limiting, and egress primitives.",
   "keywords": [
     "indodax",
+    "indodax-mcp",
     "mcp",
     "model-context-protocol",
     "trading",

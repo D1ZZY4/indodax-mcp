@@ -38,6 +38,7 @@
   "description": "Deterministic risk engine and execution-mode policy.",
   "keywords": [
     "indodax",
+    "indodax-mcp",
     "mcp",
     "model-context-protocol",
     "trading",

@@ -38,6 +38,7 @@
   "description": "In-memory, stdio, and HTTP MCP test harnesses.",
   "keywords": [
     "indodax",
+    "indodax-mcp",
     "mcp",
     "model-context-protocol",
     "trading",

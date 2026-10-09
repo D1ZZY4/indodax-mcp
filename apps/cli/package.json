@@ -25,6 +25,8 @@
   "description": "Command line companion to the indodax-mcp server: market reads, paper state, and risk limits",
   "keywords": [
     "indodax",
+    "indodax-cli",
+    "indodax-mcp",
     "trading",
     "crypto",
     "cli",

@@ -34,6 +34,7 @@
   "description": "Repository interfaces and an in-memory implementation.",
   "keywords": [
     "indodax",
+    "indodax-mcp",
     "mcp",
     "model-context-protocol",
     "trading",

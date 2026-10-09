@@ -42,6 +42,7 @@
   "description": "PostgreSQL schema, Drizzle migrations, and repositories.",
   "keywords": [
     "indodax",
+    "indodax-mcp",
     "mcp",
     "model-context-protocol",
     "trading",

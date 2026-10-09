@@ -42,6 +42,7 @@
   "description": "MCP SDK server construction and dispatch.",
   "keywords": [
     "indodax",
+    "indodax-mcp",
     "mcp",
     "model-context-protocol",
     "trading",

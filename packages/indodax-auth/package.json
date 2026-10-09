@@ -38,6 +38,7 @@
   "description": "TAPI v2 and legacy request signing plus rejection translation.",
   "keywords": [
     "indodax",
+    "indodax-mcp",
     "mcp",
     "model-context-protocol",
     "trading",

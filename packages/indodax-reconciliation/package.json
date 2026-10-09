@@ -39,6 +39,7 @@
   "description": "Local versus exchange reconciliation primitives.",
   "keywords": [
     "indodax",
+    "indodax-mcp",
     "mcp",
     "model-context-protocol",
     "trading",

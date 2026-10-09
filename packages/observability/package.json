@@ -37,6 +37,7 @@
   "description": "Component health tracking and counters.",
   "keywords": [
     "indodax",
+    "indodax-mcp",
     "mcp",
     "model-context-protocol",
     "trading",

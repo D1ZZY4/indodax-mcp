@@ -40,6 +40,7 @@
   "description": "Canonical domain types, Decimal money helpers, symbols, and order validation.",
   "keywords": [
     "indodax",
+    "indodax-mcp",
     "mcp",
     "model-context-protocol",
     "trading",

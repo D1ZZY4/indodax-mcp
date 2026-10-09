@@ -34,6 +34,7 @@
   "description": "In-memory audit trail with correlation tracing.",
   "keywords": [
     "indodax",
+    "indodax-mcp",
     "mcp",
     "model-context-protocol",
     "trading",

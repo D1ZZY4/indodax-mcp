@@ -39,6 +39,7 @@
   "description": "Order record, lifecycle state machine, and balance comparison.",
   "keywords": [
     "indodax",
+    "indodax-mcp",
     "mcp",
     "model-context-protocol",
     "trading",

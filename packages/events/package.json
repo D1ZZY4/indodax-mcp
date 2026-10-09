@@ -37,6 +37,7 @@
   "description": "Typed in-process event bus.",
   "keywords": [
     "indodax",
+    "indodax-mcp",
     "mcp",
     "model-context-protocol",
     "trading",

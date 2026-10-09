@@ -37,6 +37,7 @@
   "description": "Metadata schemas for MCP tools, resources, and prompts.",
   "keywords": [
     "indodax",
+    "indodax-mcp",
     "mcp",
     "model-context-protocol",
     "trading",

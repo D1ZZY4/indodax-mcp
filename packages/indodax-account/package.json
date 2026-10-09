@@ -42,6 +42,7 @@
   "description": "Authenticated INDODAX account and history reads over TAPI v2.",
   "keywords": [
     "indodax",
+    "indodax-mcp",
     "mcp",
     "model-context-protocol",
     "trading",

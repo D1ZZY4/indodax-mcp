@@ -35,6 +35,7 @@
   "description": "Long-running operational daemon for the INDODAX MCP server: market refresh, reconciliation, and portfolio snapshots.",
   "keywords": [
     "indodax",
+    "indodax-mcp",
     "mcp",
     "model-context-protocol",
     "trading",

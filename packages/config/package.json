@@ -39,6 +39,7 @@
   "description": "Typed environment parsing with credential provenance diagnostics.",
   "keywords": [
     "indodax",
+    "indodax-mcp",
     "mcp",
     "model-context-protocol",
     "trading",

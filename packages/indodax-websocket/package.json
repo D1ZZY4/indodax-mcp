@@ -40,6 +40,7 @@
   "description": "INDODAX market and private socket protocol with managed connections.",
   "keywords": [
     "indodax",
+    "indodax-mcp",
     "mcp",
     "model-context-protocol",
     "trading",

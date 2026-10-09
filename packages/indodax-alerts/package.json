@@ -37,6 +37,7 @@
   "description": "In-memory price-alert store and threshold evaluation.",
   "keywords": [
     "indodax",
+    "indodax-mcp",
     "mcp",
     "model-context-protocol",
     "trading",

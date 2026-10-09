@@ -35,6 +35,7 @@
   "description": "Interval jobs and shutdown controls.",
   "keywords": [
     "indodax",
+    "indodax-mcp",
     "mcp",
     "model-context-protocol",
     "trading",

@@ -40,6 +40,7 @@
   "description": "Deadman-switch state machine and exchange heartbeat.",
   "keywords": [
     "indodax",
+    "indodax-mcp",
     "mcp",
     "model-context-protocol",
     "trading",

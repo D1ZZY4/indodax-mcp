@@ -38,6 +38,7 @@
   "description": "Registry for MCP surface definitions.",
   "keywords": [
     "indodax",
+    "indodax-mcp",
     "mcp",
     "model-context-protocol",
     "trading",

@@ -39,6 +39,7 @@
   "description": "Normalized INDODAX market data access with caching.",
   "keywords": [
     "indodax",
+    "indodax-mcp",
     "mcp",
     "model-context-protocol",
     "trading",

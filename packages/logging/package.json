@@ -38,6 +38,7 @@
   "description": "Structured logging with redaction.",
   "keywords": [
     "indodax",
+    "indodax-mcp",
     "mcp",
     "model-context-protocol",
     "trading",

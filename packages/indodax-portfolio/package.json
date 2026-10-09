@@ -37,6 +37,7 @@
   "description": "Portfolio valuation, PnL, and drawdown calculations.",
   "keywords": [
     "indodax",
+    "indodax-mcp",
     "mcp",
     "model-context-protocol",
     "trading",

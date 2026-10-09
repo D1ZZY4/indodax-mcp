@@ -37,6 +37,7 @@
   "description": "Deterministic backtest replay over close series.",
   "keywords": [
     "indodax",
+    "indodax-mcp",
     "mcp",
     "model-context-protocol",
     "trading",

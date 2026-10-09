@@ -34,6 +34,7 @@
   "description": "MCP server for INDODAX spot trading: market reads, paper execution, deterministic risk, emulated stops, and a gated live path",
   "keywords": [
     "mcp",
+    "indodax-mcp",
     "model-context-protocol",
     "indodax",
     "trading",

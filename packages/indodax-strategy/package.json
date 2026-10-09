@@ -37,6 +37,7 @@
   "description": "Strategy signal generation.",
   "keywords": [
     "indodax",
+    "indodax-mcp",
     "mcp",
     "model-context-protocol",
     "trading",

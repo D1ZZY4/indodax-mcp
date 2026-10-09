@@ -68,6 +68,7 @@
   "description": "Application composition: MCP tools, resources, prompts, and the central guard.",
   "keywords": [
     "indodax",
+    "indodax-mcp",
     "mcp",
     "model-context-protocol",
     "trading",

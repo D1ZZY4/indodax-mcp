@@ -39,6 +39,7 @@
   "description": "INDODAX public REST adapter with response validation.",
   "keywords": [
     "indodax",
+    "indodax-mcp",
     "mcp",
     "model-context-protocol",
     "trading",
