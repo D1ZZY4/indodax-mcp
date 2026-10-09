@@ -230,6 +230,28 @@ export function registerPaperTools(
           order.exchangeOrderId === args.orderId ||
           order.clientOrderId === args.orderId,
       );
+      // OCO completion: a filled take-profit closes the position its sibling
+      // stop protects, so a lingering stop would fire later into an empty or
+      // reversed position. Bundle TP legs carry `<groupId>-takeProfit` client
+      // ids, which is the only link between a paper fill and its stop group.
+      // Live fills are not observed server-side, so this runs on paper only.
+      const completedStops: string[] = [];
+      const filledClientId = filled?.clientOrderId ?? "";
+      const suffix = "-takeProfit";
+      if (filledClientId.endsWith(suffix)) {
+        const groupId = filledClientId.slice(0, -suffix.length);
+        if (groupId !== "") {
+          for (const sibling of app.stops.list()) {
+            if (sibling.groupId === groupId) {
+              if (
+                app.stops.cancel(sibling.id, `oco-completed by take-profit fill ${filledClientId}`)
+              ) {
+                completedStops.push(sibling.id);
+              }
+            }
+          }
+        }
+      }
       return ok({
         orderId: args.orderId,
         status: "filled",
@@ -242,7 +264,12 @@ export function registerPaperTools(
         balances: snapshot.balances,
         totalFees: snapshot.totalFees,
         tradeCount: snapshot.tradeCount,
-        summary: `order ${args.orderId} filled at ${String(args.price)} with fee ${fee}`,
+        completedStops,
+        summary:
+          completedStops.length > 0
+            ? `order ${args.orderId} filled at ${String(args.price)} with fee ${fee}; ` +
+              `completed OCO stop(s) ${completedStops.join(", ")}`
+            : `order ${args.orderId} filled at ${String(args.price)} with fee ${fee}`,
         note: "BUY fills add average-cost basis including fees; SELL fills realize PnL.",
       });
     } catch (error) {

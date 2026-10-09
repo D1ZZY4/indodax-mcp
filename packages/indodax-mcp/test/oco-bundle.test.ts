@@ -296,3 +296,37 @@ describe("oco bundle leg placement", () => {
     }
   });
 });
+
+describe("oco completion on take-profit fill", () => {
+  it("cancels the linked stop when the paper take-profit fills", async () => {
+    // The untested half of the OCO contract: a filled take-profit closes the
+    // position, so a lingering stop would fire later into an empty position.
+    // Live fills are not observed server-side, so this runs on paper only.
+    const built = stubbed();
+    const harness = await withInMemoryServer(built.server);
+    try {
+      const placed = await dataOf(harness, "indodax_oco_bundle", {
+        ...bundleArgs(),
+        clientOrderId: "oco-fire-path-1",
+      });
+      expect(placed.status).toBe("complete");
+      const takeProfit = placed.legs.find((leg) => leg.leg === "takeProfit");
+      expect(takeProfit?.ok).toBe(true);
+      const exchangeId = (takeProfit?.detail as { exchangeOrderId?: string } | undefined)
+        ?.exchangeOrderId;
+      expect(exchangeId).toBeTruthy();
+      const filled = (await harness.client.callTool({
+        name: "indodax_paper_fill",
+        arguments: { orderId: exchangeId as string, price: TAKE_PROFIT },
+      })) as { content: { text: string }[]; isError?: boolean };
+      expect(filled.isError).not.toBe(true);
+      const body = JSON.parse(
+        (filled.content as { type: string; text: string }[])[0]?.text ?? "{}",
+      ) as { data: { completedStops: string[] } };
+      expect(body.data.completedStops).toEqual([placed.stopId]);
+      expect(built.app.stops.list(true).at(0)?.status).toBe("cancelled");
+    } finally {
+      await harness.close();
+    }
+  });
+});
