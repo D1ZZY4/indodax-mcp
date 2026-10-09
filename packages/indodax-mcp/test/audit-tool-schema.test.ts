@@ -18,6 +18,7 @@ const TOOL_MODULES = [
   "oco",
   "oco-attach",
   "ops",
+  "ops-sockets",
   "orders",
   "paper",
   "portfolio",

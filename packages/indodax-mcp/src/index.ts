@@ -33,6 +33,7 @@ import { registerSystemTools } from "@indodax-mcp/indodax-mcp/tools/system";
 import { registerFundingTools } from "@indodax-mcp/indodax-mcp/tools/funding";
 import { registerHistoryTools } from "@indodax-mcp/indodax-mcp/tools/history";
 import { registerOpsTools } from "@indodax-mcp/indodax-mcp/tools/ops";
+import { registerSocketTools } from "@indodax-mcp/indodax-mcp/tools/ops-sockets";
 import { registerQuoteTools } from "@indodax-mcp/indodax-mcp/tools/quote";
 import { registerSymbolTools } from "@indodax-mcp/indodax-mcp/tools/symbols";
 import { registerPositionTools } from "@indodax-mcp/indodax-mcp/tools/positions";
@@ -88,6 +89,7 @@ export function buildIndodaxServer(env: AppEnv, diagnostic?: ConfigDiagnostic) {
   registerFundingTools(registry, handlers, app);
   registerHistoryTools(registry, handlers, app);
   registerOpsTools(registry, handlers, app);
+  registerSocketTools(registry, handlers, app);
   registerQuoteTools(registry, handlers, app);
   registerSymbolTools(registry, handlers, app);
   registerPositionTools(registry, handlers, app);

@@ -3,8 +3,6 @@ import Decimal from "decimal.js";
 import { ValidationError } from "@indodax-mcp/errors";
 import type { Registry } from "@indodax-mcp/mcp-registry";
 import type { ServerHandlers } from "@indodax-mcp/mcp-core";
-import { DEFAULT_PUBLIC_TOKEN, PUBLIC_WS_URL } from "@indodax-mcp/indodax-websocket";
-import { maskPrivateChannel } from "@indodax-mcp/indodax-websocket/private-channel";
 import { reconcileFills } from "@indodax-mcp/indodax-reconciliation";
 import { fail, ok, parseArgs } from "@indodax-mcp/indodax-mcp/respond";
 import type { AppServices } from "@indodax-mcp/indodax-mcp/composition";
@@ -23,17 +21,6 @@ const READ = {
   destructive: false,
   idempotencyClass: "none" as const,
   auditClass: "read" as const,
-};
-
-/** Socket lifecycle tools mutate connection state without touching exchange data. */
-const SOCKET_MUTATION = {
-  capability: "SYSTEM" as const,
-  riskClass: "mutation" as const,
-  environmentRequirement: "any" as const,
-  authRequirement: "none" as const,
-  destructive: false,
-  idempotencyClass: "none" as const,
-  auditClass: "mutation" as const,
 };
 
 export function registerOpsTools(
@@ -102,48 +89,6 @@ export function registerOpsTools(
     },
     {},
   );
-  const wsReconnect = defineTool(
-    {
-      name: "indodax_ws_reconnect",
-      title: "Reconnect sockets",
-      description:
-        "Mutating connection state. Drop and re-establish market and private sockets. Args: scope market, private, or all.",
-      ...SOCKET_MUTATION,
-    },
-    { scope: z.enum(["market", "private", "all"]).optional() },
-  );
-  const privateConnect = defineTool(
-    {
-      name: "indodax_private_connect",
-      title: "Connect private channel",
-      description:
-        "Mutating connection state, needs credentials. Fetch a private token and subscribe to the private order-event channel. Returns the channel and connection state, never the token.",
-      capability: "READ",
-      riskClass: "mutation",
-      environmentRequirement: "any",
-      authRequirement: "credentials",
-      destructive: false,
-      idempotencyClass: "none",
-      auditClass: "mutation",
-    },
-    {},
-  );
-  const privateDisconnect = defineTool(
-    {
-      name: "indodax_private_disconnect",
-      title: "Disconnect private channel",
-      description:
-        "Mutating connection state. Drop the private order-event channel without touching credentials or tokens. Use after indodax_private_connect when live mirroring is no longer needed.",
-      capability: "READ",
-      riskClass: "mutation",
-      environmentRequirement: "any",
-      authRequirement: "none",
-      destructive: false,
-      idempotencyClass: "none",
-      auditClass: "mutation",
-    },
-    {},
-  );
   for (const tool of [
     backtestGet,
     backtestCompare,
@@ -151,9 +96,6 @@ export function registerOpsTools(
     reconcileTrades,
     auditRisk,
     exposure,
-    wsReconnect,
-    privateConnect,
-    privateDisconnect,
   ]) {
     registry.registerTool(tool);
   }
@@ -284,66 +226,4 @@ export function registerOpsTools(
     }
   });
   handlers.tools.set("indodax_exposure", async () => ok(await exposureReport(app)));
-  handlers.tools.set("indodax_ws_reconnect", async (raw) => {
-    try {
-      const args = parseArgs(wsReconnect.inputSchema, raw);
-      const scope = args.scope ?? "all";
-      const connected: string[] = [];
-      const restored: string[] = [];
-      const reasons: string[] = [];
-      if (scope === "market" || scope === "all") {
-        try {
-          const subs = await app.marketSocket.reconnectWithResubscribe({
-            url: PUBLIC_WS_URL,
-            token: app.env.INDODAX_WS_TOKEN ?? DEFAULT_PUBLIC_TOKEN,
-          });
-          for (const sub of subs) restored.push(sub.channel);
-          connected.push("market");
-        } catch (error) {
-          reasons.push(`market: ${error instanceof Error ? error.message : String(error)}`);
-        }
-      }
-      if (scope === "private" || scope === "all") {
-        if (!app.privateTokenFetcher) {
-          throw ValidationError("private channel needs API credentials");
-        }
-        app.privateChannel.disconnect();
-        await app.privateChannel.connect(app.privateTokenFetcher);
-        connected.push("private");
-        restored.push(maskPrivateChannel(app.privateChannel.channel) ?? "private");
-      }
-      return ok({
-        scope,
-        reconnected: connected.length > 0,
-        connected,
-        restored,
-        marketState: app.marketSocket.connectionState,
-        note:
-          restored.length === 0 && connected.length > 0
-            ? "connected with no subscriptions to restore; resubscribe first when channel recovery matters"
-            : "restored lists resubscribed channels",
-        ...(reasons.length > 0 ? { reasons } : {}),
-      });
-    } catch (error) {
-      return fail(error);
-    }
-  });
-  handlers.tools.set("indodax_private_connect", async () => {
-    try {
-      if (!app.privateTokenFetcher) {
-        throw ValidationError("private channel needs API credentials");
-      }
-      await app.privateChannel.connect(app.privateTokenFetcher);
-      return ok({
-        channel: maskPrivateChannel(app.privateChannel.channel),
-        state: app.privateChannel.connectionState,
-      });
-    } catch (error) {
-      return fail(error);
-    }
-  });
-  handlers.tools.set("indodax_private_disconnect", async () => {
-    app.privateChannel.disconnect();
-    return ok({ state: app.privateChannel.connectionState });
-  });
 }
