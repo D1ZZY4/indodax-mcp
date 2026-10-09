@@ -268,3 +268,28 @@ describe("market robustness", () => {
     }
   });
 });
+
+describe("named-market screening", () => {
+  it("screens listed pairs without fetching the universe", async () => {
+    const { server } = stubbed();
+    const harness = await withInMemoryServer(server);
+    try {
+      const result = (await harness.client.callTool({
+        name: "indodax_tickers_all",
+        arguments: { pairs: ["BTCIDR", "nope-coin"] },
+      })) as { content: { text: string }[]; isError?: boolean };
+      expect(result.isError).not.toBe(true);
+      const text = result.content[0]?.text ?? "{}";
+      const data = (JSON.parse(text) as { data: Record<string, unknown> }).data as {
+        pairs: string[];
+        unknown: string[];
+        total: number;
+      };
+      expect(data.pairs).toEqual(["btc_idr"]);
+      expect(data.unknown).toEqual(["nope-coin"]);
+      expect(data.total).toBe(3);
+    } finally {
+      await harness.close();
+    }
+  });
+});

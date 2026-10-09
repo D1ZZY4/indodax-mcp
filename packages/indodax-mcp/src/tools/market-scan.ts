@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { asPair, parseSymbolFlexible } from "@indodax-mcp/core";
 import type { Registry } from "@indodax-mcp/mcp-registry";
 import type { ServerHandlers } from "@indodax-mcp/mcp-core";
 import { fail, ok, parseArgs } from "@indodax-mcp/indodax-mcp/respond";
@@ -37,7 +38,7 @@ const tickersAll = defineTool(
     name: "indodax_tickers_all",
     title: "indodax_tickers_all",
     description:
-      "Read-only. Screening-ready tickers. Args: optional quote filter like IDR, optional limit 1 to 500 default 100 when neither quote nor limit is given (limit caps returned rows, total is the universe size). Rows carry last, high, low, buy, sell, and vol_idr by default plus derived rangePct, pos, and spreadPct when computable. Args: optional fields array of high, low, last, buy, sell, vol_idr, vol_btc; optional minVolumeIdr floor on vol_idr; optional minRangePct floor on 24h range; optional maxSpreadPct cap; optional minPos/maxPos bounds on position inside the range.",
+      "Read-only. Screening-ready tickers. Args: optional quote filter like IDR, optional limit 1 to 500 default 100 when neither quote nor limit is given (limit caps returned rows, total is the universe size). Rows carry last, high, low, buy, sell, and vol_idr by default plus derived rangePct, pos, and spreadPct when computable. Args: optional fields array of high, low, last, buy, sell, vol_idr, vol_btc; optional pairs list to screen named markets without fetching the universe; optional minVolumeIdr floor on vol_idr; optional minRangePct floor on 24h range; optional maxSpreadPct cap; optional minPos/maxPos bounds on position inside the range.",
     capability: "READ" as const,
     riskClass: "read" as const,
     environmentRequirement: "any" as const,
@@ -64,6 +65,12 @@ const tickersAll = defineTool(
     /** Maximum position of last inside high/low (0 to 1). */
     maxPos: z.number().min(0).max(1).optional(),
     /**
+     * Screen only these pairs (any common spelling each). Unknown names are
+     * reported in `unknown` rather than failing the scan, so monitoring three
+     * positions never fetches 475 rows to keep two.
+     */
+    pairs: z.array(z.string().min(1)).max(100).optional(),
+    /**
      * Restrict each row to these fields. Derived rangePct, pos, and spreadPct
      * ride along whenever their inputs are usable.
      */
@@ -84,6 +91,33 @@ export function registerMarketScanTools(
       const all = (await app.publicClient.tickerAll()) as { tickers: Record<string, TickerRow> };
       const total = Object.keys(all.tickers).length;
       let entries: [string, TickerRow][] = Object.entries(all.tickers);
+      const unknown: string[] = [];
+      if (args.pairs !== undefined) {
+        // Named-market screening: keep only requested pairs, canonicalized,
+        // so three positions never cost a 475-row fetch. Unknown names ride
+        // along in `unknown` instead of failing the whole scan.
+        const wanted = new Map<string, string>();
+        for (const name of args.pairs) {
+          const symbol = parseSymbolFlexible(name);
+          if (symbol === null) {
+            unknown.push(name);
+            continue;
+          }
+          wanted.set(asPair(symbol), name);
+        }
+        const byLower = new Map(entries.map(([pair]) => [pair.toLowerCase(), pair]));
+        const picked: [string, TickerRow][] = [];
+        for (const [canonical, original] of wanted) {
+          const actual = byLower.get(canonical);
+          if (actual === undefined) {
+            unknown.push(original);
+            continue;
+          }
+          const body = all.tickers[actual];
+          if (body !== undefined) picked.push([actual, body]);
+        }
+        entries = picked;
+      }
       if (args.quote !== undefined) {
         const wanted = args.quote.toLowerCase();
         entries = entries.filter(([pair]) => pair.toLowerCase().endsWith(`_${wanted}`));
@@ -129,6 +163,7 @@ export function registerMarketScanTools(
         fields: projection,
         tickers: Object.fromEntries(entries),
         pairs: entries.map(([pair]) => pair),
+        unknown,
         summary: `${entries.length} ticker(s) returned of ${matched} matched of ${total} total${args.quote ? ` filtered by ${args.quote}` : ""}, fields ${projection.join(",")}`,
       });
     } catch (error) {
