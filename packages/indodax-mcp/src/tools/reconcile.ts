@@ -1,14 +1,14 @@
 import { z } from "zod";
 import Decimal from "decimal.js";
-import { ValidationError } from "@d1zzy4-jethools/errors";
-import type { Registry } from "@d1zzy4-jethools/mcp-registry";
-import type { ServerHandlers } from "@d1zzy4-jethools/mcp-core";
-import { getTicker } from "@d1zzy4-jethools/indodax-market";
-import { fail, ok, parseArgs } from "@d1zzy4-jethools/mcp-app/respond";
-import { checkPaperConsistency } from "@d1zzy4-jethools/mcp-app/paper-consistency";
-import { balanceRows, readExchangeLegs } from "@d1zzy4-jethools/mcp-app/tools/reconcile-exchange";
-import { defineTool } from "@d1zzy4-jethools/mcp-app/tools/define";
-import type { AppServices } from "@d1zzy4-jethools/mcp-app/composition";
+import { ValidationError } from "@indodax-mcp/errors";
+import type { Registry } from "@indodax-mcp/mcp-registry";
+import type { ServerHandlers } from "@indodax-mcp/mcp-core";
+import { getTicker } from "@indodax-mcp/indodax-market";
+import { fail, ok, parseArgs } from "@indodax-mcp/mcp-app/respond";
+import { checkPaperConsistency } from "@indodax-mcp/mcp-app/paper-consistency";
+import { balanceRows, readExchangeLegs } from "@indodax-mcp/mcp-app/tools/reconcile-exchange";
+import { defineTool } from "@indodax-mcp/mcp-app/tools/define";
+import type { AppServices } from "@indodax-mcp/mcp-app/composition";
 
 const READ = {
   capability: "READ" as const,

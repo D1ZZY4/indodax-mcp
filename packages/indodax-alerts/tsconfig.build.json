@@ -9,8 +9,8 @@
     "outDir": "dist",
     "rootDir": "src",
     "paths": {
-      "@d1zzy4-jethools/indodax-alerts": ["./src/index.ts"],
-      "@d1zzy4-jethools/indodax-alerts/*": ["./src/*"]
+      "@indodax-mcp/indodax-alerts": ["./src/index.ts"],
+      "@indodax-mcp/indodax-alerts/*": ["./src/*"]
     }
   },
   "include": ["src"]

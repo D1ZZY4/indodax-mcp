@@ -1,13 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { OrderRejectedError } from "@d1zzy4-jethools/errors";
-import { loadEnv } from "@d1zzy4-jethools/config";
-import type { PublicClient } from "@d1zzy4-jethools/indodax-client";
-import { clearCache } from "@d1zzy4-jethools/indodax-market";
-import { withInMemoryServer } from "@d1zzy4-jethools/mcp-testing";
-import { buildIndodaxServer } from "@d1zzy4-jethools/mcp-app";
-import { evaluateStops } from "@d1zzy4-jethools/mcp-app/tools/stop";
-import { isLiquidityBlock } from "@d1zzy4-jethools/mcp-app/stop-classification";
-import type { AppServices } from "@d1zzy4-jethools/mcp-app/composition";
+import { OrderRejectedError } from "@indodax-mcp/errors";
+import { loadEnv } from "@indodax-mcp/config";
+import type { PublicClient } from "@indodax-mcp/indodax-client";
+import { clearCache } from "@indodax-mcp/indodax-market";
+import { withInMemoryServer } from "@indodax-mcp/mcp-testing";
+import { buildIndodaxServer } from "@indodax-mcp/mcp-app";
+import { evaluateStops } from "@indodax-mcp/mcp-app/tools/stop";
+import { isLiquidityBlock } from "@indodax-mcp/mcp-app/stop-classification";
+import type { AppServices } from "@indodax-mcp/mcp-app/composition";
 
 const TP_ORDER = {
   symbol: "HONEYIDR",

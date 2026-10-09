@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { loadEnv } from "@d1zzy4-jethools/config";
-import type { PublicClient } from "@d1zzy4-jethools/indodax-client";
-import { clearCache } from "@d1zzy4-jethools/indodax-market";
-import { withInMemoryServer } from "@d1zzy4-jethools/mcp-testing";
-import { buildIndodaxServer } from "@d1zzy4-jethools/mcp-app";
+import { loadEnv } from "@indodax-mcp/config";
+import type { PublicClient } from "@indodax-mcp/indodax-client";
+import { clearCache } from "@indodax-mcp/indodax-market";
+import { withInMemoryServer } from "@indodax-mcp/mcp-testing";
+import { buildIndodaxServer } from "@indodax-mcp/mcp-app";
 
 /**
  * A polling loop was recomputing position value and PnL by hand every round.

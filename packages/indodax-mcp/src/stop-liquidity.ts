@@ -1,6 +1,6 @@
 import Decimal from "decimal.js";
-import { asCompact, parseSymbolFlexible } from "@d1zzy4-jethools/core";
-import type { AppServices } from "@d1zzy4-jethools/mcp-app/composition";
+import { asCompact, parseSymbolFlexible } from "@indodax-mcp/core";
+import type { AppServices } from "@indodax-mcp/mcp-app/composition";
 
 /**
  * Why a stop could not place, and what would clear it.

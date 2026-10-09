@@ -1,6 +1,6 @@
-import { AuthenticationError, AuthorizationError } from "@d1zzy4-jethools/errors";
-import type { ToolMetadata } from "@d1zzy4-jethools/mcp-contracts";
-import type { AppServices } from "@d1zzy4-jethools/mcp-app/composition";
+import { AuthenticationError, AuthorizationError } from "@indodax-mcp/errors";
+import type { ToolMetadata } from "@indodax-mcp/mcp-contracts";
+import type { AppServices } from "@indodax-mcp/mcp-app/composition";
 
 /**
  * Central metadata gate: enforces the mechanical dimensions (auth and

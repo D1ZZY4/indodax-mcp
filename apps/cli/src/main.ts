@@ -1,7 +1,7 @@
 import { defineCommand, runMain } from "citty";
-import { loadConfig } from "@d1zzy4-jethools/config";
-import { createLogger } from "@d1zzy4-jethools/logging";
-import { buildIndodaxServer } from "@d1zzy4-jethools/mcp-app";
+import { loadConfig } from "@indodax-mcp/config";
+import { createLogger } from "@indodax-mcp/logging";
+import { buildIndodaxServer } from "@indodax-mcp/mcp-app";
 
 // loadConfig keeps the parsed environment and its provenance together, so
 // indodax_config_status can explain which channel supplied each credential.
@@ -67,7 +67,7 @@ const market = defineCommand({
       return unknownAction("market", action, MARKET_ACTIONS.join(", "));
     }
     if (action === "ticker") {
-      const { getTicker } = await import("@d1zzy4-jethools/indodax-market");
+      const { getTicker } = await import("@indodax-mcp/indodax-market");
       const ticker = await getTicker(app.publicClient, String(args.pair ?? "btc_idr"));
       if (args.output === "json") {
         console.log(JSON.stringify(ticker, null, 2));

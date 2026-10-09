@@ -1,7 +1,7 @@
 import Decimal from "decimal.js";
-import { ValidationError } from "@d1zzy4-jethools/errors";
-import { decimalOrNull } from "@d1zzy4-jethools/core";
-import type { PairInfo } from "@d1zzy4-jethools/indodax-client";
+import { ValidationError } from "@indodax-mcp/errors";
+import { decimalOrNull } from "@indodax-mcp/core";
+import type { PairInfo } from "@indodax-mcp/indodax-client";
 
 /**
  * Order rounding.

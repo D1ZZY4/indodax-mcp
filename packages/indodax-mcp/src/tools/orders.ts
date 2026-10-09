@@ -1,10 +1,10 @@
 import { z } from "zod";
-import { AuthenticationError, AuthorizationError, ValidationError } from "@d1zzy4-jethools/errors";
-import { decimalOrNull } from "@d1zzy4-jethools/core";
-import type { Registry } from "@d1zzy4-jethools/mcp-registry";
-import type { ServerHandlers } from "@d1zzy4-jethools/mcp-core";
-import { placePaperOrder } from "@d1zzy4-jethools/mcp-app/tools/paper";
-import { fail, ok, parseArgs } from "@d1zzy4-jethools/mcp-app/respond";
+import { AuthenticationError, AuthorizationError, ValidationError } from "@indodax-mcp/errors";
+import { decimalOrNull } from "@indodax-mcp/core";
+import type { Registry } from "@indodax-mcp/mcp-registry";
+import type { ServerHandlers } from "@indodax-mcp/mcp-core";
+import { placePaperOrder } from "@indodax-mcp/mcp-app/tools/paper";
+import { fail, ok, parseArgs } from "@indodax-mcp/mcp-app/respond";
 import {
   acknowledgedArg,
   clientOrderIdArg,
@@ -13,10 +13,10 @@ import {
   priceArg,
   quantityArg,
   sideArg,
-} from "@d1zzy4-jethools/mcp-app/schemas";
-import type { AppServices } from "@d1zzy4-jethools/mcp-app/composition";
-import { defineTool, refineTool } from "@d1zzy4-jethools/mcp-app/tools/define";
-import { assessBudgetSize, assessStopRisk } from "@d1zzy4-jethools/mcp-app/risk-budget";
+} from "@indodax-mcp/mcp-app/schemas";
+import type { AppServices } from "@indodax-mcp/mcp-app/composition";
+import { defineTool, refineTool } from "@indodax-mcp/mcp-app/tools/define";
+import { assessBudgetSize, assessStopRisk } from "@indodax-mcp/mcp-app/risk-budget";
 import {
   ambiguousToUnknown,
   draftIntent,
@@ -24,7 +24,7 @@ import {
   reviewHypothetical,
   stpModeArg,
   timeInForceArg,
-} from "@d1zzy4-jethools/mcp-app/tools/order-intent";
+} from "@indodax-mcp/mcp-app/tools/order-intent";
 
 export function registerOrderTools(
   registry: Registry,

@@ -1,1 +1,1 @@
-export * from "@d1zzy4-jethools/indodax-paper/executor";
+export * from "@indodax-mcp/indodax-paper/executor";

@@ -1,13 +1,13 @@
-import { DrizzlePaperLedgerRepository, connectDatabase } from "@d1zzy4-jethools/db";
-import type { ExecutionRequest, ExecutionResult } from "@d1zzy4-jethools/indodax-execution";
-import type { AppServices } from "@d1zzy4-jethools/mcp-app/composition";
-import { persistenceCause, resolveBootSnapshot } from "@d1zzy4-jethools/mcp-app/persist-error";
+import { DrizzlePaperLedgerRepository, connectDatabase } from "@indodax-mcp/db";
+import type { ExecutionRequest, ExecutionResult } from "@indodax-mcp/indodax-execution";
+import type { AppServices } from "@indodax-mcp/mcp-app/composition";
+import { persistenceCause, resolveBootSnapshot } from "@indodax-mcp/mcp-app/persist-error";
 import {
   noteStoreConnected,
   noteStoreFailure,
   noteWriteOutcome,
-} from "@d1zzy4-jethools/mcp-app/persistence-state";
-import type { PersistenceHealth } from "@d1zzy4-jethools/mcp-app/state-store";
+} from "@indodax-mcp/mcp-app/persistence-state";
+import type { PersistenceHealth } from "@indodax-mcp/mcp-app/state-store";
 
 /**
  * Durable paper ledger. The in-memory PaperExecutor stays primary so the

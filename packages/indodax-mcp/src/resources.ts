@@ -1,7 +1,7 @@
-import type { Registry } from "@d1zzy4-jethools/mcp-registry";
-import type { ServerHandlers } from "@d1zzy4-jethools/mcp-core";
-import { cacheSize } from "@d1zzy4-jethools/indodax-market";
-import type { AppServices } from "@d1zzy4-jethools/mcp-app/composition";
+import type { Registry } from "@indodax-mcp/mcp-registry";
+import type { ServerHandlers } from "@indodax-mcp/mcp-core";
+import { cacheSize } from "@indodax-mcp/indodax-market";
+import type { AppServices } from "@indodax-mcp/mcp-app/composition";
 
 export function registerResources(
   registry: Registry,

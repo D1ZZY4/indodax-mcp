@@ -1,4 +1,4 @@
-import type { HealthStatus } from "@d1zzy4-jethools/core";
+import type { HealthStatus } from "@indodax-mcp/core";
 
 export interface ComponentHealth {
   status: HealthStatus;

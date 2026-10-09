@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { loadEnv } from "@d1zzy4-jethools/config";
-import { withInMemoryServer } from "@d1zzy4-jethools/mcp-testing";
-import { buildIndodaxServer } from "@d1zzy4-jethools/mcp-app";
+import { loadEnv } from "@indodax-mcp/config";
+import { withInMemoryServer } from "@indodax-mcp/mcp-testing";
+import { buildIndodaxServer } from "@indodax-mcp/mcp-app";
 
 /**
  * A scan over many pairs met a thin market and got a ValidationError it had to

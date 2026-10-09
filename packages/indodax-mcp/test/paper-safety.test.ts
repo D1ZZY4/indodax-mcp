@@ -1,14 +1,14 @@
 import { describe, expect, it, vi } from "vitest";
 import Decimal from "decimal.js";
-import { loadEnv } from "@d1zzy4-jethools/config";
-import { ExecutionService } from "@d1zzy4-jethools/indodax-execution";
-import type { RiskDecision } from "@d1zzy4-jethools/core";
-import { PaperExecutor, currentUtcDay } from "@d1zzy4-jethools/indodax-paper";
-import type { PublicClient } from "@d1zzy4-jethools/indodax-client";
-import { clearCache } from "@d1zzy4-jethools/indodax-market";
-import { createApp } from "@d1zzy4-jethools/mcp-app/composition";
-import { placePaperOrder } from "@d1zzy4-jethools/mcp-app/tools/paper";
-import { resolveRiskContext } from "@d1zzy4-jethools/mcp-app/risk-context";
+import { loadEnv } from "@indodax-mcp/config";
+import { ExecutionService } from "@indodax-mcp/indodax-execution";
+import type { RiskDecision } from "@indodax-mcp/core";
+import { PaperExecutor, currentUtcDay } from "@indodax-mcp/indodax-paper";
+import type { PublicClient } from "@indodax-mcp/indodax-client";
+import { clearCache } from "@indodax-mcp/indodax-market";
+import { createApp } from "@indodax-mcp/mcp-app/composition";
+import { placePaperOrder } from "@indodax-mcp/mcp-app/tools/paper";
+import { resolveRiskContext } from "@indodax-mcp/mcp-app/risk-context";
 
 const allow: RiskDecision = { outcome: "ALLOW", reasons: [], message: "allowed" };
 

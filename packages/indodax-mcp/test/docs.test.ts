@@ -2,7 +2,7 @@ import { mkdtempSync, mkdirSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { findDocsToolsDir } from "@d1zzy4-jethools/mcp-app/tools/docs";
+import { findDocsToolsDir } from "@indodax-mcp/mcp-app/tools/docs";
 
 function scaffold(name: string): string {
   const root = mkdtempSync(join(tmpdir(), "docs-resolve-"));

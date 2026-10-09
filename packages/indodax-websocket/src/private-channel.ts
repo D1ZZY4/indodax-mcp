@@ -1,9 +1,9 @@
-import { TOKEN_TTL_MS, tokenExpired } from "@d1zzy4-jethools/indodax-websocket/private";
+import { TOKEN_TTL_MS, tokenExpired } from "@indodax-mcp/indodax-websocket/private";
 import {
   PRIVATE_WS_URL,
   ManagedSocket,
   type StreamEvent,
-} from "@d1zzy4-jethools/indodax-websocket/socket";
+} from "@indodax-mcp/indodax-websocket/socket";
 
 export interface PrivateToken {
   token: string;

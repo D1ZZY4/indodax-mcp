@@ -1,13 +1,13 @@
 import { z } from "zod";
-import { ValidationError } from "@d1zzy4-jethools/errors";
-import type { Registry } from "@d1zzy4-jethools/mcp-registry";
-import type { ServerHandlers } from "@d1zzy4-jethools/mcp-core";
-import { getTicker } from "@d1zzy4-jethools/indodax-market";
-import type { PriceAlert } from "@d1zzy4-jethools/indodax-alerts";
-import { fail, ok, parseArgs } from "@d1zzy4-jethools/mcp-app/respond";
-import { canonicalPair, pairArg } from "@d1zzy4-jethools/mcp-app/schemas";
-import { defineTool } from "@d1zzy4-jethools/mcp-app/tools/define";
-import type { AppServices } from "@d1zzy4-jethools/mcp-app/composition";
+import { ValidationError } from "@indodax-mcp/errors";
+import type { Registry } from "@indodax-mcp/mcp-registry";
+import type { ServerHandlers } from "@indodax-mcp/mcp-core";
+import { getTicker } from "@indodax-mcp/indodax-market";
+import type { PriceAlert } from "@indodax-mcp/indodax-alerts";
+import { fail, ok, parseArgs } from "@indodax-mcp/mcp-app/respond";
+import { canonicalPair, pairArg } from "@indodax-mcp/mcp-app/schemas";
+import { defineTool } from "@indodax-mcp/mcp-app/tools/define";
+import type { AppServices } from "@indodax-mcp/mcp-app/composition";
 
 export interface AlertFireResult {
   checked: number;

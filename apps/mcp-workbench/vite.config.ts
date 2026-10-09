@@ -5,7 +5,7 @@ import { defineConfig } from "vite";
 /**
  * Application source is imported through the package name, so Vite needs the
  * same mapping the TypeScript `paths` entry provides. Without this alias Vite
- * cannot resolve `@d1zzy4-jethools/mcp-workbench/*` and the dev server and browser
+ * cannot resolve `@indodax-mcp/mcp-workbench/*` and the dev server and browser
  * tests both fail to load a page module.
  */
 const srcRoot = fileURLToPath(new URL("./src", import.meta.url));
@@ -14,7 +14,7 @@ export default defineConfig({
   plugins: [react()],
   resolve: {
     alias: {
-      "@d1zzy4-jethools/mcp-workbench": srcRoot,
+      "@indodax-mcp/mcp-workbench": srcRoot,
     },
   },
   server: {

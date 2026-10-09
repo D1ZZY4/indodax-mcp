@@ -3,7 +3,7 @@ import {
   ExchangeNetworkError,
   ExchangeRateLimitError,
   ExchangeTimeoutError,
-} from "@d1zzy4-jethools/errors";
+} from "@indodax-mcp/errors";
 
 export interface RetryPolicy {
   maxAttempts: number;

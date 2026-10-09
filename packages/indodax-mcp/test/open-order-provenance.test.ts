@@ -11,12 +11,12 @@
  * stale local read from exchange propagation lag.
  */
 import { describe, expect, it } from "vitest";
-import { loadEnv } from "@d1zzy4-jethools/config";
-import type { AccountClient } from "@d1zzy4-jethools/indodax-account";
-import type { PublicClient } from "@d1zzy4-jethools/indodax-client";
-import { clearCache } from "@d1zzy4-jethools/indodax-market";
-import { withInMemoryServer } from "@d1zzy4-jethools/mcp-testing";
-import { buildIndodaxServer } from "@d1zzy4-jethools/mcp-app";
+import { loadEnv } from "@indodax-mcp/config";
+import type { AccountClient } from "@indodax-mcp/indodax-account";
+import type { PublicClient } from "@indodax-mcp/indodax-client";
+import { clearCache } from "@indodax-mcp/indodax-market";
+import { withInMemoryServer } from "@indodax-mcp/mcp-testing";
+import { buildIndodaxServer } from "@indodax-mcp/mcp-app";
 
 const ORDERS = [
   { symbol: "HONEYIDR", orderId: 1, clientOrderId: "tp-1", side: "SELL", origQty: "10" },

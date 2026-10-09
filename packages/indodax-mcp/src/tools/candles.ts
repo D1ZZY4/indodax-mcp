@@ -1,11 +1,11 @@
 import { z } from "zod";
-import { fail, ok, parseArgs } from "@d1zzy4-jethools/mcp-app/respond";
-import type { Registry } from "@d1zzy4-jethools/mcp-registry";
-import type { ServerHandlers } from "@d1zzy4-jethools/mcp-core";
-import { canonicalPair } from "@d1zzy4-jethools/mcp-app/schemas";
-import { toCompactPair } from "@d1zzy4-jethools/indodax-market";
-import { defineTool } from "@d1zzy4-jethools/mcp-app/tools/define";
-import type { AppServices } from "@d1zzy4-jethools/mcp-app/composition";
+import { fail, ok, parseArgs } from "@indodax-mcp/mcp-app/respond";
+import type { Registry } from "@indodax-mcp/mcp-registry";
+import type { ServerHandlers } from "@indodax-mcp/mcp-core";
+import { canonicalPair } from "@indodax-mcp/mcp-app/schemas";
+import { toCompactPair } from "@indodax-mcp/indodax-market";
+import { defineTool } from "@indodax-mcp/mcp-app/tools/define";
+import type { AppServices } from "@indodax-mcp/mcp-app/composition";
 
 /**
  * Candle series for one pair.

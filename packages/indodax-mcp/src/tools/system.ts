@@ -1,15 +1,15 @@
 import { z } from "zod";
-import { AuthorizationError, ValidationError } from "@d1zzy4-jethools/errors";
-import { oneShotPairSnapshot } from "@d1zzy4-jethools/indodax-websocket";
-import { maskPrivateChannel } from "@d1zzy4-jethools/indodax-websocket/private-channel";
-import type { Registry } from "@d1zzy4-jethools/mcp-registry";
-import type { ServerHandlers } from "@d1zzy4-jethools/mcp-core";
-import { fail, ok, parseArgs } from "@d1zzy4-jethools/mcp-app/respond";
-import { pairArg } from "@d1zzy4-jethools/mcp-app/schemas";
-import { defineTool } from "@d1zzy4-jethools/mcp-app/tools/define";
-import { refreshPersistenceState } from "@d1zzy4-jethools/mcp-app/persistence-state";
-import { SERVER_NAME, SERVER_VERSION } from "@d1zzy4-jethools/mcp-app/version";
-import type { AppServices } from "@d1zzy4-jethools/mcp-app/composition";
+import { AuthorizationError, ValidationError } from "@indodax-mcp/errors";
+import { oneShotPairSnapshot } from "@indodax-mcp/indodax-websocket";
+import { maskPrivateChannel } from "@indodax-mcp/indodax-websocket/private-channel";
+import type { Registry } from "@indodax-mcp/mcp-registry";
+import type { ServerHandlers } from "@indodax-mcp/mcp-core";
+import { fail, ok, parseArgs } from "@indodax-mcp/mcp-app/respond";
+import { pairArg } from "@indodax-mcp/mcp-app/schemas";
+import { defineTool } from "@indodax-mcp/mcp-app/tools/define";
+import { refreshPersistenceState } from "@indodax-mcp/mcp-app/persistence-state";
+import { SERVER_NAME, SERVER_VERSION } from "@indodax-mcp/mcp-app/version";
+import type { AppServices } from "@indodax-mcp/mcp-app/composition";
 
 const SYSTEM = {
   capability: "SYSTEM" as const,

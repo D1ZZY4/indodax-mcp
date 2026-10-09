@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { McpServer } from "@modelcontextprotocol/server";
 import { z } from "zod";
-import { withInMemoryServer } from "@d1zzy4-jethools/mcp-testing";
+import { withInMemoryServer } from "@indodax-mcp/mcp-testing";
 
 describe("mcp-testing", () => {
   it("drives a server through the harness", async () => {

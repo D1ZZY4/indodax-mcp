@@ -1,17 +1,17 @@
 import { z } from "zod";
-import { OrderRejectedError, ValidationError } from "@d1zzy4-jethools/errors";
+import { OrderRejectedError, ValidationError } from "@indodax-mcp/errors";
 import Decimal from "decimal.js";
-import { asCompact, decimalOrNull, parseSymbolFlexible } from "@d1zzy4-jethools/core";
-import type { FetchFn } from "@d1zzy4-jethools/transport";
-import { OFFICIAL_V2_BUCKET, RateLimiter, fetchWithRetry } from "@d1zzy4-jethools/transport";
-import { egressHint } from "@d1zzy4-jethools/transport/egress";
+import { asCompact, decimalOrNull, parseSymbolFlexible } from "@indodax-mcp/core";
+import type { FetchFn } from "@indodax-mcp/transport";
+import { OFFICIAL_V2_BUCKET, RateLimiter, fetchWithRetry } from "@indodax-mcp/transport";
+import { egressHint } from "@indodax-mcp/transport/egress";
 import {
   INDODAX_V2_BASE,
   translateExchangeError,
   translateReadError,
   type TapiV2Signer,
-} from "@d1zzy4-jethools/indodax-auth";
-import type { Capability } from "@d1zzy4-jethools/core";
+} from "@indodax-mcp/indodax-auth";
+import type { Capability } from "@indodax-mcp/core";
 
 export const V2_BASE = INDODAX_V2_BASE;
 

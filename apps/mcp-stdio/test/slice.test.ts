@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import type { McpServer } from "@modelcontextprotocol/server";
-import { loadEnv } from "@d1zzy4-jethools/config";
-import { withInMemoryServer } from "@d1zzy4-jethools/mcp-testing";
-import { buildIndodaxServer } from "@d1zzy4-jethools/mcp-app";
+import { loadEnv } from "@indodax-mcp/config";
+import { withInMemoryServer } from "@indodax-mcp/mcp-testing";
+import { buildIndodaxServer } from "@indodax-mcp/mcp-app";
 
 function build(): McpServer {
   return buildIndodaxServer(loadEnv({})).server;
@@ -77,7 +77,7 @@ describe("mcp-stdio production server", () => {
   });
 
   it("serves Streamable HTTP end to end", async () => {
-    const { buildHttpApp } = await import("@d1zzy4-jethools/mcp-runtime");
+    const { buildHttpApp } = await import("@indodax-mcp/mcp-runtime");
     const { createServer } = buildIndodaxServer(loadEnv({}));
     const app = buildHttpApp(() => createServer());
     const headers = {

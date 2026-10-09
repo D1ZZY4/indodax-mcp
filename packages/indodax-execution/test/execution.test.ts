@@ -3,10 +3,10 @@ import {
   ExecutionService,
   type ExecutionBackend,
   type ExecutionRequest,
-} from "@d1zzy4-jethools/indodax-execution";
-import { LiveExecutor } from "@d1zzy4-jethools/indodax-execution/live";
-import { TapiV2Signer } from "@d1zzy4-jethools/indodax-auth";
-import type { RiskDecision } from "@d1zzy4-jethools/core";
+} from "@indodax-mcp/indodax-execution";
+import { LiveExecutor } from "@indodax-mcp/indodax-execution/live";
+import { TapiV2Signer } from "@indodax-mcp/indodax-auth";
+import type { RiskDecision } from "@indodax-mcp/core";
 
 const allow: RiskDecision = { outcome: "ALLOW", reasons: [], message: "allowed" };
 const deny: RiskDecision = { outcome: "DENY", reasons: ["KILL_SWITCH"], message: "stopped" };
@@ -66,7 +66,7 @@ describe("execution service", () => {
     const fetchFn = (async () =>
       new Response(
         JSON.stringify({ code: -2010, msg: "rejected" }),
-      )) as import("@d1zzy4-jethools/transport").FetchFn;
+      )) as import("@indodax-mcp/transport").FetchFn;
     const executor = new LiveExecutor({ signer: new TapiV2Signer("k", "s"), fetchFn });
     await expect(executor.cancelByExchangeId("BTCIDR", "1")).rejects.toThrow(/rejected cancel/);
   });
@@ -75,7 +75,7 @@ describe("execution service", () => {
     const fetchFn = (async () =>
       new Response(
         JSON.stringify({ code: 0, data: {} }),
-      )) as import("@d1zzy4-jethools/transport").FetchFn;
+      )) as import("@indodax-mcp/transport").FetchFn;
     const executor = new LiveExecutor({ signer: new TapiV2Signer("k", "s"), fetchFn });
     await expect(executor.cancelByExchangeId("BTCIDR", "1")).resolves.toBe(true);
   });
@@ -87,7 +87,7 @@ describe("execution service", () => {
       seenUrl = String(input);
       seenBody = String(init?.body ?? "");
       return new Response(JSON.stringify({ code: 0, data: { orderId: "ex-9" } }));
-    }) as import("@d1zzy4-jethools/transport").FetchFn;
+    }) as import("@indodax-mcp/transport").FetchFn;
     const executor = new LiveExecutor({ signer: new TapiV2Signer("k", "s"), fetchFn });
     const result = await executor.submit({
       order: {
@@ -126,7 +126,7 @@ describe("execution service", () => {
     const limited = (async () => {
       calls += 1;
       return new Response("slow", { status: 429 });
-    }) as import("@d1zzy4-jethools/transport").FetchFn;
+    }) as import("@indodax-mcp/transport").FetchFn;
     const executor = new LiveExecutor({ signer: new TapiV2Signer("k", "s"), fetchFn: limited });
     const request = {
       order: {
@@ -161,7 +161,7 @@ describe("execution service", () => {
       const error = new Error("aborted");
       error.name = "AbortError";
       throw error;
-    }) as import("@d1zzy4-jethools/transport").FetchFn;
+    }) as import("@indodax-mcp/transport").FetchFn;
     const timeoutExecutor = new LiveExecutor({
       signer: new TapiV2Signer("k", "s"),
       fetchFn: aborting,
@@ -174,7 +174,7 @@ describe("execution service", () => {
     const fetchFn = (async (_input: string, init?: RequestInit) => {
       seenBody = String(init?.body ?? "");
       return new Response(JSON.stringify({ code: 0, data: { orderId: "ex-1" } }));
-    }) as import("@d1zzy4-jethools/transport").FetchFn;
+    }) as import("@indodax-mcp/transport").FetchFn;
     const executor = new LiveExecutor({ signer: new TapiV2Signer("k", "s"), fetchFn });
     const base = {
       internalOrderId: "o1",
@@ -220,7 +220,7 @@ describe("execution service", () => {
     const fetchFn = (async () =>
       new Response(
         JSON.stringify({ code: -2010, msg: "Account has insufficient balance" }),
-      )) as import("@d1zzy4-jethools/transport").FetchFn;
+      )) as import("@indodax-mcp/transport").FetchFn;
     const executor = new LiveExecutor({ signer: new TapiV2Signer("k", "s"), fetchFn });
     const request = {
       order: {
@@ -256,7 +256,7 @@ describe("execution service", () => {
     const fetchFn = (async (input: string) => {
       seenUrl = String(input);
       return new Response(JSON.stringify({ code: 0, data: {} }));
-    }) as import("@d1zzy4-jethools/transport").FetchFn;
+    }) as import("@indodax-mcp/transport").FetchFn;
     const executor = new LiveExecutor({ signer: new TapiV2Signer("k", "s"), fetchFn });
     await expect(executor.cancelByExchangeId("BTCIDR", undefined, "my-cid-1")).resolves.toBe(true);
     expect(seenUrl).toContain("origClientOrderId=my-cid-1");
@@ -268,7 +268,7 @@ describe("execution service", () => {
     const fetchFn = (async (input: string) => {
       seenUrl = String(input);
       return new Response(JSON.stringify({ code: 0, data: {} }));
-    }) as import("@d1zzy4-jethools/transport").FetchFn;
+    }) as import("@indodax-mcp/transport").FetchFn;
     const executor = new LiveExecutor({ signer: new TapiV2Signer("k", "s"), fetchFn });
     await expect(executor.cancelByExchangeId("btc_idr", "42")).resolves.toBe(true);
     expect(seenUrl).toContain("symbol=BTCIDR");

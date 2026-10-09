@@ -1,22 +1,22 @@
 import { z } from "zod";
 import Decimal from "decimal.js";
-import { ValidationError } from "@d1zzy4-jethools/errors";
-import type { Registry } from "@d1zzy4-jethools/mcp-registry";
-import type { ServerHandlers } from "@d1zzy4-jethools/mcp-core";
-import { decimalOrNull } from "@d1zzy4-jethools/core";
-import { fail, ok, parseArgs } from "@d1zzy4-jethools/mcp-app/respond";
+import { ValidationError } from "@indodax-mcp/errors";
+import type { Registry } from "@indodax-mcp/mcp-registry";
+import type { ServerHandlers } from "@indodax-mcp/mcp-core";
+import { decimalOrNull } from "@indodax-mcp/core";
+import { fail, ok, parseArgs } from "@indodax-mcp/mcp-app/respond";
 import {
   canonicalPair,
   pairArg,
   priceArg,
   quantityArg,
   sideArg,
-} from "@d1zzy4-jethools/mcp-app/schemas";
-import { defineTool } from "@d1zzy4-jethools/mcp-app/tools/define";
-import { getTicker } from "@d1zzy4-jethools/indodax-market";
-import type { AppServices } from "@d1zzy4-jethools/mcp-app/composition";
-import { STOP } from "@d1zzy4-jethools/mcp-app/tools/stop-shared";
-import { assessLiquidity, describeLock } from "@d1zzy4-jethools/mcp-app/stop-liquidity";
+} from "@indodax-mcp/mcp-app/schemas";
+import { defineTool } from "@indodax-mcp/mcp-app/tools/define";
+import { getTicker } from "@indodax-mcp/indodax-market";
+import type { AppServices } from "@indodax-mcp/mcp-app/composition";
+import { STOP } from "@indodax-mcp/mcp-app/tools/stop-shared";
+import { assessLiquidity, describeLock } from "@indodax-mcp/mcp-app/stop-liquidity";
 
 const STOP_SHAPE = {
   pair: pairArg,

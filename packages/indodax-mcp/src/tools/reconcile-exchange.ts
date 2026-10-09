@@ -1,8 +1,8 @@
 import { z } from "zod";
 import Decimal from "decimal.js";
-import { compareBalance } from "@d1zzy4-jethools/indodax-orders";
-import { reconcileFills } from "@d1zzy4-jethools/indodax-reconciliation";
-import type { AppServices } from "@d1zzy4-jethools/mcp-app/composition";
+import { compareBalance } from "@indodax-mcp/indodax-orders";
+import { reconcileFills } from "@indodax-mcp/indodax-reconciliation";
+import type { AppServices } from "@indodax-mcp/mcp-app/composition";
 
 export interface BalanceRow {
   asset: string;

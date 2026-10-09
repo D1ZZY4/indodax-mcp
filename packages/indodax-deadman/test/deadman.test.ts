@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { DeadmanSwitch } from "@d1zzy4-jethools/indodax-deadman";
+import { DeadmanSwitch } from "@indodax-mcp/indodax-deadman";
 
 describe("deadman switch", () => {
   it("arms, refreshes, and disarms", () => {

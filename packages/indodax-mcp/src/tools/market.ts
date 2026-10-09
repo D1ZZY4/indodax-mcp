@@ -1,20 +1,14 @@
 import { z } from "zod";
-import { ValidationError } from "@d1zzy4-jethools/errors";
-import {
-  bestPrice,
-  bestQty,
-  midOf,
-  spreadOf,
-  spreadPctOf,
-} from "@d1zzy4-jethools/mcp-app/market-book";
-import type { Registry } from "@d1zzy4-jethools/mcp-registry";
-import type { ServerHandlers } from "@d1zzy4-jethools/mcp-core";
-import { getTicker, isPairTradable, toCompactPair } from "@d1zzy4-jethools/indodax-market";
-import { fail, ok, parseArgs } from "@d1zzy4-jethools/mcp-app/respond";
-import { flowOf, pairUnavailableMessage, screenValues } from "@d1zzy4-jethools/mcp-app/screen";
-import { canonicalPair, pairArg } from "@d1zzy4-jethools/mcp-app/schemas";
-import { defineTool } from "@d1zzy4-jethools/mcp-app/tools/define";
-import type { AppServices } from "@d1zzy4-jethools/mcp-app/composition";
+import { ValidationError } from "@indodax-mcp/errors";
+import { bestPrice, bestQty, midOf, spreadOf, spreadPctOf } from "@indodax-mcp/mcp-app/market-book";
+import type { Registry } from "@indodax-mcp/mcp-registry";
+import type { ServerHandlers } from "@indodax-mcp/mcp-core";
+import { getTicker, isPairTradable, toCompactPair } from "@indodax-mcp/indodax-market";
+import { fail, ok, parseArgs } from "@indodax-mcp/mcp-app/respond";
+import { flowOf, pairUnavailableMessage, screenValues } from "@indodax-mcp/mcp-app/screen";
+import { canonicalPair, pairArg } from "@indodax-mcp/mcp-app/schemas";
+import { defineTool } from "@indodax-mcp/mcp-app/tools/define";
+import type { AppServices } from "@indodax-mcp/mcp-app/composition";
 
 function meta(name: string, description: string) {
   return {

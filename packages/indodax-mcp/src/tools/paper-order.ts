@@ -1,12 +1,12 @@
 import Decimal from "decimal.js";
-import { RiskDeniedError, ValidationError } from "@d1zzy4-jethools/errors";
-import { parseSymbolFlexible } from "@d1zzy4-jethools/core";
-import { ExecutionService } from "@d1zzy4-jethools/indodax-execution";
-import type { ExecutionResult } from "@d1zzy4-jethools/indodax-execution";
-import { getTicker } from "@d1zzy4-jethools/indodax-market";
-import { roundForPlacement } from "@d1zzy4-jethools/mcp-app/tools/rounding";
-import { resolveRiskContext } from "@d1zzy4-jethools/mcp-app/risk-context";
-import type { AppServices } from "@d1zzy4-jethools/mcp-app/composition";
+import { RiskDeniedError, ValidationError } from "@indodax-mcp/errors";
+import { parseSymbolFlexible } from "@indodax-mcp/core";
+import { ExecutionService } from "@indodax-mcp/indodax-execution";
+import type { ExecutionResult } from "@indodax-mcp/indodax-execution";
+import { getTicker } from "@indodax-mcp/indodax-market";
+import { roundForPlacement } from "@indodax-mcp/mcp-app/tools/rounding";
+import { resolveRiskContext } from "@indodax-mcp/mcp-app/risk-context";
+import type { AppServices } from "@indodax-mcp/mcp-app/composition";
 
 export interface PaperPlacement {
   pair: string;

@@ -2,13 +2,13 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import EmbeddedPostgres from "embedded-postgres";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { connectDatabase } from "@d1zzy4-jethools/db/client";
+import { connectDatabase } from "@indodax-mcp/db/client";
 import {
   DrizzleAuditRepository,
   DrizzleDeadmanRepository,
   DrizzlePaperLedgerRepository,
-} from "@d1zzy4-jethools/db/repositories";
-import { tenants } from "@d1zzy4-jethools/db/schema";
+} from "@indodax-mcp/db/repositories";
+import { tenants } from "@indodax-mcp/db/schema";
 
 const EMBEDDED_PORT = 18899;
 const EMBEDDED_URL = `postgresql://postgres:postgres@127.0.0.1:${EMBEDDED_PORT}/postgres`;

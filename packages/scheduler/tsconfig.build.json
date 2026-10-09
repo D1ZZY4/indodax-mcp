@@ -9,8 +9,8 @@
     "outDir": "dist",
     "rootDir": "src",
     "paths": {
-      "@d1zzy4-jethools/scheduler": ["./src/index.ts"],
-      "@d1zzy4-jethools/scheduler/*": ["./src/*"]
+      "@indodax-mcp/scheduler": ["./src/index.ts"],
+      "@indodax-mcp/scheduler/*": ["./src/*"]
     }
   },
   "include": ["src"]

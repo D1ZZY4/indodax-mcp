@@ -9,8 +9,8 @@
     "outDir": "dist",
     "rootDir": "src",
     "paths": {
-      "@d1zzy4-jethools/transport": ["./src/index.ts"],
-      "@d1zzy4-jethools/transport/*": ["./src/*"]
+      "@indodax-mcp/transport": ["./src/index.ts"],
+      "@indodax-mcp/transport/*": ["./src/*"]
     }
   },
   "include": ["src"]

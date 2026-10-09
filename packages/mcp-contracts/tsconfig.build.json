@@ -9,8 +9,8 @@
     "outDir": "dist",
     "rootDir": "src",
     "paths": {
-      "@d1zzy4-jethools/mcp-contracts": ["./src/index.ts"],
-      "@d1zzy4-jethools/mcp-contracts/*": ["./src/*"]
+      "@indodax-mcp/mcp-contracts": ["./src/index.ts"],
+      "@indodax-mcp/mcp-contracts/*": ["./src/*"]
     }
   },
   "include": ["src"]

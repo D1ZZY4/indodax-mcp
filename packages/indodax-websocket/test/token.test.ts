@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { requestPrivateToken } from "@d1zzy4-jethools/indodax-websocket/token";
-import type { FetchFn } from "@d1zzy4-jethools/transport";
+import { requestPrivateToken } from "@indodax-mcp/indodax-websocket/token";
+import type { FetchFn } from "@indodax-mcp/transport";
 
 function fetchOk(): FetchFn {
   return (async () =>

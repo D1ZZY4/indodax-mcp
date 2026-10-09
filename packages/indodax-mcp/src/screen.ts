@@ -1,5 +1,5 @@
 import type Decimal from "decimal.js";
-import { decimalOrNull } from "@d1zzy4-jethools/core";
+import { decimalOrNull } from "@indodax-mcp/core";
 
 /**
  * Screening-ready derived fields for bulk ticker rows.

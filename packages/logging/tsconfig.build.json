@@ -9,8 +9,8 @@
     "outDir": "dist",
     "rootDir": "src",
     "paths": {
-      "@d1zzy4-jethools/logging": ["./src/index.ts"],
-      "@d1zzy4-jethools/logging/*": ["./src/*"]
+      "@indodax-mcp/logging": ["./src/index.ts"],
+      "@indodax-mcp/logging/*": ["./src/*"]
     }
   },
   "include": ["src"]

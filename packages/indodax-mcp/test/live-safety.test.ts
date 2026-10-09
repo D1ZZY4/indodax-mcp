@@ -1,14 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { loadEnv } from "@d1zzy4-jethools/config";
+import { loadEnv } from "@indodax-mcp/config";
 import {
   ExchangeNetworkError,
   ExchangeTimeoutError,
   OrderRejectedError,
   isAppError,
-} from "@d1zzy4-jethools/errors";
-import { withInMemoryServer } from "@d1zzy4-jethools/mcp-testing";
-import { buildIndodaxServer } from "@d1zzy4-jethools/mcp-app";
-import { ambiguousToUnknown, placeLiveOrder } from "@d1zzy4-jethools/mcp-app/tools/order-intent";
+} from "@indodax-mcp/errors";
+import { withInMemoryServer } from "@indodax-mcp/mcp-testing";
+import { buildIndodaxServer } from "@indodax-mcp/mcp-app";
+import { ambiguousToUnknown, placeLiveOrder } from "@indodax-mcp/mcp-app/tools/order-intent";
 
 function liveApp() {
   const { app, server } = buildIndodaxServer(

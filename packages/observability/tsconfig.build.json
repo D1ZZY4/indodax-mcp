@@ -9,8 +9,8 @@
     "outDir": "dist",
     "rootDir": "src",
     "paths": {
-      "@d1zzy4-jethools/observability": ["./src/index.ts"],
-      "@d1zzy4-jethools/observability/*": ["./src/*"]
+      "@indodax-mcp/observability": ["./src/index.ts"],
+      "@indodax-mcp/observability/*": ["./src/*"]
     }
   },
   "include": ["src"]

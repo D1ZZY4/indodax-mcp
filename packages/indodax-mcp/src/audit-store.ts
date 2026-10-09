@@ -1,13 +1,13 @@
-import type { AuditTrail } from "@d1zzy4-jethools/indodax-audit";
-import { DrizzleAuditRepository, connectDatabase } from "@d1zzy4-jethools/db";
-import type { AppServices } from "@d1zzy4-jethools/mcp-app/composition";
-import { persistenceCause } from "@d1zzy4-jethools/mcp-app/persist-error";
+import type { AuditTrail } from "@indodax-mcp/indodax-audit";
+import { DrizzleAuditRepository, connectDatabase } from "@indodax-mcp/db";
+import type { AppServices } from "@indodax-mcp/mcp-app/composition";
+import { persistenceCause } from "@indodax-mcp/mcp-app/persist-error";
 import {
   noteStoreConnected,
   noteStoreFailure,
   noteWriteOutcome,
-} from "@d1zzy4-jethools/mcp-app/persistence-state";
-import type { PersistenceHealth } from "@d1zzy4-jethools/mcp-app/state-store";
+} from "@indodax-mcp/mcp-app/persistence-state";
+import type { PersistenceHealth } from "@indodax-mcp/mcp-app/state-store";
 
 /**
  * Best-effort audit persistence. The in-memory trail stays primary and

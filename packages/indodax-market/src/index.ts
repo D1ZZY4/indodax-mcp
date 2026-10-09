@@ -1,7 +1,7 @@
-import { asCompact, asPair, parseSymbolFlexible, type SymbolParts } from "@d1zzy4-jethools/core";
-import { ValidationError } from "@d1zzy4-jethools/errors";
-import type { PairInfo, PublicClient, TickerBody } from "@d1zzy4-jethools/indodax-client";
-import { decimalOrNull } from "@d1zzy4-jethools/core";
+import { asCompact, asPair, parseSymbolFlexible, type SymbolParts } from "@indodax-mcp/core";
+import { ValidationError } from "@indodax-mcp/errors";
+import type { PairInfo, PublicClient, TickerBody } from "@indodax-mcp/indodax-client";
+import { decimalOrNull } from "@indodax-mcp/core";
 export interface MarketTicker extends TickerBody {
   symbol: SymbolParts;
   fetchedAt: string;

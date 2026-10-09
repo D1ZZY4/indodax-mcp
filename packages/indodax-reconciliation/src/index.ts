@@ -1,6 +1,6 @@
 import Decimal from "decimal.js";
-import type { ReconciliationState } from "@d1zzy4-jethools/core";
-import { compareBalance, compareOrderIds } from "@d1zzy4-jethools/indodax-orders";
+import type { ReconciliationState } from "@indodax-mcp/core";
+import { compareBalance, compareOrderIds } from "@indodax-mcp/indodax-orders";
 
 export interface LocalOrderView {
   internalOrderId: string;

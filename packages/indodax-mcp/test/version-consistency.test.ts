@@ -11,9 +11,9 @@ import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { loadEnv } from "@d1zzy4-jethools/config";
-import { withInMemoryServer } from "@d1zzy4-jethools/mcp-testing";
-import { buildIndodaxServer, SERVER_NAME, SERVER_VERSION } from "@d1zzy4-jethools/mcp-app";
+import { loadEnv } from "@indodax-mcp/config";
+import { withInMemoryServer } from "@indodax-mcp/mcp-testing";
+import { buildIndodaxServer, SERVER_NAME, SERVER_VERSION } from "@indodax-mcp/mcp-app";
 
 const ROOT = fileURLToPath(new URL("../../../", import.meta.url));
 

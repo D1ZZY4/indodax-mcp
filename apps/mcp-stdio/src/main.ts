@@ -1,7 +1,7 @@
-import { loadConfig } from "@d1zzy4-jethools/config";
-import { serveStdioTransport } from "@d1zzy4-jethools/mcp-runtime";
-import { createLogger } from "@d1zzy4-jethools/logging";
-import { buildIndodaxServer } from "@d1zzy4-jethools/mcp-app";
+import { loadConfig } from "@indodax-mcp/config";
+import { serveStdioTransport } from "@indodax-mcp/mcp-runtime";
+import { createLogger } from "@indodax-mcp/logging";
+import { buildIndodaxServer } from "@indodax-mcp/mcp-app";
 
 const { env, diagnostic } = loadConfig();
 const logger = createLogger({ service: "mcp-stdio" });

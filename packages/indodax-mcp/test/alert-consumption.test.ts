@@ -8,12 +8,12 @@
  * "did not trigger" and can lead to a missed or duplicated response.
  */
 import { describe, expect, it } from "vitest";
-import { loadEnv } from "@d1zzy4-jethools/config";
-import type { PublicClient } from "@d1zzy4-jethools/indodax-client";
-import { clearCache } from "@d1zzy4-jethools/indodax-market";
-import { withInMemoryServer } from "@d1zzy4-jethools/mcp-testing";
-import { buildIndodaxServer } from "@d1zzy4-jethools/mcp-app";
-import { evaluateAlerts } from "@d1zzy4-jethools/mcp-app/tools/alerts";
+import { loadEnv } from "@indodax-mcp/config";
+import type { PublicClient } from "@indodax-mcp/indodax-client";
+import { clearCache } from "@indodax-mcp/indodax-market";
+import { withInMemoryServer } from "@indodax-mcp/mcp-testing";
+import { buildIndodaxServer } from "@indodax-mcp/mcp-app";
+import { evaluateAlerts } from "@indodax-mcp/mcp-app/tools/alerts";
 
 type Harness = Awaited<ReturnType<typeof withInMemoryServer>>;
 

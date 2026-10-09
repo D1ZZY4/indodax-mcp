@@ -6,7 +6,7 @@ import {
   resourceMetadataSchema,
   type ToolMetadata,
   toolMetadataSchema,
-} from "@d1zzy4-jethools/mcp-contracts";
+} from "@indodax-mcp/mcp-contracts";
 
 export interface ToolEntry {
   metadata: ToolMetadata;

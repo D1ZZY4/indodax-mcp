@@ -1,4 +1,4 @@
-import type { BacktestReport } from "@d1zzy4-jethools/indodax-backtest";
+import type { BacktestReport } from "@indodax-mcp/indodax-backtest";
 
 export interface StoredBacktest {
   id: string;

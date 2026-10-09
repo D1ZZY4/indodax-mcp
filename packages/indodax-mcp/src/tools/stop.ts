@@ -1,13 +1,13 @@
 import { z } from "zod";
-import { ValidationError } from "@d1zzy4-jethools/errors";
-import type { Registry } from "@d1zzy4-jethools/mcp-registry";
-import type { ServerHandlers } from "@d1zzy4-jethools/mcp-core";
-import { fail, ok, parseArgs } from "@d1zzy4-jethools/mcp-app/respond";
-import { defineTool } from "@d1zzy4-jethools/mcp-app/tools/define";
-import type { AppServices } from "@d1zzy4-jethools/mcp-app/composition";
-import { STOP, STOP_READ } from "@d1zzy4-jethools/mcp-app/tools/stop-shared";
-import { registerStopCreateTools } from "@d1zzy4-jethools/mcp-app/tools/stop-create";
-import { registerStopCheckTools } from "@d1zzy4-jethools/mcp-app/tools/stop-check";
+import { ValidationError } from "@indodax-mcp/errors";
+import type { Registry } from "@indodax-mcp/mcp-registry";
+import type { ServerHandlers } from "@indodax-mcp/mcp-core";
+import { fail, ok, parseArgs } from "@indodax-mcp/mcp-app/respond";
+import { defineTool } from "@indodax-mcp/mcp-app/tools/define";
+import type { AppServices } from "@indodax-mcp/mcp-app/composition";
+import { STOP, STOP_READ } from "@indodax-mcp/mcp-app/tools/stop-shared";
+import { registerStopCreateTools } from "@indodax-mcp/mcp-app/tools/stop-create";
+import { registerStopCheckTools } from "@indodax-mcp/mcp-app/tools/stop-check";
 
 /**
  * The MCP surface for server-side stops: create, list, cancel, and check.
@@ -17,12 +17,12 @@ import { registerStopCheckTools } from "@d1zzy4-jethools/mcp-app/tools/stop-chec
  * share one decision path. This module keeps the shared re-exports plus the
  * small list and cancel surfaces.
  */
-export { evaluateStops } from "@d1zzy4-jethools/mcp-app/stop-trigger";
-export type { StopFireResult } from "@d1zzy4-jethools/mcp-app/stop-trigger";
+export { evaluateStops } from "@indodax-mcp/mcp-app/stop-trigger";
+export type { StopFireResult } from "@indodax-mcp/mcp-app/stop-trigger";
 export {
   isLiquidityBlock,
   isRetryableStopFailure,
-} from "@d1zzy4-jethools/mcp-app/stop-classification";
+} from "@indodax-mcp/mcp-app/stop-classification";
 
 const stopsList = defineTool(
   {

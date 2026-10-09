@@ -1,11 +1,11 @@
 import { z } from "zod";
 import Decimal from "decimal.js";
-import type { Registry } from "@d1zzy4-jethools/mcp-registry";
-import type { ServerHandlers } from "@d1zzy4-jethools/mcp-core";
-import { formatMoney } from "@d1zzy4-jethools/core";
-import { equityIdr, pnl } from "@d1zzy4-jethools/indodax-portfolio";
-import { fail, ok } from "@d1zzy4-jethools/mcp-app/respond";
-import type { AppServices } from "@d1zzy4-jethools/mcp-app/composition";
+import type { Registry } from "@indodax-mcp/mcp-registry";
+import type { ServerHandlers } from "@indodax-mcp/mcp-core";
+import { formatMoney } from "@indodax-mcp/core";
+import { equityIdr, pnl } from "@indodax-mcp/indodax-portfolio";
+import { fail, ok } from "@indodax-mcp/mcp-app/respond";
+import type { AppServices } from "@indodax-mcp/mcp-app/composition";
 
 const READ = {
   capability: "READ" as const,

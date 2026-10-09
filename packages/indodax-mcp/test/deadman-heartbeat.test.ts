@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { loadEnv } from "@d1zzy4-jethools/config";
-import { withInMemoryServer } from "@d1zzy4-jethools/mcp-testing";
-import { buildIndodaxServer } from "@d1zzy4-jethools/mcp-app";
-import { resetExchangeState } from "@d1zzy4-jethools/mcp-app/tools/deadman";
+import { loadEnv } from "@indodax-mcp/config";
+import { withInMemoryServer } from "@indodax-mcp/mcp-testing";
+import { buildIndodaxServer } from "@indodax-mcp/mcp-app";
+import { resetExchangeState } from "@indodax-mcp/mcp-app/tools/deadman";
 
 type Harness = Awaited<ReturnType<typeof withInMemoryServer>>;
 

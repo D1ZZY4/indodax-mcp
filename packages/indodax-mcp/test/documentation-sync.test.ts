@@ -13,8 +13,8 @@ import { describe, expect, it } from "vitest";
 import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { loadEnv } from "@d1zzy4-jethools/config";
-import { buildIndodaxServer } from "@d1zzy4-jethools/mcp-app";
+import { loadEnv } from "@indodax-mcp/config";
+import { buildIndodaxServer } from "@indodax-mcp/mcp-app";
 
 const ROOT = fileURLToPath(new URL("../../../", import.meta.url));
 const DOCS = join(ROOT, "docs", "tools");
@@ -91,7 +91,7 @@ describe("docs tool serves the pages it advertises", () => {
   it("resolves every page named in the guide index", async () => {
     // A packed install copies docs/tools to docs-tools, so a page named in the
     // guide must be servable through indodax_docs in this repository too.
-    const { withInMemoryServer } = await import("@d1zzy4-jethools/mcp-testing");
+    const { withInMemoryServer } = await import("@indodax-mcp/mcp-testing");
     const { server, app } = registry();
     app.scheduler.stopAll();
     const pages = [

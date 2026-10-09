@@ -9,8 +9,8 @@
     "outDir": "dist",
     "rootDir": "src",
     "paths": {
-      "@d1zzy4-jethools/indodax-deadman": ["./src/index.ts"],
-      "@d1zzy4-jethools/indodax-deadman/*": ["./src/*"]
+      "@indodax-mcp/indodax-deadman": ["./src/index.ts"],
+      "@indodax-mcp/indodax-deadman/*": ["./src/*"]
     }
   },
   "include": ["src"]

@@ -1,33 +1,33 @@
-import type { AppEnv, ConfigDiagnostic } from "@d1zzy4-jethools/config";
-import { diagnoseEnv } from "@d1zzy4-jethools/config";
-import { AuditTrail } from "@d1zzy4-jethools/indodax-audit";
-import { AccountClient } from "@d1zzy4-jethools/indodax-account";
-import { AlertStore } from "@d1zzy4-jethools/indodax-alerts";
-import { TapiV2Signer } from "@d1zzy4-jethools/indodax-auth";
-import { PublicClient } from "@d1zzy4-jethools/indodax-client";
-import { DeadmanSwitch } from "@d1zzy4-jethools/indodax-deadman";
-import { LiveExecutor } from "@d1zzy4-jethools/indodax-execution";
-import { EventBus } from "@d1zzy4-jethools/events";
-import { HealthTracker, Counters } from "@d1zzy4-jethools/observability";
-import { PaperExecutor } from "@d1zzy4-jethools/indodax-paper";
+import type { AppEnv, ConfigDiagnostic } from "@indodax-mcp/config";
+import { diagnoseEnv } from "@indodax-mcp/config";
+import { AuditTrail } from "@indodax-mcp/indodax-audit";
+import { AccountClient } from "@indodax-mcp/indodax-account";
+import { AlertStore } from "@indodax-mcp/indodax-alerts";
+import { TapiV2Signer } from "@indodax-mcp/indodax-auth";
+import { PublicClient } from "@indodax-mcp/indodax-client";
+import { DeadmanSwitch } from "@indodax-mcp/indodax-deadman";
+import { LiveExecutor } from "@indodax-mcp/indodax-execution";
+import { EventBus } from "@indodax-mcp/events";
+import { HealthTracker, Counters } from "@indodax-mcp/observability";
+import { PaperExecutor } from "@indodax-mcp/indodax-paper";
 import {
   createRiskEngine,
   defaultRiskLimits,
   liveEnabledPolicy,
   paperOnlyPolicy,
-} from "@d1zzy4-jethools/indodax-risk";
-import type { RiskEngine, RiskLimits, RiskPolicy } from "@d1zzy4-jethools/indodax-risk";
-import { OFFICIAL_V2_BUCKET, RateLimiter } from "@d1zzy4-jethools/transport";
-import { TradingService } from "@d1zzy4-jethools/indodax-trading";
+} from "@indodax-mcp/indodax-risk";
+import type { RiskEngine, RiskLimits, RiskPolicy } from "@indodax-mcp/indodax-risk";
+import { OFFICIAL_V2_BUCKET, RateLimiter } from "@indodax-mcp/transport";
+import { TradingService } from "@indodax-mcp/indodax-trading";
 import {
   ManagedSocket,
   PrivateChannelManager,
   requestPrivateToken,
   type TokenFetcher,
-} from "@d1zzy4-jethools/indodax-websocket";
-import { Scheduler } from "@d1zzy4-jethools/scheduler";
-import { createLogger } from "@d1zzy4-jethools/logging";
-import { StopStore } from "@d1zzy4-jethools/mcp-app/stop-store";
+} from "@indodax-mcp/indodax-websocket";
+import { Scheduler } from "@indodax-mcp/scheduler";
+import { createLogger } from "@indodax-mcp/logging";
+import { StopStore } from "@indodax-mcp/mcp-app/stop-store";
 
 export interface AppServices {
   env: AppEnv;

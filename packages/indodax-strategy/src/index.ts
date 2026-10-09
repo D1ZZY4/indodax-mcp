@@ -1,5 +1,5 @@
-import type { OrderSide } from "@d1zzy4-jethools/core";
-import type { SymbolParts } from "@d1zzy4-jethools/core";
+import type { OrderSide } from "@indodax-mcp/core";
+import type { SymbolParts } from "@indodax-mcp/core";
 
 export interface StrategyDefinition {
   id: string;

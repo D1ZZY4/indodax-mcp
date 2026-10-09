@@ -1,8 +1,8 @@
-import { loadConfig } from "@d1zzy4-jethools/config";
-import { createLogger } from "@d1zzy4-jethools/logging";
-import { buildIndodaxServer } from "@d1zzy4-jethools/mcp-app";
-import { decimalOrNull } from "@d1zzy4-jethools/core";
-import { getTicker } from "@d1zzy4-jethools/indodax-market";
+import { loadConfig } from "@indodax-mcp/config";
+import { createLogger } from "@indodax-mcp/logging";
+import { buildIndodaxServer } from "@indodax-mcp/mcp-app";
+import { decimalOrNull } from "@indodax-mcp/core";
+import { getTicker } from "@indodax-mcp/indodax-market";
 
 const { diagnostic, env } = loadConfig();
 const logger = createLogger({ service: "daemon" });

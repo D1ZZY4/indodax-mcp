@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { ValidationError } from "@d1zzy4-jethools/errors";
+import { ValidationError } from "@indodax-mcp/errors";
 
 export const TOKEN_TTL_MS = 24 * 60 * 60 * 1000;
 

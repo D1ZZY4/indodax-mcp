@@ -4,14 +4,14 @@ import {
   alertSnapshots,
   connectDatabase,
   stopSnapshots,
-} from "@d1zzy4-jethools/db";
-import type { AppServices } from "@d1zzy4-jethools/mcp-app/composition";
-import { persistenceCause, resolveBootSnapshot } from "@d1zzy4-jethools/mcp-app/persist-error";
+} from "@indodax-mcp/db";
+import type { AppServices } from "@indodax-mcp/mcp-app/composition";
+import { persistenceCause, resolveBootSnapshot } from "@indodax-mcp/mcp-app/persist-error";
 import {
   noteStoreConnected,
   noteStoreFailure,
   noteWriteOutcome,
-} from "@d1zzy4-jethools/mcp-app/persistence-state";
+} from "@indodax-mcp/mcp-app/persistence-state";
 
 /**
  * Recompute health after a mirror settles. Passed in so this module does not

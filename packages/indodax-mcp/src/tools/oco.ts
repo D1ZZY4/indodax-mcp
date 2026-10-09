@@ -1,15 +1,15 @@
 import { z } from "zod";
-import { ValidationError } from "@d1zzy4-jethools/errors";
-import { decimalOrNull } from "@d1zzy4-jethools/core";
-import type { Registry } from "@d1zzy4-jethools/mcp-registry";
-import type { ServerHandlers } from "@d1zzy4-jethools/mcp-core";
-import { fail, ok, parseArgs } from "@d1zzy4-jethools/mcp-app/respond";
-import { canonicalPair } from "@d1zzy4-jethools/mcp-app/schemas";
-import { defineTool } from "@d1zzy4-jethools/mcp-app/tools/define";
-import type { AppServices } from "@d1zzy4-jethools/mcp-app/composition";
-import { placePaperOrder } from "@d1zzy4-jethools/mcp-app/tools/paper";
-import { placeLiveOrder } from "@d1zzy4-jethools/mcp-app/tools/order-intent";
-import { roundForPlacement } from "@d1zzy4-jethools/mcp-app/tools/rounding";
+import { ValidationError } from "@indodax-mcp/errors";
+import { decimalOrNull } from "@indodax-mcp/core";
+import type { Registry } from "@indodax-mcp/mcp-registry";
+import type { ServerHandlers } from "@indodax-mcp/mcp-core";
+import { fail, ok, parseArgs } from "@indodax-mcp/mcp-app/respond";
+import { canonicalPair } from "@indodax-mcp/mcp-app/schemas";
+import { defineTool } from "@indodax-mcp/mcp-app/tools/define";
+import type { AppServices } from "@indodax-mcp/mcp-app/composition";
+import { placePaperOrder } from "@indodax-mcp/mcp-app/tools/paper";
+import { placeLiveOrder } from "@indodax-mcp/mcp-app/tools/order-intent";
+import { roundForPlacement } from "@indodax-mcp/mcp-app/tools/rounding";
 
 /**
  * One call per position.

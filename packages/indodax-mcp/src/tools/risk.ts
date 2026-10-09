@@ -1,15 +1,15 @@
 import { z } from "zod";
-import { ValidationError } from "@d1zzy4-jethools/errors";
-import type { Registry } from "@d1zzy4-jethools/mcp-registry";
-import type { ServerHandlers } from "@d1zzy4-jethools/mcp-core";
-import { decimalOrNull, parseSymbolFlexible } from "@d1zzy4-jethools/core";
-import { fail, ok, parseArgs } from "@d1zzy4-jethools/mcp-app/respond";
-import { canonicalPair, pairArg, priceArg } from "@d1zzy4-jethools/mcp-app/schemas";
-import { defineTool } from "@d1zzy4-jethools/mcp-app/tools/define";
-import { assessBudgetSize, assessStopRisk } from "@d1zzy4-jethools/mcp-app/risk-budget";
-import { checkPaperConsistency } from "@d1zzy4-jethools/mcp-app/paper-consistency";
-import { resolveRiskContext } from "@d1zzy4-jethools/mcp-app/risk-context";
-import type { AppServices } from "@d1zzy4-jethools/mcp-app/composition";
+import { ValidationError } from "@indodax-mcp/errors";
+import type { Registry } from "@indodax-mcp/mcp-registry";
+import type { ServerHandlers } from "@indodax-mcp/mcp-core";
+import { decimalOrNull, parseSymbolFlexible } from "@indodax-mcp/core";
+import { fail, ok, parseArgs } from "@indodax-mcp/mcp-app/respond";
+import { canonicalPair, pairArg, priceArg } from "@indodax-mcp/mcp-app/schemas";
+import { defineTool } from "@indodax-mcp/mcp-app/tools/define";
+import { assessBudgetSize, assessStopRisk } from "@indodax-mcp/mcp-app/risk-budget";
+import { checkPaperConsistency } from "@indodax-mcp/mcp-app/paper-consistency";
+import { resolveRiskContext } from "@indodax-mcp/mcp-app/risk-context";
+import type { AppServices } from "@indodax-mcp/mcp-app/composition";
 
 const SYSTEM_READ = {
   capability: "SYSTEM" as const,

@@ -5,7 +5,7 @@ import type {
   RiskDecision,
   RiskOutcome,
   RiskReason,
-} from "@d1zzy4-jethools/core";
+} from "@indodax-mcp/core";
 
 export interface RiskLimits {
   maxOrderNotional: Decimal;

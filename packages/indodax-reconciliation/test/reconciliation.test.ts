@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { reconcileAll, reconcileFills } from "@d1zzy4-jethools/indodax-reconciliation";
+import { reconcileAll, reconcileFills } from "@indodax-mcp/indodax-reconciliation";
 
 describe("reconciliation", () => {
   it("converges matching ledgers", () => {

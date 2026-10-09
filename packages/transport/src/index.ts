@@ -1,3 +1,3 @@
-export * from "@d1zzy4-jethools/transport/egress";
-export * from "@d1zzy4-jethools/transport/fetch";
-export * from "@d1zzy4-jethools/transport/rate-limit";
+export * from "@indodax-mcp/transport/egress";
+export * from "@indodax-mcp/transport/fetch";
+export * from "@indodax-mcp/transport/rate-limit";

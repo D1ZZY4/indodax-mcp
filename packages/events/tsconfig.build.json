@@ -9,8 +9,8 @@
     "outDir": "dist",
     "rootDir": "src",
     "paths": {
-      "@d1zzy4-jethools/events": ["./src/index.ts"],
-      "@d1zzy4-jethools/events/*": ["./src/*"]
+      "@indodax-mcp/events": ["./src/index.ts"],
+      "@indodax-mcp/events/*": ["./src/*"]
     }
   },
   "include": ["src"]

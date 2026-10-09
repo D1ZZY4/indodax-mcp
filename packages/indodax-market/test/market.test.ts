@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { PublicClient, type FetchFn } from "@d1zzy4-jethools/indodax-client";
+import { PublicClient, type FetchFn } from "@indodax-mcp/indodax-client";
 import {
   cacheSize,
   checkQuantityIncrement,
@@ -9,7 +9,7 @@ import {
   isPairTradable,
   normalizePair,
   toCompactPair,
-} from "@d1zzy4-jethools/indodax-market";
+} from "@indodax-mcp/indodax-market";
 
 const TICKER = {
   ticker: { high: "110", low: "90", last: "100", buy: "99", sell: "101" },

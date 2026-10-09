@@ -1,11 +1,11 @@
 import Decimal from "decimal.js";
-import { OrderRejectedError, ValidationError } from "@d1zzy4-jethools/errors";
+import { OrderRejectedError, ValidationError } from "@indodax-mcp/errors";
 import type {
   ExecutionBackend,
   ExecutionRequest,
   ExecutionResult,
-} from "@d1zzy4-jethools/indodax-execution";
-import { newOrderRecord, transition, type OrderRecord } from "@d1zzy4-jethools/indodax-orders";
+} from "@indodax-mcp/indodax-execution";
+import { newOrderRecord, transition, type OrderRecord } from "@indodax-mcp/indodax-orders";
 
 export const PAPER_TAKER_FEE = "0.0026";
 

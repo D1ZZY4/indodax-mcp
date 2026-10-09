@@ -6,14 +6,14 @@ import {
   RiskDeniedError,
   UnknownExecutionResultError,
   ValidationError,
-} from "@d1zzy4-jethools/errors";
-import { ExecutionService } from "@d1zzy4-jethools/indodax-execution";
-import { roundForPlacement } from "@d1zzy4-jethools/mcp-app/tools/rounding";
-import type { Capability, ExecutionMode } from "@d1zzy4-jethools/core";
-import { parseSymbolFlexible } from "@d1zzy4-jethools/core";
-import type { TradeIntent } from "@d1zzy4-jethools/indodax-trading";
-import { resolveRiskContext } from "@d1zzy4-jethools/mcp-app/risk-context";
-import type { AppServices } from "@d1zzy4-jethools/mcp-app/composition";
+} from "@indodax-mcp/errors";
+import { ExecutionService } from "@indodax-mcp/indodax-execution";
+import { roundForPlacement } from "@indodax-mcp/mcp-app/tools/rounding";
+import type { Capability, ExecutionMode } from "@indodax-mcp/core";
+import { parseSymbolFlexible } from "@indodax-mcp/core";
+import type { TradeIntent } from "@indodax-mcp/indodax-trading";
+import { resolveRiskContext } from "@indodax-mcp/mcp-app/risk-context";
+import type { AppServices } from "@indodax-mcp/mcp-app/composition";
 
 export const timeInForceArg = z.enum(["GTC", "MOC", "FOK"]).optional();
 export const stpModeArg = z.enum(["EXPIRE_TAKER", "EXPIRE_MAKER", "EXPIRE_BOTH"]).optional();

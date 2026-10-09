@@ -1,15 +1,15 @@
 import { z } from "zod";
 import Decimal from "decimal.js";
-import { AuthenticationError, AuthorizationError, ValidationError } from "@d1zzy4-jethools/errors";
-import { decimalOrNull } from "@d1zzy4-jethools/core";
-import { getTicker } from "@d1zzy4-jethools/indodax-market";
-import type { Registry } from "@d1zzy4-jethools/mcp-registry";
-import type { ServerHandlers } from "@d1zzy4-jethools/mcp-core";
-import { fail, ok, parseArgs } from "@d1zzy4-jethools/mcp-app/respond";
-import { canonicalPair } from "@d1zzy4-jethools/mcp-app/schemas";
-import { assessLiquidity, describeLock } from "@d1zzy4-jethools/mcp-app/stop-liquidity";
-import { defineTool } from "@d1zzy4-jethools/mcp-app/tools/define";
-import type { AppServices } from "@d1zzy4-jethools/mcp-app/composition";
+import { AuthenticationError, AuthorizationError, ValidationError } from "@indodax-mcp/errors";
+import { decimalOrNull } from "@indodax-mcp/core";
+import { getTicker } from "@indodax-mcp/indodax-market";
+import type { Registry } from "@indodax-mcp/mcp-registry";
+import type { ServerHandlers } from "@indodax-mcp/mcp-core";
+import { fail, ok, parseArgs } from "@indodax-mcp/mcp-app/respond";
+import { canonicalPair } from "@indodax-mcp/mcp-app/schemas";
+import { assessLiquidity, describeLock } from "@indodax-mcp/mcp-app/stop-liquidity";
+import { defineTool } from "@indodax-mcp/mcp-app/tools/define";
+import type { AppServices } from "@indodax-mcp/mcp-app/composition";
 
 /**
  * Migration path from manually managed positions.

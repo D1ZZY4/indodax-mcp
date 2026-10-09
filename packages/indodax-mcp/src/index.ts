@@ -1,55 +1,55 @@
-import { Registry } from "@d1zzy4-jethools/mcp-registry";
-import { buildServer, sendResourceUpdated } from "@d1zzy4-jethools/mcp-core";
-import type { ServerHandlers } from "@d1zzy4-jethools/mcp-core";
-import { createApp, type AppServices } from "@d1zzy4-jethools/mcp-app/composition";
-import { buildGuard } from "@d1zzy4-jethools/mcp-app/guard";
-import { attachAuditPersistence } from "@d1zzy4-jethools/mcp-app/audit-store";
-import { attachPaperPersistence } from "@d1zzy4-jethools/mcp-app/order-store";
+import { Registry } from "@indodax-mcp/mcp-registry";
+import { buildServer, sendResourceUpdated } from "@indodax-mcp/mcp-core";
+import type { ServerHandlers } from "@indodax-mcp/mcp-core";
+import { createApp, type AppServices } from "@indodax-mcp/mcp-app/composition";
+import { buildGuard } from "@indodax-mcp/mcp-app/guard";
+import { attachAuditPersistence } from "@indodax-mcp/mcp-app/audit-store";
+import { attachPaperPersistence } from "@indodax-mcp/mcp-app/order-store";
 import {
   attachAlertPersistence,
   attachDeadmanPersistence,
   attachStopPersistence,
-} from "@d1zzy4-jethools/mcp-app/state-store";
-import { evaluateAlerts } from "@d1zzy4-jethools/mcp-app/tools/alerts";
-import type { PersistenceReport } from "@d1zzy4-jethools/mcp-app/persistence-state";
+} from "@indodax-mcp/mcp-app/state-store";
+import { evaluateAlerts } from "@indodax-mcp/mcp-app/tools/alerts";
+import type { PersistenceReport } from "@indodax-mcp/mcp-app/persistence-state";
 import {
   noteConfigured,
   noteUnconfigured,
   refreshPersistenceState,
-} from "@d1zzy4-jethools/mcp-app/persistence-state";
-import { evaluateStops } from "@d1zzy4-jethools/mcp-app/tools/stop";
-import { registerMarketTools } from "@d1zzy4-jethools/mcp-app/tools/market";
-import { registerCandlesTool } from "@d1zzy4-jethools/mcp-app/tools/candles";
-import { registerMarketScanTools } from "@d1zzy4-jethools/mcp-app/tools/market-scan";
-import { registerAccountTools } from "@d1zzy4-jethools/mcp-app/tools/account";
-import { registerOrderTools } from "@d1zzy4-jethools/mcp-app/tools/orders";
-import { registerPortfolioTools } from "@d1zzy4-jethools/mcp-app/tools/portfolio";
-import { registerRiskTools } from "@d1zzy4-jethools/mcp-app/tools/risk";
-import { registerPaperTools } from "@d1zzy4-jethools/mcp-app/tools/paper";
-import { registerStrategyTools } from "@d1zzy4-jethools/mcp-app/tools/strategy";
-import { registerReconcileTools } from "@d1zzy4-jethools/mcp-app/tools/reconcile";
-import { registerAuditTools } from "@d1zzy4-jethools/mcp-app/tools/audit";
-import { registerAlertTools } from "@d1zzy4-jethools/mcp-app/tools/alerts";
-import { registerSystemTools } from "@d1zzy4-jethools/mcp-app/tools/system";
-import { registerFundingTools } from "@d1zzy4-jethools/mcp-app/tools/funding";
-import { registerHistoryTools } from "@d1zzy4-jethools/mcp-app/tools/history";
-import { registerOpsTools } from "@d1zzy4-jethools/mcp-app/tools/ops";
-import { registerSocketTools } from "@d1zzy4-jethools/mcp-app/tools/ops-sockets";
-import { registerQuoteTools } from "@d1zzy4-jethools/mcp-app/tools/quote";
-import { registerSymbolTools } from "@d1zzy4-jethools/mcp-app/tools/symbols";
-import { registerPositionTools } from "@d1zzy4-jethools/mcp-app/tools/positions";
-import { registerSnapshotTools } from "@d1zzy4-jethools/mcp-app/tools/snapshot";
-import { registerRoundingTools } from "@d1zzy4-jethools/mcp-app/tools/rounding";
-import { registerOcoTools } from "@d1zzy4-jethools/mcp-app/tools/oco";
-import { registerOcoAttachTools } from "@d1zzy4-jethools/mcp-app/tools/oco-attach";
-import { registerDeadmanTools } from "@d1zzy4-jethools/mcp-app/tools/deadman";
-import { registerStopTools } from "@d1zzy4-jethools/mcp-app/tools/stop";
-import { registerDocsTools } from "@d1zzy4-jethools/mcp-app/tools/docs";
-import { registerResources } from "@d1zzy4-jethools/mcp-app/resources";
-import { registerPrompts } from "@d1zzy4-jethools/mcp-app/prompts";
-import type { AppEnv, ConfigDiagnostic } from "@d1zzy4-jethools/config";
+} from "@indodax-mcp/mcp-app/persistence-state";
+import { evaluateStops } from "@indodax-mcp/mcp-app/tools/stop";
+import { registerMarketTools } from "@indodax-mcp/mcp-app/tools/market";
+import { registerCandlesTool } from "@indodax-mcp/mcp-app/tools/candles";
+import { registerMarketScanTools } from "@indodax-mcp/mcp-app/tools/market-scan";
+import { registerAccountTools } from "@indodax-mcp/mcp-app/tools/account";
+import { registerOrderTools } from "@indodax-mcp/mcp-app/tools/orders";
+import { registerPortfolioTools } from "@indodax-mcp/mcp-app/tools/portfolio";
+import { registerRiskTools } from "@indodax-mcp/mcp-app/tools/risk";
+import { registerPaperTools } from "@indodax-mcp/mcp-app/tools/paper";
+import { registerStrategyTools } from "@indodax-mcp/mcp-app/tools/strategy";
+import { registerReconcileTools } from "@indodax-mcp/mcp-app/tools/reconcile";
+import { registerAuditTools } from "@indodax-mcp/mcp-app/tools/audit";
+import { registerAlertTools } from "@indodax-mcp/mcp-app/tools/alerts";
+import { registerSystemTools } from "@indodax-mcp/mcp-app/tools/system";
+import { registerFundingTools } from "@indodax-mcp/mcp-app/tools/funding";
+import { registerHistoryTools } from "@indodax-mcp/mcp-app/tools/history";
+import { registerOpsTools } from "@indodax-mcp/mcp-app/tools/ops";
+import { registerSocketTools } from "@indodax-mcp/mcp-app/tools/ops-sockets";
+import { registerQuoteTools } from "@indodax-mcp/mcp-app/tools/quote";
+import { registerSymbolTools } from "@indodax-mcp/mcp-app/tools/symbols";
+import { registerPositionTools } from "@indodax-mcp/mcp-app/tools/positions";
+import { registerSnapshotTools } from "@indodax-mcp/mcp-app/tools/snapshot";
+import { registerRoundingTools } from "@indodax-mcp/mcp-app/tools/rounding";
+import { registerOcoTools } from "@indodax-mcp/mcp-app/tools/oco";
+import { registerOcoAttachTools } from "@indodax-mcp/mcp-app/tools/oco-attach";
+import { registerDeadmanTools } from "@indodax-mcp/mcp-app/tools/deadman";
+import { registerStopTools } from "@indodax-mcp/mcp-app/tools/stop";
+import { registerDocsTools } from "@indodax-mcp/mcp-app/tools/docs";
+import { registerResources } from "@indodax-mcp/mcp-app/resources";
+import { registerPrompts } from "@indodax-mcp/mcp-app/prompts";
+import type { AppEnv, ConfigDiagnostic } from "@indodax-mcp/config";
 
-import { SERVER_NAME, SERVER_VERSION } from "@d1zzy4-jethools/mcp-app/version";
+import { SERVER_NAME, SERVER_VERSION } from "@indodax-mcp/mcp-app/version";
 export { SERVER_NAME, SERVER_VERSION };
 
 export function emptyHandlers(): ServerHandlers {

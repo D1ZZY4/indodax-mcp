@@ -1,5 +1,5 @@
-import { OrderRejectedError, ValidationError } from "@d1zzy4-jethools/errors";
-import { asCompact, parseSymbolFlexible } from "@d1zzy4-jethools/core";
+import { OrderRejectedError, ValidationError } from "@indodax-mcp/errors";
+import { asCompact, parseSymbolFlexible } from "@indodax-mcp/core";
 import {
   INDODAX_V2_BASE,
   formatRejection,
@@ -7,19 +7,19 @@ import {
   type ExchangePayload,
   type TapiV2Signer,
   type TranslatedRejection,
-} from "@d1zzy4-jethools/indodax-auth";
-import { egressHint } from "@d1zzy4-jethools/transport/egress";
+} from "@indodax-mcp/indodax-auth";
+import { egressHint } from "@indodax-mcp/transport/egress";
 import {
   OFFICIAL_V2_BUCKET,
   RateLimiter,
   fetchWithRetry,
   type FetchFn,
-} from "@d1zzy4-jethools/transport";
+} from "@indodax-mcp/transport";
 import type {
   ExecutionBackend,
   ExecutionRequest,
   ExecutionResult,
-} from "@d1zzy4-jethools/indodax-execution";
+} from "@indodax-mcp/indodax-execution";
 
 const V2_BASE = INDODAX_V2_BASE;
 

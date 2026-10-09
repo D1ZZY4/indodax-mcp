@@ -1,4 +1,4 @@
-import { ValidationError } from "@d1zzy4-jethools/errors";
+import { ValidationError } from "@indodax-mcp/errors";
 import type {
   Capability,
   ExecutionMode,
@@ -7,11 +7,11 @@ import type {
   RiskDecision,
   StpMode,
   TimeInForce,
-} from "@d1zzy4-jethools/core";
-import { decimalOrNull, isValidClientOrderId, validateOrderInput } from "@d1zzy4-jethools/core";
-import type { SymbolParts } from "@d1zzy4-jethools/core";
-import { transition, type OrderRecord } from "@d1zzy4-jethools/indodax-orders";
-import type { RiskContext, RiskEngine } from "@d1zzy4-jethools/indodax-risk";
+} from "@indodax-mcp/core";
+import { decimalOrNull, isValidClientOrderId, validateOrderInput } from "@indodax-mcp/core";
+import type { SymbolParts } from "@indodax-mcp/core";
+import { transition, type OrderRecord } from "@indodax-mcp/indodax-orders";
+import type { RiskContext, RiskEngine } from "@indodax-mcp/indodax-risk";
 
 export interface TradeIntent {
   agentId: string;

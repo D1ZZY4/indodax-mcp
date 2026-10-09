@@ -1,4 +1,4 @@
-import type { ReconciliationState } from "@d1zzy4-jethools/core";
+import type { ReconciliationState } from "@indodax-mcp/core";
 import type Decimal from "decimal.js";
 
 export interface OrderComparison {

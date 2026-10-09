@@ -1,5 +1,5 @@
-import { decimalOrNull } from "@d1zzy4-jethools/core";
-import type { AppServices } from "@d1zzy4-jethools/mcp-app/composition";
+import { decimalOrNull } from "@indodax-mcp/core";
+import type { AppServices } from "@indodax-mcp/mcp-app/composition";
 
 export interface PaperConsistency {
   state: "MATCH" | "MISMATCH";

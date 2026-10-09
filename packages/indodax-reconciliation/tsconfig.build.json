@@ -9,8 +9,8 @@
     "outDir": "dist",
     "rootDir": "src",
     "paths": {
-      "@d1zzy4-jethools/indodax-reconciliation": ["./src/index.ts"],
-      "@d1zzy4-jethools/indodax-reconciliation/*": ["./src/*"]
+      "@indodax-mcp/indodax-reconciliation": ["./src/index.ts"],
+      "@indodax-mcp/indodax-reconciliation/*": ["./src/*"]
     }
   },
   "include": ["src"]

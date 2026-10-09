@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { ExecutionService } from "@d1zzy4-jethools/indodax-execution";
-import type { RiskDecision } from "@d1zzy4-jethools/core";
-import { PaperExecutor } from "@d1zzy4-jethools/indodax-paper";
+import { ExecutionService } from "@indodax-mcp/indodax-execution";
+import type { RiskDecision } from "@indodax-mcp/core";
+import { PaperExecutor } from "@indodax-mcp/indodax-paper";
 
 function paperRequest(overrides: Record<string, unknown> = {}) {
   return {

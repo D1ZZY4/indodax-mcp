@@ -2,7 +2,7 @@ import { spawn, type ChildProcess } from "node:child_process";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { withHttpUrl } from "@d1zzy4-jethools/mcp-testing";
+import { withHttpUrl } from "@indodax-mcp/mcp-testing";
 
 /**
  * Streamable HTTP transport end to end, against the real gateway process.

@@ -1,18 +1,18 @@
 import { z } from "zod";
-import { AuthorizationError, ValidationError } from "@d1zzy4-jethools/errors";
-import type { Registry } from "@d1zzy4-jethools/mcp-registry";
-import type { ServerHandlers } from "@d1zzy4-jethools/mcp-core";
-import { fail, ok, parseArgs } from "@d1zzy4-jethools/mcp-app/respond";
+import { AuthorizationError, ValidationError } from "@indodax-mcp/errors";
+import type { Registry } from "@indodax-mcp/mcp-registry";
+import type { ServerHandlers } from "@indodax-mcp/mcp-core";
+import { fail, ok, parseArgs } from "@indodax-mcp/mcp-app/respond";
 import {
   clientOrderIdArg,
   pairArg,
   priceArg,
   quantityArg,
   sideArg,
-} from "@d1zzy4-jethools/mcp-app/schemas";
-import { defineTool } from "@d1zzy4-jethools/mcp-app/tools/define";
-import type { AppServices } from "@d1zzy4-jethools/mcp-app/composition";
-import { placePaperOrder } from "@d1zzy4-jethools/mcp-app/tools/paper-order";
+} from "@indodax-mcp/mcp-app/schemas";
+import { defineTool } from "@indodax-mcp/mcp-app/tools/define";
+import type { AppServices } from "@indodax-mcp/mcp-app/composition";
+import { placePaperOrder } from "@indodax-mcp/mcp-app/tools/paper-order";
 
 const PAPER = {
   capability: "PAPER" as const,
@@ -26,8 +26,8 @@ const PAPER = {
 
 const PAPER_READ = { ...PAPER, riskClass: "read" as const, auditClass: "read" as const };
 
-export type { PaperPlacement } from "@d1zzy4-jethools/mcp-app/tools/paper-order";
-export { placePaperOrder } from "@d1zzy4-jethools/mcp-app/tools/paper-order";
+export type { PaperPlacement } from "@indodax-mcp/mcp-app/tools/paper-order";
+export { placePaperOrder } from "@indodax-mcp/mcp-app/tools/paper-order";
 
 const paperOrder = defineTool(
   {
