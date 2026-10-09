@@ -71,6 +71,21 @@ The main composition defaults to paper execution with in-memory application stat
 
 The application package is composed by the CLI, stdio server, HTTP gateway, daemon, and workbench.
 
+### Published names
+
+Every package publishes under the `@indodax-mcp` scope at 1.1.1. The source directory and the package name differ in one place:
+
+| Source directory | Published package |
+| --- | --- |
+| `packages/indodax-mcp` | `@indodax-mcp/mcp-app` |
+| `apps/mcp-stdio` | `@indodax-mcp/indodax-mcp` |
+| `apps/cli` | `@indodax-mcp/cli` |
+| `apps/daemon` | `@indodax-mcp/daemon` |
+| `apps/mcp-http` | `@indodax-mcp/mcp-http` |
+| `apps/mcp-workbench` | `@indodax-mcp/mcp-workbench` |
+
+`packages/indodax-mcp` is not `@indodax-mcp/indodax-mcp` because `apps/mcp-stdio` already owns that name, and a workspace cannot hold two manifests with one name.
+
 ## Boundary rules
 
 - Generic infrastructure does not depend on INDODAX-specific packages.

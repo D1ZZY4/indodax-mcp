@@ -31,7 +31,7 @@ Handlers **must not** own exchange signing, WebSocket protocol details, database
 
 ## Registration
 
-Tool definitions live under packages/indodax-mcp/src/tools.
+Tool definitions live under packages/indodax-mcp/src/tools, which is the source directory of the `@indodax-mcp/mcp-app` package. The directory keeps its historical name; the published package name is what code imports.
 
 A normal tool has:
 

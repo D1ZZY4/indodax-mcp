@@ -1,4 +1,4 @@
-# indodax-mcp-cli
+# @indodax-mcp/cli
 
 Command line companion to [`@indodax-mcp/indodax-mcp`](https://www.npmjs.com/package/@indodax-mcp/indodax-mcp),
 the MCP server for [INDODAX](https://indodax.com) spot trading.
@@ -16,6 +16,8 @@ bun add -g @indodax-mcp/cli
 ```
 
 Installs the `indodax` binary. Requires the Bun runtime.
+
+Without a global install, `bunx -y @indodax-mcp/cli` and `npx -y @indodax-mcp/cli` both run the same binary.
 
 ## Commands
 

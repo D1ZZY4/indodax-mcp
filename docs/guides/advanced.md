@@ -13,11 +13,12 @@ flowchart TD
 
 ## 1. Authenticated reads
 
-Add INDODAX_API_KEY and INDODAX_API_SECRET to .env.
+Add INDODAX_API_KEY and INDODAX_API_SECRET to .env, or export them into whatever
+launches the server.
 
 ~~~bash
-bun apps/cli/src/main.ts account info
-bun apps/cli/src/main.ts account balances
+indodax account info
+indodax account balances
 ~~~
 
 Use a dedicated TAPI v2 key with the appropriate exchange-side IP restrictions.
@@ -50,10 +51,12 @@ The Deadman package implements its own state machine and tool surface. DISARMED 
 ## 4. Daemon
 
 ~~~bash
-bun apps/daemon/src/main.ts
+indodax-daemon
 ~~~
 
-The current daemon refreshes market data, reports paper-order fillability against live prices, records snapshots, and shuts down cleanly on SIGINT or SIGTERM.
+Or without a global install, `bunx -y @indodax-mcp/daemon`.
+
+The current daemon refreshes market data, reports paper-order fillability against live prices, records snapshots, and shuts down cleanly on SIGINT or SIGTERM. A signal that arrives in the first moments of startup, before the handlers are installed, terminates the process by signal instead (exit 143); nothing is persisted at that point, so there is nothing to flush.
 
 This is operational scaffolding, not a durable live trading engine.
 

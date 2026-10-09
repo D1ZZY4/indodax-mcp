@@ -4,8 +4,8 @@ The current server exposes a shared registry through stdio and Streamable HTTP.
 
 ## Transports
 
-- apps/mcp-stdio: stdio transport for MCP hosts such as OpenCode.
-- apps/mcp-http: Streamable HTTP gateway bound to 127.0.0.1, default port 8000. Override with MCP_HOST and MCP_PORT; compose sets MCP_HOST=0.0.0.0 so the published host port reaches the container.
+- apps/mcp-stdio (`@indodax-mcp/indodax-mcp`, bin `indodax-mcp`): stdio transport for MCP hosts such as OpenCode. Start it with `bunx -y @indodax-mcp/indodax-mcp`.
+- apps/mcp-http (`@indodax-mcp/mcp-http`, bin `indodax-mcp-http`): Streamable HTTP gateway bound to 127.0.0.1, default port 8000. Override with MCP_HOST and MCP_PORT; compose sets MCP_HOST=0.0.0.0 so the published host port reaches the container.
 - Both use buildIndodaxServer(), so tool, resource, and prompt registrations come from the same application composition.
 
 The current SDK environment negotiates MCP protocol 2025-11-25.

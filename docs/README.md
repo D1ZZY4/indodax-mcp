@@ -43,6 +43,10 @@ This documentation describes the **current implementation** of Indodax MCP. Stat
 
 - [Upstream source references](references/sources.md): official INDODAX documentation and supporting sources.
 
+## Using the published server
+
+The server needs no clone. Start it with `bunx -y @indodax-mcp/indodax-mcp`, or install it with `bun add -g @indodax-mcp/indodax-mcp`. Bun is required at runtime. See the repository [README](../README.md#install) for the MCP client configuration and the list of published packages.
+
 ## Documentation rules
 
 Documentation must distinguish implementation, wiring, automated coverage, end-to-end verification, and blocked or planned behavior. When code and documentation disagree, **verify the code** and update the documentation instead of masking the discrepancy.

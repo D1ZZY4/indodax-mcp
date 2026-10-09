@@ -69,6 +69,20 @@ in the execution-flow and trading-mode diagrams.
 - CLI, daemon, HTTP gateway, and React workbench.
 - Automated test/build tooling plus consumer verification utilities.
 
+### Publication
+
+All 39 workspace packages publish under the `@indodax-mcp` scope. The five apps
+ship a bin (`indodax-mcp`, `indodax`, `indodax-daemon`, `indodax-mcp-http`, and
+`mcp-workbench` as static assets); the 34 libraries ship per-module output with
+type declarations. `bunx`, `npx`, and `bun add -g` all work, and Bun is required
+at runtime because the binaries carry a `#!/usr/bin/env bun` shebang.
+
+Two superseded names remain live on the registry and cannot be removed with the
+automation token, which npm restricts from deleting packages:
+`indodax-mcp@1.1.1`, `indodax-mcp-cli@1.1.1`, and `@d1zzy4-jethools/indodax-mcp@1.1.1`
+with `@d1zzy4-jethools/indodax-mcp-cli@1.1.1`. Remove them from npmjs.com in a
+browser session. They install and run, and nothing depends on their absence.
+
 ### Current capability boundary
 
 The main application composition defaults to **paper**. Live order and cancel run through the risk-guarded path when `APP_ENV=live` plus `TRADE_ENABLED=true` with credentials and acknowledgement. PostgreSQL mirrors paper, audit, alerts, and stops when configured but is **not yet the main runtime source of truth**, and the MCP reconciliation surface is **not yet a full exchange-state reconciliation workflow**.

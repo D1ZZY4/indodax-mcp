@@ -13,19 +13,26 @@ flowchart TD
 
 ## 1. Install
 
+One command, no clone and no database:
+
 ~~~bash
-cp .env.example .env
-bun install
-bun run check
+bun add -g @indodax-mcp/cli
 ~~~
+
+That installs the `indodax` binary. Bun is required. To avoid a global install,
+substitute `bunx -y @indodax-mcp/cli` in every command below.
+
+To also run the MCP server for an agent harness, add
+`@indodax-mcp/indodax-mcp`. See the repository [README](../../README.md) for the
+client configuration.
 
 Leave exchange credentials empty. Public market reads and paper execution do not require them.
 
 ## 2. Check the server
 
 ~~~bash
-bun apps/cli/src/main.ts risk limits
-bun apps/cli/src/main.ts paper status
+indodax risk limits
+indodax paper status
 ~~~
 
 Via MCP, call indodax_health and indodax_paper_status.
@@ -33,7 +40,7 @@ Via MCP, call indodax_health and indodax_paper_status.
 ## 3. Read the market
 
 ~~~bash
-bun apps/cli/src/main.ts market ticker btc_idr
+indodax market ticker btc_idr
 ~~~
 
 This uses the public market API and does not require credentials.
@@ -43,7 +50,7 @@ This uses the public market API and does not require credentials.
 The default paper ledger starts with 100,000,000 IDR and 1 BTC.
 
 ~~~bash
-bun apps/cli/src/main.ts paper balances
+indodax paper balances
 ~~~
 
 Example MCP order:

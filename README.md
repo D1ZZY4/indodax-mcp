@@ -18,47 +18,115 @@ The repository ships with **default safeguards that constrain agent harnesses**,
 
 ## Requirements
 
-- Bun 1.4.2, matching the repository package manager
-- PostgreSQL 17 when working with the database package and its integration path
-- A supported INDODAX TAPI v2 key for authenticated read operations
+- Bun 1.4.2. The published binaries carry a `#!/usr/bin/env bun` shebang, so Bun
+  is required whether you use `bunx`, `npx`, or a global install.
+- Nothing else. The server runs with no clone, no database, and no credentials.
+- Optional: PostgreSQL 17 when you want the persistence mirrors attached.
+- Optional: an INDODAX TAPI v2 key for authenticated reads and any live path.
 
-The main MCP composition does not require a database to start because its current application state is in memory. PostgreSQL is part of the persistence layer and its integration tests, not yet the runtime source of truth.
+The main MCP composition does not require a database to start because its
+current application state is in memory. PostgreSQL is part of the persistence
+layer and its integration tests, not yet the runtime source of truth.
 
 ## Install
 
+All 39 packages publish to npm under the `@indodax-mcp` scope, so running the
+server needs no clone. `bunx` and `npx` both work. **Bun is required at
+runtime**: the published binaries carry a `#!/usr/bin/env bun` shebang.
+
+One command, no install step:
+
 ~~~bash
-cp .env.example .env
-bun install
-bun run check
+bunx -y @indodax-mcp/indodax-mcp
 ~~~
 
-CI currently runs format, lint, typecheck, test, and build.
+That starts the MCP server on stdio, ready for an MCP host. To install it
+permanently instead:
+
+~~~bash
+bun add -g @indodax-mcp/indodax-mcp @indodax-mcp/cli
+~~~
+
+### MCP client configuration
+
+For a stdio client such as OpenCode or Claude Desktop, one entry is enough:
+
+~~~json
+{
+  "mcp": {
+    "indodax-mcp": {
+      "command": "bunx",
+      "args": ["-y", "@indodax-mcp/indodax-mcp"],
+      "env": {
+        "INDODAX_API_KEY": "",
+        "INDODAX_API_SECRET": ""
+      }
+    }
+  }
+}
+~~~
+
+Leave the credential values empty to run read-only against the public API. An
+MCP client cannot inject environment into a process it did not launch, so
+credentials must be set in the client `env` block or exported into whatever
+starts the server.
+
+### Published packages
+
+| Package | Binary | Purpose |
+| --- | --- | --- |
+| `@indodax-mcp/indodax-mcp` | `indodax-mcp` | MCP server, stdio |
+| `@indodax-mcp/mcp-http` | `indodax-mcp-http` | MCP server, Streamable HTTP |
+| `@indodax-mcp/cli` | `indodax` | terminal companion |
+| `@indodax-mcp/daemon` | `indodax-daemon` | market refresh and snapshots |
+| `@indodax-mcp/mcp-workbench` | none | browser workbench, static assets |
+
+The 34 libraries publish per-module output with type declarations. The five
+apps publish a single bundled `dist/index.js`, because each one is a binary and
+must run without a `node_modules` tree.
 
 ## Quickstart
 
 Public market reads and paper trading work without credentials:
 
 ~~~bash
+indodax market ticker btc_idr
+indodax paper status
+indodax risk limits
+~~~
+
+Without a global install, substitute `bunx -y @indodax-mcp/cli`.
+
+Run MCP over Streamable HTTP instead of stdio:
+
+~~~bash
+bunx -y @indodax-mcp/mcp-http
+~~~
+
+The HTTP server binds to 127.0.0.1 and defaults to port 8000; override with
+`MCP_HOST` and `MCP_PORT`. Compose sets `MCP_HOST=0.0.0.0` so the published host
+port can reach the container gateway.
+
+Both transports use the same server registry and handler set. The current SDK
+environment negotiates MCP protocol 2025-11-25.
+
+## Run from source
+
+To develop against the working tree rather than the published packages:
+
+~~~bash
+git clone https://github.com/D1ZZY4/indodax-mcp.git
+cd indodax-mcp
+cp .env.example .env
+bun install
+bun run check
+
 bun apps/cli/src/main.ts market ticker btc_idr
-bun apps/cli/src/main.ts paper status
-bun apps/cli/src/main.ts risk limits
-~~~
-
-Run MCP over stdio:
-
-~~~bash
 bun apps/mcp-stdio/src/main.ts
-~~~
-
-Run MCP over Streamable HTTP:
-
-~~~bash
 bun apps/mcp-http/src/main.ts
 ~~~
 
-The HTTP server binds to 127.0.0.1 and defaults to port 8000; override with MCP_HOST and MCP_PORT. Compose sets MCP_HOST=0.0.0.0 so the published host port can reach the container gateway.
-
-Both transports use the same server registry and handler set. The current SDK environment negotiates MCP protocol 2025-11-25.
+CI currently runs format, lint, typecheck, test, and build.
 
 ## Configuration
 

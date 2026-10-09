@@ -14,6 +14,27 @@ sequenceDiagram
 
 How an AI agent should operate the current Indodax MCP surface without treating documentation as execution authority.
 
+## 0. Install
+
+The server publishes as `@indodax-mcp/indodax-mcp` and needs no clone. Bun is required.
+
+~~~json
+{
+  "mcp": {
+    "indodax-mcp": {
+      "command": "bunx",
+      "args": ["-y", "@indodax-mcp/indodax-mcp"],
+      "env": {
+        "INDODAX_API_KEY": "",
+        "INDODAX_API_SECRET": ""
+      }
+    }
+  }
+}
+~~~
+
+Leave the credentials empty to run read-only against the public API. The client `env` block is the only place a credential can be supplied, because an MCP client cannot inject environment into a process it did not launch. See `indodax_config_status` to confirm which channel supplied what.
+
 ## 1. Discover before acting
 
 Start with indodax_health, indodax_system_capabilities, and indodax_config_status.
