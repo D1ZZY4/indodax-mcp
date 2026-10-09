@@ -1,9 +1,9 @@
 {
   "name": "@indodax-mcp/cli",
-  "version": "1.0.0",
+  "version": "1.1.1",
   "type": "module",
   "scripts": {
-    "build": "bun build ./src/main.ts --outfile ./dist/index.js --target bun --banner '#!/usr/bin/env bun' && chmod +x ./dist/index.js",
+    "build": "bun build ./src/main.ts --outfile ./dist/index.js --target bun --banner '#!/usr/bin/env bun' && bun ../../scripts/sanitize-bundle.ts ./dist/index.js && chmod +x ./dist/index.js",
     "dev": "bun --watch ./src/main.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
@@ -22,13 +22,35 @@
     "citty": "catalog:",
     "vitest": "catalog:"
   },
-  "description": "INDODAX command line interface",
+  "description": "Command line companion to the indodax-mcp server: market reads, paper state, and risk limits",
+  "keywords": [
+    "indodax",
+    "trading",
+    "crypto",
+    "cli",
+    "paper-trading",
+    "risk-management"
+  ],
+  "homepage": "https://github.com/D1ZZY4/indodax-mcp/tree/main/apps/cli#readme",
+  "bugs": {
+    "url": "https://github.com/D1ZZY4/indodax-mcp/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/D1ZZY4/indodax-mcp.git",
+    "directory": "apps/cli"
+  },
   "license": "SSPL-1.0",
+  "author": "D1ZZY4",
   "bin": {
     "indodax": "./dist/index.js"
   },
+  "engines": {
+    "bun": ">=1.4.2"
+  },
   "files": [
-    "dist/"
+    "dist/",
+    "README.md"
   ],
   "publishConfig": {
     "access": "public"

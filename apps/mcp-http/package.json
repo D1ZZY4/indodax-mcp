@@ -1,10 +1,10 @@
 {
   "name": "@indodax-mcp/mcp-http",
-  "version": "1.0.0",
+  "version": "1.1.1",
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "bun build ./src/main.ts --outfile ./dist/index.js --target bun",
+    "build": "bun build ./src/main.ts --outfile ./dist/index.js --target bun && bun ../../scripts/sanitize-bundle.ts ./dist/index.js",
     "dev": "bun --watch ./src/main.ts",
     "start": "bun ./src/main.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit",
@@ -20,6 +20,7 @@
     "@indodax-mcp/mcp-runtime": "workspace:*"
   },
   "devDependencies": {
+    "@indodax-mcp/mcp-testing": "workspace:*",
     "@types/node": "catalog:",
     "@vitest/coverage-v8": "catalog:",
     "bun-types": "catalog:",

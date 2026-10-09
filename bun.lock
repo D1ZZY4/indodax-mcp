@@ -16,7 +16,7 @@
     },
     "apps/cli": {
       "name": "@indodax-mcp/cli",
-      "version": "1.0.0",
+      "version": "1.1.1",
       "bin": {
         "indodax": "./dist/index.js",
       },
@@ -34,7 +34,7 @@
     },
     "apps/daemon": {
       "name": "@indodax-mcp/daemon",
-      "version": "1.0.0",
+      "version": "1.1.1",
       "dependencies": {
         "@indodax-mcp/config": "workspace:*",
         "@indodax-mcp/core": "workspace:*",
@@ -51,7 +51,7 @@
     },
     "apps/mcp-http": {
       "name": "@indodax-mcp/mcp-http",
-      "version": "1.0.0",
+      "version": "1.1.1",
       "dependencies": {
         "@indodax-mcp/config": "workspace:*",
         "@indodax-mcp/indodax-mcp": "workspace:*",
@@ -59,6 +59,7 @@
         "@indodax-mcp/mcp-runtime": "workspace:*",
       },
       "devDependencies": {
+        "@indodax-mcp/mcp-testing": "workspace:*",
         "@types/node": "catalog:",
         "@vitest/coverage-v8": "catalog:",
         "bun-types": "catalog:",
@@ -67,7 +68,7 @@
     },
     "apps/mcp-stdio": {
       "name": "indodax-mcp",
-      "version": "1.0.0",
+      "version": "1.1.1",
       "bin": {
         "indodax-mcp": "./dist/index.js",
       },
@@ -92,7 +93,7 @@
     },
     "apps/mcp-workbench": {
       "name": "@indodax-mcp/mcp-workbench",
-      "version": "1.0.0",
+      "version": "1.1.1",
       "dependencies": {
         "@modelcontextprotocol/client": "catalog:",
         "@tailwindcss/vite": "catalog:",
@@ -121,7 +122,7 @@
     },
     "packages/config": {
       "name": "@indodax-mcp/config",
-      "version": "1.0.0",
+      "version": "1.1.1",
       "dependencies": {
         "@t3-oss/env-core": "catalog:",
         "zod": "catalog:",
@@ -136,7 +137,7 @@
     },
     "packages/core": {
       "name": "@indodax-mcp/core",
-      "version": "1.0.0",
+      "version": "1.1.1",
       "dependencies": {
         "@indodax-mcp/errors": "workspace:*",
         "decimal.js": "catalog:",
@@ -152,7 +153,7 @@
     },
     "packages/db": {
       "name": "@indodax-mcp/db",
-      "version": "1.0.0",
+      "version": "1.1.1",
       "dependencies": {
         "drizzle-orm": "catalog:",
         "postgres": "catalog:",
@@ -168,7 +169,7 @@
     },
     "packages/errors": {
       "name": "@indodax-mcp/errors",
-      "version": "1.0.0",
+      "version": "1.1.1",
       "devDependencies": {
         "@biomejs/biome": "catalog:",
         "@types/node": "catalog:",
@@ -179,7 +180,7 @@
     },
     "packages/events": {
       "name": "@indodax-mcp/events",
-      "version": "1.0.0",
+      "version": "1.1.1",
       "dependencies": {
         "@indodax-mcp/core": "workspace:*",
       },
@@ -192,7 +193,7 @@
     },
     "packages/indodax-account": {
       "name": "@indodax-mcp/indodax-account",
-      "version": "1.0.0",
+      "version": "1.1.1",
       "dependencies": {
         "@indodax-mcp/core": "workspace:*",
         "@indodax-mcp/errors": "workspace:*",
@@ -210,7 +211,7 @@
     },
     "packages/indodax-alerts": {
       "name": "@indodax-mcp/indodax-alerts",
-      "version": "1.0.0",
+      "version": "1.1.1",
       "dependencies": {
         "decimal.js": "catalog:",
       },
@@ -223,7 +224,7 @@
     },
     "packages/indodax-audit": {
       "name": "@indodax-mcp/indodax-audit",
-      "version": "1.0.0",
+      "version": "1.1.1",
       "devDependencies": {
         "@types/node": "catalog:",
         "@vitest/coverage-v8": "catalog:",
@@ -233,7 +234,7 @@
     },
     "packages/indodax-auth": {
       "name": "@indodax-mcp/indodax-auth",
-      "version": "1.0.0",
+      "version": "1.1.1",
       "dependencies": {
         "@indodax-mcp/errors": "workspace:*",
         "@indodax-mcp/transport": "workspace:*",
@@ -247,7 +248,7 @@
     },
     "packages/indodax-backtest": {
       "name": "@indodax-mcp/indodax-backtest",
-      "version": "1.0.0",
+      "version": "1.1.1",
       "dependencies": {
         "decimal.js": "catalog:",
       },
@@ -260,7 +261,7 @@
     },
     "packages/indodax-client": {
       "name": "@indodax-mcp/indodax-client",
-      "version": "1.0.0",
+      "version": "1.1.1",
       "dependencies": {
         "@indodax-mcp/errors": "workspace:*",
         "@indodax-mcp/transport": "workspace:*",
@@ -275,7 +276,7 @@
     },
     "packages/indodax-deadman": {
       "name": "@indodax-mcp/indodax-deadman",
-      "version": "1.0.0",
+      "version": "1.1.1",
       "dependencies": {
         "@indodax-mcp/errors": "workspace:*",
         "@indodax-mcp/indodax-auth": "workspace:*",
@@ -291,7 +292,7 @@
     },
     "packages/indodax-execution": {
       "name": "@indodax-mcp/indodax-execution",
-      "version": "1.0.0",
+      "version": "1.1.1",
       "dependencies": {
         "@indodax-mcp/core": "workspace:*",
         "@indodax-mcp/errors": "workspace:*",
@@ -308,7 +309,7 @@
     },
     "packages/indodax-market": {
       "name": "@indodax-mcp/indodax-market",
-      "version": "1.0.0",
+      "version": "1.1.1",
       "dependencies": {
         "@indodax-mcp/core": "workspace:*",
         "@indodax-mcp/errors": "workspace:*",
@@ -323,7 +324,7 @@
     },
     "packages/indodax-mcp": {
       "name": "@indodax-mcp/indodax-mcp",
-      "version": "1.0.0",
+      "version": "1.1.1",
       "dependencies": {
         "@indodax-mcp/config": "workspace:*",
         "@indodax-mcp/core": "workspace:*",
@@ -367,7 +368,7 @@
     },
     "packages/indodax-orders": {
       "name": "@indodax-mcp/indodax-orders",
-      "version": "1.0.0",
+      "version": "1.1.1",
       "dependencies": {
         "@indodax-mcp/core": "workspace:*",
         "decimal.js": "catalog:",
@@ -382,7 +383,7 @@
     },
     "packages/indodax-paper": {
       "name": "@indodax-mcp/indodax-paper",
-      "version": "1.0.0",
+      "version": "1.1.1",
       "dependencies": {
         "@indodax-mcp/errors": "workspace:*",
         "@indodax-mcp/indodax-execution": "workspace:*",
@@ -398,7 +399,7 @@
     },
     "packages/indodax-portfolio": {
       "name": "@indodax-mcp/indodax-portfolio",
-      "version": "1.0.0",
+      "version": "1.1.1",
       "dependencies": {
         "decimal.js": "catalog:",
       },
@@ -411,7 +412,7 @@
     },
     "packages/indodax-reconciliation": {
       "name": "@indodax-mcp/indodax-reconciliation",
-      "version": "1.0.0",
+      "version": "1.1.1",
       "dependencies": {
         "@indodax-mcp/core": "workspace:*",
         "@indodax-mcp/indodax-orders": "workspace:*",
@@ -426,7 +427,7 @@
     },
     "packages/indodax-risk": {
       "name": "@indodax-mcp/indodax-risk",
-      "version": "1.0.0",
+      "version": "1.1.1",
       "dependencies": {
         "@indodax-mcp/core": "workspace:*",
         "decimal.js": "catalog:",
@@ -440,7 +441,7 @@
     },
     "packages/indodax-strategy": {
       "name": "@indodax-mcp/indodax-strategy",
-      "version": "1.0.0",
+      "version": "1.1.1",
       "dependencies": {
         "@indodax-mcp/core": "workspace:*",
       },
@@ -453,7 +454,7 @@
     },
     "packages/indodax-trading": {
       "name": "@indodax-mcp/indodax-trading",
-      "version": "1.0.0",
+      "version": "1.1.1",
       "dependencies": {
         "@indodax-mcp/core": "workspace:*",
         "@indodax-mcp/errors": "workspace:*",
@@ -469,7 +470,7 @@
     },
     "packages/indodax-websocket": {
       "name": "@indodax-mcp/indodax-websocket",
-      "version": "1.0.0",
+      "version": "1.1.1",
       "dependencies": {
         "@indodax-mcp/errors": "workspace:*",
         "@indodax-mcp/indodax-auth": "workspace:*",
@@ -485,7 +486,7 @@
     },
     "packages/logging": {
       "name": "@indodax-mcp/logging",
-      "version": "1.0.0",
+      "version": "1.1.1",
       "dependencies": {
         "pino": "catalog:",
       },
@@ -499,7 +500,7 @@
     },
     "packages/mcp-contracts": {
       "name": "@indodax-mcp/mcp-contracts",
-      "version": "1.0.0",
+      "version": "1.1.1",
       "dependencies": {
         "zod": "catalog:",
       },
@@ -512,7 +513,7 @@
     },
     "packages/mcp-core": {
       "name": "@indodax-mcp/mcp-core",
-      "version": "1.0.0",
+      "version": "1.1.1",
       "dependencies": {
         "@indodax-mcp/errors": "workspace:*",
         "@indodax-mcp/mcp-contracts": "workspace:*",
@@ -530,7 +531,7 @@
     },
     "packages/mcp-registry": {
       "name": "@indodax-mcp/mcp-registry",
-      "version": "1.0.0",
+      "version": "1.1.1",
       "dependencies": {
         "@indodax-mcp/mcp-contracts": "workspace:*",
         "zod": "catalog:",
@@ -544,7 +545,7 @@
     },
     "packages/mcp-runtime": {
       "name": "@indodax-mcp/mcp-runtime",
-      "version": "1.0.0",
+      "version": "1.1.1",
       "dependencies": {
         "@modelcontextprotocol/hono": "catalog:",
         "@modelcontextprotocol/server": "catalog:",
@@ -560,7 +561,7 @@
     },
     "packages/mcp-testing": {
       "name": "@indodax-mcp/mcp-testing",
-      "version": "1.0.0",
+      "version": "1.1.1",
       "dependencies": {
         "@modelcontextprotocol/client": "catalog:",
         "@modelcontextprotocol/server": "catalog:",
@@ -574,7 +575,7 @@
     },
     "packages/observability": {
       "name": "@indodax-mcp/observability",
-      "version": "1.0.0",
+      "version": "1.1.1",
       "dependencies": {
         "@indodax-mcp/core": "workspace:*",
       },
@@ -587,7 +588,7 @@
     },
     "packages/scheduler": {
       "name": "@indodax-mcp/scheduler",
-      "version": "1.0.0",
+      "version": "1.1.1",
       "devDependencies": {
         "@types/node": "catalog:",
         "@vitest/coverage-v8": "catalog:",
@@ -597,7 +598,7 @@
     },
     "packages/secrets": {
       "name": "@indodax-mcp/secrets",
-      "version": "1.0.0",
+      "version": "1.1.1",
       "devDependencies": {
         "@biomejs/biome": "catalog:",
         "@types/node": "catalog:",
@@ -608,7 +609,7 @@
     },
     "packages/storage": {
       "name": "@indodax-mcp/storage",
-      "version": "1.0.0",
+      "version": "1.1.1",
       "devDependencies": {
         "@types/node": "catalog:",
         "@vitest/coverage-v8": "catalog:",
@@ -618,7 +619,7 @@
     },
     "packages/transport": {
       "name": "@indodax-mcp/transport",
-      "version": "1.0.0",
+      "version": "1.1.1",
       "dependencies": {
         "@indodax-mcp/errors": "workspace:*",
       },

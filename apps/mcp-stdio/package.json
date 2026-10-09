@@ -1,9 +1,9 @@
 {
   "name": "indodax-mcp",
-  "version": "1.0.0",
+  "version": "1.1.1",
   "type": "module",
   "scripts": {
-    "build": "bun build ./src/main.ts --outfile ./dist/index.js --target bun --banner '#!/usr/bin/env bun' && chmod +x ./dist/index.js",
+    "build": "bun build ./src/main.ts --outfile ./dist/index.js --target bun --banner '#!/usr/bin/env bun' && bun ../../scripts/sanitize-bundle.ts ./dist/index.js && chmod +x ./dist/index.js",
     "dev:mcp": "bun --watch ./src/main.ts",
     "start": "bun ./src/main.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit",
@@ -31,14 +31,37 @@
     "vitest": "catalog:",
     "zod": "catalog:"
   },
-  "description": "INDODAX MCP server over stdio and Streamable HTTP",
+  "description": "MCP server for INDODAX spot trading: market reads, paper execution, deterministic risk, emulated stops, and a gated live path",
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "indodax",
+    "trading",
+    "crypto",
+    "paper-trading",
+    "risk-management",
+    "llm"
+  ],
+  "homepage": "https://github.com/D1ZZY4/indodax-mcp#readme",
+  "bugs": {
+    "url": "https://github.com/D1ZZY4/indodax-mcp/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/D1ZZY4/indodax-mcp.git"
+  },
   "license": "SSPL-1.0",
+  "author": "D1ZZY4",
   "bin": {
     "indodax-mcp": "./dist/index.js"
   },
+  "engines": {
+    "bun": ">=1.4.2"
+  },
   "files": [
     "dist/",
-    "docs-tools/"
+    "docs-tools/",
+    "README.md"
   ],
   "publishConfig": {
     "access": "public"

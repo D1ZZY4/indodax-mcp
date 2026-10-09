@@ -1,6 +1,6 @@
 import { loadConfig } from "@indodax-mcp/config";
 import { createLogger } from "@indodax-mcp/logging";
-import { buildIndodaxServer } from "@indodax-mcp/indodax-mcp";
+import { buildIndodaxServer, SERVER_NAME, SERVER_VERSION } from "@indodax-mcp/indodax-mcp";
 import { buildHttpApp } from "@indodax-mcp/mcp-runtime";
 
 // loadConfig keeps the parsed environment and its provenance together, so
@@ -20,7 +20,7 @@ const host = env.MCP_HOST ?? "127.0.0.1";
 const app = buildHttpApp(() => createServer());
 
 app.get("/health", (c) =>
-  c.json({ status: "ok", server: "indodax-mcp", version: "1.0.0", mode: env.APP_ENV }),
+  c.json({ status: "ok", server: SERVER_NAME, version: SERVER_VERSION, mode: env.APP_ENV }),
 );
 
 const server = Bun.serve({

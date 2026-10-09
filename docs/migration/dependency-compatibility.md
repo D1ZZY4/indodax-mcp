@@ -56,6 +56,33 @@ The repository currently avoids adding these without a demonstrated requirement:
 - ioredis
 - OpenTelemetry exporters or SDK additions
 
+## Known audit finding: esbuild development server (2026-10-09)
+
+`bun audit` reports one moderate advisory, GHSA-67mh-4wv8-2f99, against
+`esbuild@0.18.20`. Scope of the finding, verified rather than assumed:
+
+- The affected package is `esbuild`, and the advisory applies to versions
+  `<= 0.24.2`.
+- The installed tree carries three esbuild versions: `0.18.20`, `0.25.12` and
+  `0.28.2`. Only `0.18.20` is in range.
+- `0.18.20` is reached through `@esbuild-kit/core-utils@3.3.2`, a transitive
+  dependency of `drizzle-kit@0.31.11`. The other two come from the current
+  `vite` toolchain and are already outside the vulnerable range.
+- `drizzle-kit` is a **devDependency** of `@indodax-mcp/db` and is used only by
+  the `db:generate` script. It is not a dependency of any application package.
+- The published artifacts contain no esbuild reference at all:
+  `apps/mcp-stdio/dist/index.js`, `apps/cli/dist/index.js`,
+  `apps/mcp-http/dist/index.js` and `apps/daemon/dist/index.js` were all
+  checked and report zero matches.
+
+Impact is therefore a local development-server exposure during
+`db:generate`, not a shipped runtime or consumer exposure. No upgrade is
+applied: `0.31.11` is the current published `drizzle-kit` release, so moving off
+the vulnerable transitive dependency requires a `drizzle-kit` release that
+itself moves off `@esbuild-kit/core-utils`. Re-check on the next
+`drizzle-kit` upgrade rather than forcing a major-version bump onto a
+migration tool that is already current.
+
 ## Environment deviations
 
 Development and tests can use embedded PostgreSQL binaries when a system PostgreSQL service is unavailable. Production is expected to use external PostgreSQL via DATABASE_URL.

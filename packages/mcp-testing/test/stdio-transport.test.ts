@@ -1,3 +1,4 @@
+import { spawn } from "node:child_process";
 import { describe, expect, it } from "vitest";
 import { withStdioCommand } from "@indodax-mcp/mcp-testing";
 
@@ -11,6 +12,68 @@ import { withStdioCommand } from "@indodax-mcp/mcp-testing";
  * place, cancel, or transfer anything.
  */
 const entry = new URL("../../../apps/mcp-stdio/dist/index.js", import.meta.url).pathname;
+
+const INITIALIZE = JSON.stringify({
+  jsonrpc: "2.0",
+  id: 1,
+  method: "initialize",
+  params: {
+    protocolVersion: "2025-11-25",
+    capabilities: {},
+    clientInfo: { name: "stdio-raw", version: "0" },
+  },
+});
+const INITIALIZED = JSON.stringify({ jsonrpc: "2.0", method: "notifications/initialized" });
+
+/**
+ * Raw framed stdio, for a refusal the client harness cannot render.
+ *
+ * A schema violation is refused by the protocol layer before any handler runs,
+ * and the SDK client surfaces the resulting text as a JSON parse failure
+ * instead of the message. Reading the server reply directly is the only way to
+ * assert what the caller is actually told.
+ */
+function rawStdioCall(name: string, args: Record<string, unknown>): Promise<string> {
+  const call = JSON.stringify({
+    jsonrpc: "2.0",
+    id: 2,
+    method: "tools/call",
+    params: { name, arguments: args },
+  });
+  return new Promise((resolve, reject) => {
+    const child = spawn("bun", [entry], { stdio: ["pipe", "pipe", "ignore"] });
+    let buffer = "";
+    const timer = setTimeout(() => {
+      child.kill();
+      reject(new Error(`no reply for ${name} within 20s`));
+    }, 20_000);
+    child.on("error", (error) => {
+      clearTimeout(timer);
+      reject(error);
+    });
+    child.stdout.on("data", (chunk: Buffer) => {
+      buffer += chunk.toString();
+      for (const line of buffer.split("\n")) {
+        if (!line.includes('"id":2')) continue;
+        try {
+          const parsed = JSON.parse(line) as {
+            result?: { content?: { text?: string }[] };
+          };
+          const text = parsed.result?.content?.map((block) => block.text).join(" ") ?? "";
+          if (text) {
+            clearTimeout(timer);
+            child.kill();
+            resolve(text);
+            return;
+          }
+        } catch {
+          // Partial line; wait for more bytes.
+        }
+      }
+    });
+    child.stdin.write(`${INITIALIZE}\n${INITIALIZED}\n${call}\n`);
+  });
+}
 
 /**
  * The packaged stdio bundle is built by Bun, so it needs the Bun runtime.
@@ -49,6 +112,9 @@ describe("stdio transport", () => {
       const validate = tools.find((tool) => tool.name === "indodax_validate_order");
       // Over the wire the schema is plain JSON Schema, so the declared
       // properties are asserted here rather than the in-process Zod shape.
+      // `stopPrice` joins `riskBudget` as the advisory stop-distance input the
+      // risk-budget work added; it must reach the handler or the assessment
+      // silently degrades to a notional multiple.
       const properties = Object.keys(
         (validate?.inputSchema as { properties?: Record<string, unknown> } | undefined)
           ?.properties ?? {},
@@ -60,6 +126,7 @@ describe("stdio transport", () => {
         "quantity",
         "riskBudget",
         "side",
+        "stopPrice",
         "stpMode",
         "timeInForce",
       ]);
@@ -107,6 +174,21 @@ describe("stdio transport", () => {
       expect(failure.message).toContain("FOK");
     } finally {
       await h.close();
+    }
+  }, 60_000);
+
+  it("names the supported candle timeframes when a caller sends an alias", async () => {
+    // The exchange answers 1H, 4H and D with "invalid TimeFrame", which cost a
+    // live round trip per probe in a production loop. The schema now refuses
+    // them locally, so the refusal has to enumerate what is accepted instead
+    // of reporting an opaque option error.
+    const text = await rawStdioCall("indodax_candles", {
+      symbol: "btc_idr",
+      timeframe: "4H",
+    });
+    expect(text).toContain("timeframe");
+    for (const supported of ["60", "240", "1D", "1W"]) {
+      expect(text).toContain(supported);
     }
   }, 60_000);
 

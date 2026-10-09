@@ -8,6 +8,7 @@ import { fail, ok, parseArgs } from "@indodax-mcp/indodax-mcp/respond";
 import { pairArg } from "@indodax-mcp/indodax-mcp/schemas";
 import { defineTool } from "@indodax-mcp/indodax-mcp/tools/define";
 import { refreshPersistenceState } from "@indodax-mcp/indodax-mcp/persistence-state";
+import { SERVER_NAME, SERVER_VERSION } from "@indodax-mcp/indodax-mcp/version";
 import type { AppServices } from "@indodax-mcp/indodax-mcp/composition";
 
 const SYSTEM = {
@@ -181,13 +182,13 @@ export function registerSystemTools(
   });
   handlers.tools.set("indodax_version", async () =>
     ok({
-      server: "indodax-mcp",
-      version: "1.0.0",
+      server: SERVER_NAME,
+      version: SERVER_VERSION,
       mode: app.env.APP_ENV,
       protocol: "2025-11-25",
       transports: ["stdio", "streamable-http"],
       checkedAt: new Date().toISOString(),
-      summary: `indodax-mcp 1.0.0 in ${app.env.APP_ENV} mode over stdio + Streamable HTTP`,
+      summary: `${SERVER_NAME} ${SERVER_VERSION} in ${app.env.APP_ENV} mode over stdio + Streamable HTTP`,
     }),
   );
   handlers.tools.set("indodax_system_capabilities", async () =>

@@ -49,8 +49,8 @@ import { registerResources } from "@indodax-mcp/indodax-mcp/resources";
 import { registerPrompts } from "@indodax-mcp/indodax-mcp/prompts";
 import type { AppEnv, ConfigDiagnostic } from "@indodax-mcp/config";
 
-export const SERVER_NAME = "indodax-mcp";
-export const SERVER_VERSION = "1.0.0";
+import { SERVER_NAME, SERVER_VERSION } from "@indodax-mcp/indodax-mcp/version";
+export { SERVER_NAME, SERVER_VERSION };
 
 export function emptyHandlers(): ServerHandlers {
   return { tools: new Map(), resources: new Map(), prompts: new Map() };
