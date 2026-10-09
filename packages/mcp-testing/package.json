@@ -33,7 +33,8 @@
     "@types/node": "catalog:",
     "@vitest/coverage-v8": "catalog:",
     "bun-types": "catalog:",
-    "vitest": "catalog:"
+    "vitest": "catalog:",
+    "zod": "catalog:"
   },
   "description": "In-memory, stdio, and HTTP MCP test harnesses.",
   "keywords": [

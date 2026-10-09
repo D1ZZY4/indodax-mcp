@@ -571,6 +571,7 @@
         "@vitest/coverage-v8": "catalog:",
         "bun-types": "catalog:",
         "vitest": "catalog:",
+        "zod": "catalog:",
       },
     },
     "packages/observability": {
