@@ -119,4 +119,20 @@ export class AlertStore {
     }
     return triggered;
   }
+
+  /**
+   * Alerts for one pair that are already retired as triggered.
+   *
+   * A check reports only what this call transitioned. When the scheduled
+   * alert-autopoll has already retired an alert, the next agent-issued check
+   * finds nothing active and returns an empty result, which reads as "did not
+   * trigger" even though the condition was met earlier. Exposing the already
+   * triggered rows lets a caller distinguish the two cases without a second
+   * history query.
+   */
+  triggeredFor(pair: string): PriceAlert[] {
+    return [...this.alerts.values()].filter(
+      (alert) => alert.pair === pair && alert.status === "triggered",
+    );
+  }
 }

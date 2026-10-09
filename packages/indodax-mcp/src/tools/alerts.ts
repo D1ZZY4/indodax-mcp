@@ -56,7 +56,10 @@ const alertCreate = defineTool(
     name: "indodax_alert_create",
     title: "Create alert",
     description:
-      "Persist a price alert for one pair. Exactly one of above, below, percentUp, percentDown. Percent modes anchor to the live price at creation time. Returns the alert id.",
+      "Persist a price alert for one pair. Args: pair plus exactly one flat condition field: above, " +
+      "below, percentUp, or percentDown, and an optional note. The condition is the flat field itself, " +
+      "not a nested object; for example {pair:'ton_idr', below:24763.44548379} fires when the price " +
+      "drops to that level. Percent modes anchor to the price at creation time. Returns the alert id.",
     capability: "READ",
     riskClass: "mutation",
     environmentRequirement: "any",
@@ -96,7 +99,11 @@ const alertCheck = defineTool(
     name: "indodax_alert_check",
     title: "Check alerts",
     description:
-      "Mutating local state. Evaluate active alerts for one pair against the live price.",
+      "Mutating local state. Evaluate active alerts for one pair against the current market price. " +
+      "Args: pair. The price comes from the shared ticker cache, so priceSource and priceAgeMs state " +
+      "whether it was a live read or a cached row. triggeredCount counts only alerts this call " +
+      "retired; an alert already retired by the scheduled autopoll appears in alreadyTriggered, so a " +
+      "zero triggeredCount never means the condition was never met.",
     capability: "READ",
     riskClass: "mutation",
     environmentRequirement: "any",
@@ -206,17 +213,37 @@ export function registerAlertTools(
       const pair = canonicalPair(args.pair);
       const ticker = await getTicker(app.publicClient, pair);
       const triggered = app.alerts.check(pair, ticker.last);
+      // Anything already retired for this pair, including rows a background
+      // autopoll consumed. Without this a caller reading triggeredCount alone
+      // cannot tell "condition never met" from "condition met and someone
+      // else already acted on it", which is a false negative on a trigger.
+      const alreadyTriggered = app.alerts.triggeredFor(pair);
+      const priceSource = ticker.source;
+      const priceAgeMs = ticker.ageMs;
       return ok({
         pair,
         price: ticker.last,
+        priceSource,
+        priceAgeMs,
+        priceStale: ticker.stale,
         checkedAt: new Date().toISOString(),
+        count: triggered.length,
         triggered,
+        alerts: triggered,
         triggeredCount: triggered.length,
+        alreadyTriggered,
+        alreadyTriggeredCount: alreadyTriggered.length,
         remainingActive: app.alerts.list().length,
         summary:
           triggered.length > 0
             ? `${triggered.length} alert(s) triggered for ${pair} at ${ticker.last}`
-            : `no alerts triggered for ${pair} at ${ticker.last}`,
+            : alreadyTriggered.length > 0
+              ? `no new alert for ${pair} at ${ticker.last}, but ${alreadyTriggered.length} already triggered earlier (see alreadyTriggered)`
+              : `no alerts triggered for ${pair} at ${ticker.last}`,
+        note:
+          alreadyTriggered.length > 0
+            ? "alreadyTriggered lists alerts already retired as triggered, so this call retiring none does not mean the condition was never met"
+            : "price comes from the shared ticker cache; use indodax_orderbook when a live top of book is required",
       });
     } catch (error) {
       return fail(error);
