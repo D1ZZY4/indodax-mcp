@@ -49,27 +49,45 @@ bun add -g @indodax-mcp/indodax-mcp @indodax-mcp/cli
 
 ### MCP client configuration
 
-For a stdio client such as OpenCode or Claude Desktop, one entry is enough:
+**OpenCode** uses `~/.config/opencode/opencode.jsonc`, with a command **array**
+and an `environment` object:
 
-~~~json
+~~~jsonc
 {
+  "$schema": "https://opencode.ai/config.json",
   "mcp": {
     "indodax-mcp": {
-      "command": "bunx",
-      "args": ["-y", "@indodax-mcp/indodax-mcp"],
-      "env": {
-        "INDODAX_API_KEY": "",
-        "INDODAX_API_SECRET": ""
-      }
+      "type": "local",
+      "command": ["bunx", "-y", "@indodax-mcp/indodax-mcp"],
+      "environment": { "APP_ENV": "paper" },
+      "enabled": true
     }
   }
 }
 ~~~
 
-Leave the credential values empty to run read-only against the public API. An
+**Claude Desktop** uses `claude_desktop_config.json`, with `command` as a
+string, a separate `args` array, and an `env` object:
+
+~~~json
+{
+  "mcpServers": {
+    "indodax-mcp": {
+      "command": "bunx",
+      "args": ["-y", "@indodax-mcp/indodax-mcp"],
+      "env": { "APP_ENV": "paper" }
+    }
+  }
+}
+~~~
+
+The formats are not interchangeable. Copying one into the other starts a
+process with no arguments, which looks like a broken server.
+
+Leave the credentials empty to run read-only against the public API. An
 MCP client cannot inject environment into a process it did not launch, so
-credentials must be set in the client `env` block or exported into whatever
-starts the server.
+credentials must be set in the client's environment block, or exported into
+whatever starts the server.
 
 ### Published packages
 
@@ -128,6 +146,49 @@ bun apps/mcp-http/src/main.ts
 
 CI currently runs format, lint, typecheck, test, and build.
 
+## Deploy and self-host
+
+Four shapes, from smallest to largest. Pick by what you need, not by what
+sounds most production.
+
+| Shape | Use when | Database | Start with |
+| --- | --- | --- | --- |
+| Local stdio | An agent harness on the same machine | none | `bunx -y @indodax-mcp/indodax-mcp` |
+| Local HTTP | Several clients, or a client that cannot spawn a process | optional | `bunx -y @indodax-mcp/mcp-http` |
+| Docker Compose | A container host, team use, or a server | included | `cd deploy/compose && docker compose up --build` |
+| Source checkout | Contributing, or running unreleased code | optional | see Run from source above |
+
+**Start with local stdio.** No clone, no database, no credentials, and the
+smallest blast radius.
+
+Three things hold across every shape:
+
+- **Bun is required.** The binaries carry a `#!/usr/bin/env bun` shebang, so
+  `bunx`, `npx`, and a global install all work and all need Bun present.
+- **Credentials are optional.** Without a key every read-only tool works and
+  authenticated tools refuse with a named reason.
+- **Paper is the default.** Live needs `APP_ENV=live` plus `TRADE_ENABLED=true`
+  plus credentials, plus `acknowledged: true` and a risk ALLOW on every call.
+
+### Before you expose anything
+
+The HTTP transport has **no authentication of its own**. Anyone who can reach
+the port can read balances and, if live is enabled, place orders.
+
+- Keep `MCP_HOST` on `127.0.0.1`. Put a reverse proxy with authentication in
+  front of it before binding anything wider.
+- The committed compose file publishes PostgreSQL on `5432` with the password
+  `indodax` written in the file, and publishes the gateway on `8000`. **Change
+  both to `127.0.0.1` before running that file on a shared host.**
+
+Full walkthroughs, including systemd units and Docker Compose, are in the
+[self-hosting guide](docs/guides/self-hosting.md). Configuration variables,
+safety flags, and troubleshooting are in
+[self-host operations](docs/operations/self-host-operations.md).
+
+That guide also documents two exposures in the committed compose file that must
+be closed before running it anywhere shared.
+
 ## Configuration
 
 The exchange credential contract is intentionally small:
@@ -140,6 +201,8 @@ INDODAX_API_SECRET=your_api_secret_here
 ~~~
 
 Server configuration also supports DATABASE_URL, MCP_HOST, MCP_PORT, APP_ENV, TRADE_ENABLED, and WITHDRAW_ENABLED. See [.env.example](.env.example) and the [documentation index](docs/README.md).
+
+`MCP_HTTP_PORT` and `MCP_HTTP_HOST` do not exist. The names are `MCP_PORT` and `MCP_HOST`, and setting the wrong ones leaves the server on its default port with no error. The full variable table is in [self-host operations](docs/operations/self-host-operations.md).
 
 Never commit real credentials. **Rotate an exchange key immediately** if it is exposed.
 
@@ -242,6 +305,8 @@ Key references:
 - [Risk policy](docs/risk/policy.md)
 - [Trading modes](docs/trading/modes.md)
 - [Operations runbook](docs/operations/runbook.md)
+- [Self-hosting guide](docs/guides/self-hosting.md)
+- [Self-host operations](docs/operations/self-host-operations.md)
 - [Agent harness guide](docs/guides/agent-harness.md)
 - [Migration notes](docs/migration/rust-to-typescript.md)
 

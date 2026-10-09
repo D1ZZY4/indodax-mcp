@@ -6,6 +6,7 @@ This documentation describes the **current implementation** of Indodax MCP. Stat
 
 - [Repository README](../README.md): project status, installation, quickstart, and high-level safety model.
 - [Beginner guide](guides/beginner.md): paper-only introduction.
+- [Self-hosting guide](guides/self-hosting.md): install shapes and deployment for local, Compose, and systemd.
 - [Agent harness guide](guides/agent-harness.md): operating the MCP from an AI agent.
 - [Developer guide](guides/developer.md): package boundaries and extension rules.
 - [Advanced guide](guides/advanced.md): operator workflows and current readiness limits.
@@ -28,6 +29,7 @@ This documentation describes the **current implementation** of Indodax MCP. Stat
 - [Risk policy](risk/policy.md): deterministic rules, limits, and runtime limitations.
 - [Trading modes](trading/modes.md): paper, live, shadow, and live-readiness boundary.
 - [Operations runbook](operations/runbook.md): health, runtime checks, and credential rotation.
+- [Self-host operations](operations/self-host-operations.md): configuration reference, safety flags, and troubleshooting.
 
 ## Migration and decisions
 
@@ -46,6 +48,8 @@ This documentation describes the **current implementation** of Indodax MCP. Stat
 ## Using the published server
 
 The server needs no clone. Start it with `bunx -y @indodax-mcp/indodax-mcp`, or install it with `bun add -g @indodax-mcp/indodax-mcp`. Bun is required at runtime. See the repository [README](../README.md#install) for the MCP client configuration and the list of published packages.
+
+To deploy it rather than just run it, see the [self-hosting guide](guides/self-hosting.md).
 
 ## Documentation rules
 
