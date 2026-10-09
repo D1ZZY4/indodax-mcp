@@ -10,8 +10,14 @@ import { withStdioCommand } from "@indodax-mcp/mcp-testing";
  * binary an MCP client would launch, so the wiring is exercised rather than
  * assumed. It only lists tools and calls read-only tools: nothing here can
  * place, cancel, or transfer anything.
+ *
+ * This suite lives with the app it launches rather than in the harness package
+ * that provides the transport. It runs this package's own `dist/index.js`, and
+ * Turbo cannot order a build of `apps/mcp-stdio` for a task in
+ * `packages/mcp-testing` without a circular workspace dependency, since this
+ * app already depends on that package.
  */
-const entry = new URL("../../../apps/mcp-stdio/dist/index.js", import.meta.url).pathname;
+const entry = new URL("../dist/index.js", import.meta.url).pathname;
 
 const INITIALIZE = JSON.stringify({
   jsonrpc: "2.0",
