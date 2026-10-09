@@ -18,6 +18,22 @@ import type { AppServices } from "@indodax-mcp/indodax-mcp/composition";
 
 const closesArg = z.array(z.number().positive());
 
+/**
+ * Direction of the whole sample, independent of the windowed average.
+ *
+ * Compares last against first with a 0.1% deadband so sideways tapes read
+ * flat instead of flickering between up and down on dust.
+ */
+function sampleTrend(closes: number[]): "up" | "down" | "flat" {
+  const first = closes[0];
+  const last = closes[closes.length - 1];
+  if (first === undefined || last === undefined || first <= 0) return "flat";
+  const drift = (last - first) / first;
+  if (drift > 0.001) return "up";
+  if (drift < -0.001) return "down";
+  return "flat";
+}
+
 const READ = {
   capability: "READ" as const,
   riskClass: "read" as const,
@@ -135,6 +151,8 @@ export function registerStrategyTools(
           symbol,
           side: null,
           strength: null,
+          confidence: null,
+          trend: null,
           reason: "not enough closes to evaluate this window",
           verdict: "insufficient_data",
           closes: args.closes.length,
@@ -153,6 +171,17 @@ export function registerStrategyTools(
         verdict: "ok",
         closes: args.closes.length,
         window: input.window,
+        /**
+         * Confidence weights signal strength by sample adequacy: a drift over
+         * barely more closes than the window counts less than the same drift
+         * over a long tape. Trend names the sample direction over the full
+         * closes (up, down, flat within 0.1%) independent of the windowed
+         * average the side comes from.
+         */
+        confidence: Number(
+          (signal.strength * Math.min(1, args.closes.length / (2 * input.window))).toFixed(3),
+        ),
+        trend: sampleTrend(args.closes),
         summary: `${signal.side} signal with strength ${signal.strength} for ${signal.symbol.base}_${signal.symbol.quote}`,
       });
     } catch (error) {
@@ -177,6 +206,13 @@ export function registerStrategyTools(
         { feeRate, threshold, notional },
       );
       const stored = storeBacktest(report);
+      // Expectancy is net per hypothetical fill. Win rate is deliberately
+      // absent: this replay counts threshold crossings as fills without
+      // modeling direction, so every crossing would trivially "win".
+      const expectancy =
+        report.hypotheticalFills > 0
+          ? report.netPnl.div(report.hypotheticalFills).toString()
+          : null;
       return ok({
         id: stored.id,
         note: "hypothetical replay with assumed fees and no slippage; not evidence of real profit",
@@ -189,6 +225,7 @@ export function registerStrategyTools(
         hypotheticalFills: report.hypotheticalFills,
         totalFees: report.totalFees.toString(),
         netPnl: report.netPnl.toString(),
+        expectancy,
         maxDrawdownPct: report.maxDrawdownPct.toString(),
         trades: report.trades.map((trade) => ({
           index: trade.index,
