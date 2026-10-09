@@ -1,6 +1,6 @@
 ---
 "indodax-mcp": minor
-"@indodax-mcp/cli": minor
+"indodax-mcp-cli": minor
 ---
 
 First published release of the TypeScript/Bun rebuild as 1.1.1.

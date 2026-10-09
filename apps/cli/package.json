@@ -1,5 +1,5 @@
 {
-  "name": "@indodax-mcp/cli",
+  "name": "indodax-mcp-cli",
   "version": "1.1.1",
   "type": "module",
   "scripts": {

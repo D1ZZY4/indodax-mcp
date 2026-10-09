@@ -15,7 +15,7 @@
       },
     },
     "apps/cli": {
-      "name": "@indodax-mcp/cli",
+      "name": "indodax-mcp-cli",
       "version": "1.1.1",
       "bin": {
         "indodax": "./dist/index.js",
@@ -832,8 +832,6 @@
 
     "@exodus/bytes": ["@exodus/bytes@1.16.0", "", { "peerDependencies": { "@noble/hashes": "^1.8.0 || ^2.0.0" }, "optionalPeers": ["@noble/hashes"] }, "sha512-IcpW84uEn3N7ETtNZMlxKhfl6Pec8rUNGOTBtWbK1FKhJxIFAptZyVrvVRVBimAJxJCgc3PxepxkdWWG4DVzfA=="],
 
-    "@indodax-mcp/cli": ["@indodax-mcp/cli@workspace:apps/cli"],
-
     "@indodax-mcp/config": ["@indodax-mcp/config@workspace:packages/config"],
 
     "@indodax-mcp/core": ["@indodax-mcp/core@workspace:packages/core"],
@@ -1191,6 +1189,8 @@
     "indent-string": ["indent-string@4.0.0", "", {}, "sha512-EdDDZu4A2OyIK7Lr/2zG+w5jmbuk1DVBnEwREQvBzspBJkCEbRa8GxU1lghYcaGJCnRWibjDXlq779X1/y5xwg=="],
 
     "indodax-mcp": ["indodax-mcp@workspace:apps/mcp-stdio"],
+
+    "indodax-mcp-cli": ["indodax-mcp-cli@workspace:apps/cli"],
 
     "is-potential-custom-element-name": ["is-potential-custom-element-name@1.0.1", "", {}, "sha512-bCYeRA2rVibKZd+s2625gGnGF/t7DSqDs4dP7CrLA1m7jKWz6pps0LpYLJN8Q64HtmPKJ1hrN3nzPNKFEKOUiQ=="],
 
