@@ -29,6 +29,6 @@ describe("strategy", () => {
 
   it("names the extraction path for an empty closes array", () => {
     const errors = validateSignalInput({ symbol: SYMBOL, closes: [], window: 5 });
-    expect(errors.join(" ")).toContain("data[].close");
+    expect(errors.join(" ")).toContain("data.bars[].close");
   });
 });

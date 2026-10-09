@@ -60,7 +60,7 @@ export function validateSignalInput(input: SignalInput): string[] {
     // failure cascades into every downstream evaluation and reads as an
     // exchange problem.
     errors.push(
-      "closes is empty; extract closing prices from indodax_candles bars as data[].close " +
+      "closes is empty; extract closing prices from indodax_candles bars as data.bars[].close " +
         "(lowercase close, decimal strings)",
     );
   } else if (input.closes.length < 2) {

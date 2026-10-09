@@ -71,19 +71,6 @@ const tradesTool = defineTool(
   { pair: pairArg, limit: z.number().int().min(1).max(500).optional() },
 );
 
-const candles = defineTool(
-  meta(
-    "indodax_candles",
-    "Read-only. OHLCV candles for one pair, money fields as strings. Args: symbol accepts any spelling like btc_idr or BTCIDR, timeframe minutes default 60 (60, 240, 1D, 3D, 1W also valid), from and to unix seconds default last 24h.",
-  ),
-  {
-    symbol: z.string().min(1),
-    timeframe: z.string().optional(),
-    from: z.number().optional(),
-    to: z.number().optional(),
-  },
-);
-
 const priceIncrements = defineTool(
   meta("indodax_price_increments", "Read-only. Price increments per pair. Takes no arguments."),
   {},
@@ -94,16 +81,7 @@ const summaries = defineTool(
   {},
 );
 
-const MARKET_TOOLS = [
-  serverTime,
-  pairs,
-  ticker,
-  orderbook,
-  tradesTool,
-  candles,
-  priceIncrements,
-  summaries,
-];
+const MARKET_TOOLS = [serverTime, pairs, ticker, orderbook, tradesTool, priceIncrements, summaries];
 
 export function registerMarketTools(
   registry: Registry,
@@ -225,42 +203,6 @@ export function registerMarketTools(
         ...(flow.flowWarning === null ? {} : { flowWarning: flow.flowWarning }),
         summary: `${sliced.length} recent trade(s) for ${canonicalPair(args.pair)} (${flow.buyCount} buys)`,
       });
-    } catch (error) {
-      return fail(error);
-    }
-  });
-  handlers.tools.set("indodax_candles", async (raw) => {
-    try {
-      const args = parseArgs(candles.inputSchema, raw);
-      const now = Math.floor(Date.now() / 1000);
-      const bars = await app.publicClient.ohlc(
-        toCompactPair(args.symbol).toUpperCase(),
-        args.timeframe ?? "60",
-        args.from ?? now - 86_400,
-        args.to ?? now,
-      );
-      // Money always serializes as strings; the exchange sends OHLC numbers.
-      /**
-       * Lowercase field names with numeric mirrors, matching every other
-       * market response. The exchange capitalises these fields, which made one
-       * response the odd one out and forced a per-shape parser on the caller.
-       */
-      return ok(
-        bars.map((bar) => ({
-          time: bar.Time,
-          open: String(bar.Open),
-          high: String(bar.High),
-          low: String(bar.Low),
-          close: String(bar.Close),
-          volume: String(bar.Volume),
-          closeNum: Number(bar.Close),
-          openNum: Number(bar.Open),
-          highNum: Number(bar.High),
-          lowNum: Number(bar.Low),
-          volumeNum: Number(bar.Volume),
-          note: "money fields are decimal strings, the Num fields are lossy mirrors for charting only",
-        })),
-      );
     } catch (error) {
       return fail(error);
     }

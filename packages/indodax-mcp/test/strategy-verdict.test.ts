@@ -97,19 +97,21 @@ describe("strategy signal verdicts", () => {
     try {
       const { isError, envelope } = await call(harness, { pair: "btc_idr", closes: [] });
       expect(isError).toBe(true);
-      expect(envelope.message).toContain("data[].close");
+      expect(envelope.message).toContain("data.bars[].close");
       const backtest = (await harness.client.callTool({
         name: "indodax_backtest_run",
         arguments: { closes: [] },
       })) as { content: { text: string }[]; isError?: boolean };
       expect(backtest.isError).toBe(true);
-      expect(backtest.content.map((block) => block.text).join("\n")).toContain("data[].close");
+      expect(backtest.content.map((block) => block.text).join("\n")).toContain("data.bars[].close");
       const validated = (await harness.client.callTool({
         name: "indodax_strategy_validate",
         arguments: { id: "ma-cross", closes: [] },
       })) as { content: { text: string }[]; isError?: boolean };
       expect(validated.isError).not.toBe(true);
-      expect(validated.content.map((block) => block.text).join("\n")).toContain("data[].close");
+      expect(validated.content.map((block) => block.text).join("\n")).toContain(
+        "data.bars[].close",
+      );
     } finally {
       await harness.close();
     }

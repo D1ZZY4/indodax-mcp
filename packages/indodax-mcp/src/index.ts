@@ -19,6 +19,7 @@ import {
 } from "@indodax-mcp/indodax-mcp/persistence-state";
 import { evaluateStops } from "@indodax-mcp/indodax-mcp/tools/stop";
 import { registerMarketTools } from "@indodax-mcp/indodax-mcp/tools/market";
+import { registerCandlesTool } from "@indodax-mcp/indodax-mcp/tools/candles";
 import { registerMarketScanTools } from "@indodax-mcp/indodax-mcp/tools/market-scan";
 import { registerAccountTools } from "@indodax-mcp/indodax-mcp/tools/account";
 import { registerOrderTools } from "@indodax-mcp/indodax-mcp/tools/orders";
@@ -75,6 +76,7 @@ export function buildIndodaxServer(env: AppEnv, diagnostic?: ConfigDiagnostic) {
   const registry = new Registry();
   const handlers = emptyHandlers();
   registerMarketTools(registry, handlers, app);
+  registerCandlesTool(registry, handlers, app);
   registerMarketScanTools(registry, handlers, app);
   registerAccountTools(registry, handlers, app);
   registerOrderTools(registry, handlers, app);

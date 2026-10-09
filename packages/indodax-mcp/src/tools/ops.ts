@@ -151,7 +151,7 @@ export function registerOpsTools(
       if (args.closes.length === 0) {
         errors.push(
           "closes is empty; extract closing prices from indodax_candles bars as " +
-            "data[].close (lowercase close, decimal strings)",
+            "data.bars[].close (lowercase close, decimal strings)",
         );
       } else if (args.closes.length < 2) {
         errors.push("closes needs at least two numbers");

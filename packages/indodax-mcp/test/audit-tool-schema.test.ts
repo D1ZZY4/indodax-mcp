@@ -9,6 +9,7 @@ const TOOL_MODULES = [
   "account",
   "alerts",
   "audit",
+  "candles",
   "deadman",
   "docs",
   "funding",
