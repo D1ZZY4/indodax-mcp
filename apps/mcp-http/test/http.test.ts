@@ -16,7 +16,11 @@ describe("mcp-http", () => {
   it("serves health over HTTP", async () => {
     child = spawn("bun", ["src/main.ts"], {
       cwd: dir,
-      env: { ...process.env, MCP_PORT: String(PORT) },
+      // DATABASE_URL is cleared so the gateway does not attach its persistence
+      // mirrors to whatever database the developer happens to have configured.
+      // These specs exercise transport and identity, which need no database,
+      // and inheriting it made startup depend on that server's latency.
+      env: { ...process.env, MCP_PORT: String(PORT), DATABASE_URL: "" },
       stdio: "ignore",
     });
     let response: Response | null = null;

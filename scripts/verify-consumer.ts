@@ -36,6 +36,11 @@ async function run(
   }
   const proc = Bun.spawn(command, {
     cwd,
+    // The sandbox install must not attach its persistence mirrors to whatever
+    // database this shell happens to have configured. These probes check that
+    // the packed artifact starts and serves, which needs no database, and
+    // inheriting one would make the result depend on that server.
+    env: { ...process.env, DATABASE_URL: "" },
     stdin: inputFile === null ? "ignore" : Bun.file(inputFile),
     stdout: "pipe",
     stderr: "pipe",

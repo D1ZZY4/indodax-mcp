@@ -39,7 +39,19 @@ describe("daemon", () => {
   it("boots and shuts down gracefully", async () => {
     const child: ChildProcess = spawn("bun", ["src/main.ts"], {
       cwd: dir,
-      env: process.env,
+      // Start from a minimal environment so the host database configuration
+      // cannot make the daemon attach its persistence mirrors. With an ambient
+      // DATABASE_URL the boot opens five connections to whatever server the
+      // developer happens to have, which both mutates that database and makes
+      // startup depend on its latency. Under parallel suite load that pushed
+      // "daemon ready" past the wait window and failed intermittently.
+      // The lifecycle under test is start, schedule, stop, which needs no
+      // database. This mirrors the CLI suite, which isolates the same way.
+      env: {
+        PATH: process.env.PATH ?? "",
+        HOME: process.env.HOME ?? "",
+        DATABASE_URL: "",
+      },
       stdio: ["ignore", "pipe", "pipe"],
     });
     let output = "";
@@ -74,7 +86,11 @@ describe("daemon", () => {
     // window the defect lived in.
     const child: ChildProcess = spawn("bun", ["src/main.ts"], {
       cwd: dir,
-      env: process.env,
+      env: {
+        PATH: process.env.PATH ?? "",
+        HOME: process.env.HOME ?? "",
+        DATABASE_URL: "",
+      },
       stdio: ["ignore", "pipe", "pipe"],
     });
     let output = "";

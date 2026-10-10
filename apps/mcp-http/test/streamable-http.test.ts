@@ -44,7 +44,10 @@ async function waitForHealth(timeoutMs: number): Promise<void> {
 beforeAll(async () => {
   child = spawn("bun", ["src/main.ts"], {
     cwd: dir,
-    env: { ...process.env, MCP_PORT: String(PORT) },
+    // DATABASE_URL is cleared so the gateway does not attach its persistence
+    // mirrors to the developer's configured database. These specs exercise
+    // transport and identity, which need no database.
+    env: { ...process.env, MCP_PORT: String(PORT), DATABASE_URL: "" },
     stdio: ["ignore", "pipe", "pipe"],
   });
   let stderr = "";
