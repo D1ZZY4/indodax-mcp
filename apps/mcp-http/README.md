@@ -27,7 +27,7 @@ MCP_HOST=127.0.0.1 MCP_PORT=8080 indodax-mcp-http
 version, and the runtime mode:
 
 ```json
-{ "status": "ok", "server": "indodax-mcp", "version": "2.0.0", "mode": "paper" }
+{ "status": "ok", "server": "indodax-mcp", "version": "2.1.0", "mode": "paper" }
 ```
 
 This is a transport-level liveness probe, not a component rollup. For component

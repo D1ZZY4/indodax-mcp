@@ -55,6 +55,6 @@ Definitions:
 5. Live order placement is gated by `APP_ENV=live` plus `TRADE_ENABLED=true`, credentials, acknowledgement, and risk approval. Withdrawal stays denied.
 6. Reconciliation halt is re-derived inside `resolveRiskContext` rather than cached, so the trading gate cannot be moved by calling a read-only tool. The cost is one extra ledger snapshot per risk evaluation.
 7. Signed TAPI v2 reads rebuild the signature per retry attempt. The previous single-signature reuse could exceed `recvWindow` and convert a transient failure into a permanent timestamp rejection.
-8. Published at 2.0.0, which consolidated the tool surface from 91 tools to 68. Every workspace package moves on one lockstep version line, so the manifest version, the `SERVER_VERSION` constant, and the registry `latest` tag are all 2.0.0.
+8. Published at 2.1.0, which added the optional Jev advisory to `indodax_strategy_evaluate` and corrected references left pointing at tool names retired in 2.0.0. The tool surface itself is unchanged at 68 tools, 12 resources, and 5 prompts. Every workspace package moves on one lockstep version line, so the manifest version, the `SERVER_VERSION` constant, and the registry `latest` tag are all 2.1.0.
 
 **Promote a capability to a stronger status only when** its wiring and tests are updated with it.

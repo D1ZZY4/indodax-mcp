@@ -1,6 +1,6 @@
 {
   "name": "indodax-mcp",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "private": true,
   "description": "INDODAX trading infrastructure with MCP integration",
   "license": "SSPL-1.0",

@@ -16,4 +16,4 @@ export const SERVER_NAME = "indodax-mcp";
  * The published package is `indodax-mcp` (apps/mcp-stdio); the companion CLI
  * ships the same version, so both are asserted.
  */
-export const SERVER_VERSION = "2.0.0";
+export const SERVER_VERSION = "2.1.0";

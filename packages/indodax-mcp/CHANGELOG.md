@@ -1,5 +1,90 @@
 # @indodax-mcp/mcp-app
 
+## 2.1.0
+
+### Minor Changes
+
+- Add an optional Jev advisory to `indodax_strategy_evaluate`.
+  
+  When `OPENCODE_API_KEY` is set, the response carries an `advisory` object
+  holding a bounded second opinion from the Jev decision model, reached through
+  the OpenCode Zen System One endpoint.
+  
+  **What you must do:** nothing. Existing callers keep working unchanged. The
+  field is optional and the tool behaves identically when the credential is
+  absent, so this is a MINOR rather than a MAJOR.
+  
+  **Why it is safe for a financial surface:**
+  
+  - It never places, cancels, or arms anything, and it cannot turn a refusal
+    into an approval. The risk engine, the central guard, mode and capability
+    checks, per-call acknowledgement, idempotency and balance rules all run
+    independently and are unaffected by anything returned in `advisory`.
+  - Only the free `jev-1.13-free` model is ever used, so the advisory cannot
+    incur a charge. If the free model is withdrawn, the advisory reports
+    unavailable rather than falling back to the paid model.
+  - A missing credential, an unreachable endpoint, a timeout, a rate limit, or
+    a malformed response all degrade to `available: false` with a reason. None
+    of them fail the tool or change the signal.
+  - Only the pair, side, signal strength, window, and close count are sent. No
+    key, secret, account identifier, order identifier, or balance leaves the
+    process.
+  - `OPENCODE_API_KEY` is read straight from the environment and is deliberately
+    not added to the typed configuration schema, so it is not echoed by
+    `indodax_config_status` and does not appear in `configSource`. Credential
+    provenance reporting stays limited to the exchange key pair.
+
+### Patch Changes
+
+- Correct four references to tool names removed in 2.0.0.
+  
+  Each one directed a caller at a tool that no longer exists, so following it
+  produced an error instead of the answer it promised:
+  
+  - the workbench paper page called `indodax_paper_status`, so the page
+    rendered an error rather than the ledger
+  - `indodax_incident_review` instructed the agent to call
+    `indodax_execution_trace` and `indodax_reconciliation_state`
+  - the `-2010` rejection remedy named `indodax_balances`
+  - `indodax_open_orders` advised cross-checking `indodax_reconcile_full`
+  
+  No tool, resource, prompt, input, or response field changed, so this is a
+  PATCH: existing callers are unaffected.
+  
+  New guards resolve every referenced tool name against the live registry in
+  the four places a caller is directed, namely workbench call arguments, prompt
+  text, shipped rejection guidance, and tool descriptions.
+- Updated dependencies
+  - @indodax-mcp/db@2.1.0
+  - @indodax-mcp/config@2.1.0
+  - @indodax-mcp/core@2.1.0
+  - @indodax-mcp/errors@2.1.0
+  - @indodax-mcp/events@2.1.0
+  - @indodax-mcp/indodax-account@2.1.0
+  - @indodax-mcp/indodax-alerts@2.1.0
+  - @indodax-mcp/indodax-audit@2.1.0
+  - @indodax-mcp/indodax-auth@2.1.0
+  - @indodax-mcp/indodax-backtest@2.1.0
+  - @indodax-mcp/indodax-client@2.1.0
+  - @indodax-mcp/indodax-deadman@2.1.0
+  - @indodax-mcp/indodax-execution@2.1.0
+  - @indodax-mcp/indodax-market@2.1.0
+  - @indodax-mcp/indodax-orders@2.1.0
+  - @indodax-mcp/indodax-paper@2.1.0
+  - @indodax-mcp/indodax-portfolio@2.1.0
+  - @indodax-mcp/indodax-reconciliation@2.1.0
+  - @indodax-mcp/indodax-risk@2.1.0
+  - @indodax-mcp/indodax-strategy@2.1.0
+  - @indodax-mcp/indodax-trading@2.1.0
+  - @indodax-mcp/indodax-websocket@2.1.0
+  - @indodax-mcp/logging@2.1.0
+  - @indodax-mcp/mcp-contracts@2.1.0
+  - @indodax-mcp/mcp-core@2.1.0
+  - @indodax-mcp/mcp-registry@2.1.0
+  - @indodax-mcp/observability@2.1.0
+  - @indodax-mcp/scheduler@2.1.0
+  - @indodax-mcp/transport@2.1.0
+
 ## 2.0.0
 
 ### Major Changes

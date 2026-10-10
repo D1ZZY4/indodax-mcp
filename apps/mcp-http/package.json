@@ -1,6 +1,6 @@
 {
   "name": "@indodax-mcp/mcp-http",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "type": "module",
   "bin": {
     "indodax-mcp-http": "./dist/index.js"

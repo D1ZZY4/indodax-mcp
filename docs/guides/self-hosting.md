@@ -140,7 +140,7 @@ Check it:
 
 ```bash
 curl -s http://127.0.0.1:8000/health
-# {"status":"ok","server":"indodax-mcp","version":"2.0.0","mode":"paper"}
+# {"status":"ok","server":"indodax-mcp","version":"2.1.0","mode":"paper"}
 ```
 
 Point a client at it as a remote server:
@@ -292,7 +292,7 @@ not the same thing at a given moment:
 Pin the version when you need reproducibility:
 
 ```bash
-bunx -y @indodax-mcp/indodax-mcp@2.0.0
+bunx -y @indodax-mcp/indodax-mcp@2.1.0
 ```
 
 ## PostgreSQL without Docker
