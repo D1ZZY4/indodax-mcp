@@ -15,6 +15,7 @@ import { pairArg } from "@indodax-mcp/mcp-app/schemas";
 import { defineTool } from "@indodax-mcp/mcp-app/tools/define";
 import { storeBacktest } from "@indodax-mcp/mcp-app/tools/ops";
 import type { AppServices } from "@indodax-mcp/mcp-app/composition";
+import { advise, jevApiKey } from "@indodax-mcp/mcp-app/jev";
 
 const closesArg = z.array(z.number().positive());
 
@@ -60,7 +61,7 @@ const strategyEvaluate = defineTool(
     name: "indodax_strategy_evaluate",
     title: "Evaluate signal",
     description:
-      "No side effects. Evaluate a moving-average signal over closes, or check the inputs without computing. Absorbs the former indodax_strategy_validate. Args: pair and closes for the signal path, window default 5, and validateOnly to return valid plus errors instead. In validateOnly mode nothing throws: shape problems come back as errors in the result, and id defaults to ma-cross when omitted. Output is a signal, not an order.",
+      "No side effects. Evaluate a moving-average signal over closes, or check the inputs without computing. Absorbs the former indodax_strategy_validate. Args: pair and closes for the signal path, window default 5, and validateOnly to return valid plus errors instead. In validateOnly mode nothing throws: shape problems come back as errors in the result, and id defaults to ma-cross when omitted. Output is a signal, not an order. When OPENCODE_API_KEY is set the response also carries an advisory from the Jev decision model; it is a second opinion on the signal, never a gate, and it does not place or authorise anything.",
     ...READ,
   },
   {
@@ -193,6 +194,49 @@ export function registerStrategyTools(
           summary: `no signal for ${symbol.base}_${symbol.quote}: needs ${input.window} closes, got ${args.closes.length}`,
         });
       }
+      /**
+       * Optional Jev advisory, annotated onto the same response.
+       *
+       * Purely additive: the signal above is already computed and returned
+       * whatever this produces, and nothing here can gate, alter, or refuse
+       * it. Strategies emit signals and never place orders, which is why this
+       * read-only evaluation path is an appropriate home for an advisory.
+       */
+      const review = await advise(
+        {
+          state: [
+            `pair ${signal.symbol.base}_${signal.symbol.quote}`,
+            `signal side ${signal.side}`,
+            `signal strength ${signal.strength}`,
+            `moving-average window ${input.window}`,
+            `closes supplied ${args.closes.length}`,
+            `sample trend ${sampleTrend(args.closes)}`,
+          ].join(". "),
+          questions: {
+            confidence: {
+              type: "noul",
+              instructions:
+                "Is this trading signal strong and well evidenced enough to deserve a human decision now?",
+            },
+            classification: {
+              type: "choice",
+              instructions: "How should an operator treat this signal?",
+              criteria: {
+                needs_review: "Uncertain or contradictory evidence, warrants human attention",
+                routine: "Ordinary signal, fits an existing plan",
+              },
+            },
+            momentum: {
+              type: "score",
+              instructions: "How persistent is the recent price direction?",
+              rubric: ["Fading", "Stable", "Persistent"],
+            },
+          },
+        },
+        // The credential is read from the process environment, matching how the
+        // rest of the server reads configuration. It is never returned or logged.
+        { apiKey: jevApiKey() },
+      );
       return ok({
         ...signal,
         pair: `${signal.symbol.base}_${signal.symbol.quote}`,
@@ -211,6 +255,10 @@ export function registerStrategyTools(
         ),
         trend: sampleTrend(args.closes),
         summary: `${signal.side} signal with strength ${signal.strength} for ${signal.symbol.base}_${signal.symbol.quote}`,
+        advisory: {
+          role: "advisory only; it does not gate, alter, or authorise this signal",
+          ...review,
+        },
       });
     } catch (error) {
       return fail(error);

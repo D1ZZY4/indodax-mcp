@@ -21,6 +21,7 @@ Every variable the server reads, and what happens when it is absent.
 | `MCP_PORT` | `8000` | HTTP port. |
 | `STOP_AUTOPOLL_MS` | unset | Stop evaluation interval, in milliseconds. |
 | `ALERT_AUTOPOLL_MS` | unset | Alert evaluation interval, in milliseconds. |
+| `OPENCODE_API_KEY` | unset | Enables the optional Jev advisory on `indodax_strategy_evaluate`. Advisory only; it cannot gate, alter, or authorise anything. |
 
 ### Two names that do not exist
 
@@ -96,6 +97,25 @@ an MCP server is reachable by any agent that can talk to it.
 
 `shadow` and `development` both refuse to reach a backend, so a proposal cannot
 quietly become an order.
+
+### The optional Jev advisory
+
+`indodax_strategy_evaluate` can ask the Jev decision model for a bounded second
+opinion on the signal, through OpenCode Zen, using only the free
+`jev-1.13-free` model. It is off unless `OPENCODE_API_KEY` is set.
+
+It is advisory by construction:
+
+- it never places, cancels, or arms anything;
+- it cannot turn a denial into an approval. Risk, the central guard, mode and
+  capability checks, acknowledgement, idempotency, and balance rules are
+  independent of it;
+- a missing credential, a timeout, a rate limit, or a malformed answer all
+  degrade to `available: false` and change nothing.
+
+Only the pair, the side, the signal strength, and the close count are sent. No
+credential or account state leaves the process. See the strategy tool guide for
+the response shape.
 
 ## Operating it
 
