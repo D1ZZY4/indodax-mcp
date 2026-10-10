@@ -1,0 +1,14 @@
+# Bun runtime configuration for the daemon.
+#
+# The signal handlers must be installed before the module graph is evaluated.
+# Static imports cannot do this: the bundler hoists the whole graph, so handlers
+# installed from main() run after roughly 190ms of application composition, and a
+# SIGTERM from a supervisor or container stop in that window kills the process by
+# default disposition (exit 143, no shutdown hooks, no clean-exit log line).
+#
+# This file covers `bun src/main.ts` and `bun src/launch.ts` from a checkout. The
+# packed binary cannot rely on it, because Bun resolves bunfig.toml against the
+# working directory rather than the package directory, so a global install would
+# resolve the preload against the consumer's cwd. dist/indodax-daemon is
+# therefore a small launcher that passes --preload explicitly.
+preload = ["./src/signals.ts"]

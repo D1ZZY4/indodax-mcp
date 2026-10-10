@@ -1,3 +1,4 @@
+import { onShutdownRequested } from "@indodax-mcp/daemon/signals";
 import { loadConfig } from "@indodax-mcp/config";
 import { createLogger } from "@indodax-mcp/logging";
 import { buildIndodaxServer } from "@indodax-mcp/mcp-app";
@@ -55,28 +56,32 @@ async function snapshot(): Promise<void> {
   );
 }
 
+async function shutdown(): Promise<void> {
+  if (stopped) return;
+  stopped = true;
+  app.scheduler.stopAll();
+  for (const hook of app.shutdownHooks) {
+    try {
+      await hook();
+    } catch (error) {
+      logger.warn({ error: String(error) }, "daemon shutdown hook failed");
+    }
+  }
+  logger.info("daemon shutdown complete");
+  process.exit(0);
+}
+
 async function main(): Promise<void> {
+  // The real handler is registered here; signals that arrived during module
+  // load are replayed by onShutdownRequested. Reconcile performs live market
+  // reads, so it runs under an installed handler rather than a bare promise.
+  onShutdownRequested(() => void shutdown());
+
   await reconcileOnce();
   app.scheduler.start({ name: "market-refresh", intervalMs: 30_000, task: marketRefresh });
   app.scheduler.start({ name: "snapshot", intervalMs: 60_000, task: snapshot });
   logger.info("daemon ready");
 
-  const shutdown = async (): Promise<void> => {
-    if (stopped) return;
-    stopped = true;
-    app.scheduler.stopAll();
-    for (const hook of app.shutdownHooks) {
-      try {
-        await hook();
-      } catch (error) {
-        logger.warn({ error: String(error) }, "daemon shutdown hook failed");
-      }
-    }
-    logger.info("daemon shutdown complete");
-    process.exit(0);
-  };
-  process.on("SIGINT", () => void shutdown());
-  process.on("SIGTERM", () => void shutdown());
   await new Promise(() => {});
 }
 
