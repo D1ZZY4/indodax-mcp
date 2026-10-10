@@ -1,6 +1,6 @@
 # @indodax-mcp/mcp-http
 
-Streamable HTTP gateway for the INDODAX MCP server. It exposes the same 91
+Streamable HTTP gateway for the INDODAX MCP server. It exposes the same 68
 tools, 12 resources, and 5 prompts as the stdio server over HTTP instead of a
 pipe.
 
@@ -23,7 +23,17 @@ and `8000`:
 MCP_HOST=127.0.0.1 MCP_PORT=8080 indodax-mcp-http
 ```
 
-`GET /health` returns the server version, overall health, and persistence state.
+`GET /health` returns the liveness of the process, the server identity, the
+version, and the runtime mode:
+
+```json
+{ "status": "ok", "server": "indodax-mcp", "version": "2.0.0", "mode": "paper" }
+```
+
+This is a transport-level liveness probe, not a component rollup. For component
+health, wiring, readiness, and persistence durability, call the
+`indodax_health`, `indodax_runtime_status`, and `indodax_config_status` tools
+over `/mcp`.
 
 ## Credentials
 

@@ -73,7 +73,7 @@ The application package is composed by the CLI, stdio server, HTTP gateway, daem
 
 ### Published names
 
-Every package publishes under the `@indodax-mcp` scope at 1.1.1. The source directory and the package name differ in one place:
+Every package publishes under the `@indodax-mcp` scope at 2.0.0, and all 39 move on one lockstep version line. The source directory and the package name differ in one place:
 
 | Source directory | Published package |
 | --- | --- |

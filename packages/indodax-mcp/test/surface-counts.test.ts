@@ -66,4 +66,41 @@ describe("documented surface figures", () => {
     expect(cell, "completeness matrix must carry a tool count cell").not.toBeNull();
     expect(Number(cell?.[1])).toBe(registry.listTools().length);
   });
+
+  /**
+   * Package READMEs ship to npm and are read by whoever installs the package,
+   * so a count stated there is a published claim. The HTTP gateway README
+   * carried "91 tools" after the 2.0.0 consolidation, and nothing asserted it.
+   *
+   * The pattern matches an unqualified current claim only. A sentence that also
+   * names another version describes a migration ("consolidated from 91 to 68"),
+   * where the old number is the point, so those are left alone.
+   */
+  it("keeps current counts in package READMEs aligned", () => {
+    const { registry } = built();
+    const tools = registry.listTools().length;
+    const resources = registry.listResources().length;
+    const prompts = registry.listPrompts().length;
+    // Prose is hard-wrapped, so the claim can straddle a line break.
+    const claim = /the same (\d+)\s+tools,\s+(\d+) resources, and (\d+) prompts/;
+    const readmes = ["apps/mcp-http/README.md", "apps/mcp-stdio/README.md"];
+    const mismatched: string[] = [];
+    let checked = 0;
+    for (const file of readmes) {
+      const match = claim.exec(readFileSync(join(ROOT, file), "utf8"));
+      // Only a file that states a current count can drift from it. One that
+      // never states a count asserts nothing.
+      if (!match) continue;
+      checked += 1;
+      if (Number(match[1]) !== tools) mismatched.push(`${file}: tools ${match[1]} != ${tools}`);
+      if (Number(match[2]) !== resources) {
+        mismatched.push(`${file}: resources ${match[2]} != ${resources}`);
+      }
+      if (Number(match[3]) !== prompts)
+        mismatched.push(`${file}: prompts ${match[3]} != ${prompts}`);
+    }
+    // Guards against the pattern silently matching nothing after an edit.
+    expect(checked).toBeGreaterThan(0);
+    expect(mismatched).toEqual([]);
+  });
 });
