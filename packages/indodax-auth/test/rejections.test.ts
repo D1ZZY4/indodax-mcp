@@ -39,7 +39,7 @@ describe("outcomeFor", () => {
   });
 
   it("exposes the guidance without the message", () => {
-    expect(guidanceFor(-2010)).toContain("indodax_balances");
+    expect(guidanceFor(-2010)).toContain("indodax_account");
     expect(guidanceFor(-9999)).toBe("");
   });
 });
@@ -98,7 +98,7 @@ describe("translateExchangeError", () => {
       httpError(400, { code: -2010, msg: "Insufficient balance" }),
       "order",
     );
-    expect(translated?.message).toContain("indodax_balances");
+    expect(translated?.message).toContain("indodax_account");
   });
 
   it("returns null for failures with nothing translatable", async () => {

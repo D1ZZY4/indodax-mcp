@@ -28,3 +28,37 @@ export function resetMcp(): void {
   void pending?.then((client) => client.close());
   pending = null;
 }
+
+/**
+ * The response envelope every tool returns.
+ *
+ * `ok` carries `data`; `fail` carries a stable `code` plus a message. Both are
+ * JSON on the first text block, so a caller reads one shape and branches on
+ * `status` instead of pattern-matching prose.
+ */
+export interface ToolEnvelope<T = unknown> {
+  status: "ok" | "error";
+  data?: T;
+  warnings?: string[];
+  code?: string;
+  message?: string;
+  retryable?: boolean;
+}
+
+/**
+ * Call one tool and return its parsed envelope.
+ *
+ * Parsing lives here because every page needs it and each piece is easy to get
+ * subtly wrong: the content blocks must be joined before parsing, and a
+ * refusal still arrives as valid JSON rather than a thrown exception, so the
+ * body is parsed even when the transport flags `isError`.
+ */
+export async function callTool<T = unknown>(
+  name: string,
+  args: Record<string, unknown> = {},
+): Promise<ToolEnvelope<T>> {
+  const client = await connectMcp("/mcp");
+  const result = await client.callTool({ name, arguments: args });
+  const text = result.content.map((block) => (block.type === "text" ? block.text : "")).join("");
+  return JSON.parse(text) as ToolEnvelope<T>;
+}

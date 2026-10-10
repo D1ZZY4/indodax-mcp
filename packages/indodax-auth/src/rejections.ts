@@ -27,7 +27,7 @@ export const ORDER_OUTCOME_REMEDIES: Readonly<Record<number, RejectionOutcome>> 
   [-2010]: {
     reason: "insufficient_balance",
     guidance:
-      "insufficient balance. next: call indodax_balances and compare free funds against " +
+      "insufficient balance. next: call indodax_account and compare free funds against " +
       "the amount locked by open orders, then lower the size or free funds before retrying",
   },
   [-2011]: {
@@ -208,7 +208,7 @@ export function formatRejection(
     return {
       message:
         `exchange rejected ${action}: insufficient balance (${text2}). ` +
-        "next: check indodax_balances for free funds versus amounts locked in open orders, " +
+        "next: check indodax_account for free funds versus amounts locked in open orders, " +
         "then lower the size or free funds before retrying",
     };
   }

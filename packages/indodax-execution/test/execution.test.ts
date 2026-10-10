@@ -248,7 +248,7 @@ describe("execution service", () => {
       correlationId: "corr-1",
       requestedAt: new Date().toISOString(),
     };
-    await expect(executor.submit(request)).rejects.toThrow(/indodax_balances/);
+    await expect(executor.submit(request)).rejects.toThrow(/indodax_account/);
   });
 
   it("cancels by client order id when exchange id is unknown", async () => {

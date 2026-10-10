@@ -78,7 +78,7 @@ describe("live rejection translation", () => {
       executor(httpError(400, { code: -2010, msg: "Insufficient balance" })).submit(request()),
     );
     expect(message).toContain("next:");
-    expect(message).toContain("indodax_balances");
+    expect(message).toContain("indodax_account");
     expect(message).toContain("-2010");
     expect(message).not.toContain("unexpected HTTP");
   });
@@ -99,7 +99,7 @@ describe("live rejection translation", () => {
         headers: { "content-type": "application/json" },
       })) as FetchFn;
     const message = await rejectionMessage(executor(fetchFn).submit(request()));
-    expect(message).toContain("indodax_balances");
+    expect(message).toContain("indodax_account");
   });
 
   it("translates a 4xx cancel rejection", async () => {

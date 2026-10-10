@@ -74,7 +74,7 @@ export function registerPrompts(
   handlers.prompts.set("indodax_incident_review", (args) => [
     {
       role: "user",
-      text: `Call indodax_execution_trace for ${args.correlationId ?? ""}, plus indodax_reconciliation_state and indodax_health, then summarize the incident.`,
+      text: `Call indodax_audit with correlationId ${args.correlationId ?? ""}, plus indodax_reconcile_paper with scope state and indodax_health, then summarize the incident.`,
     },
   ]);
 }

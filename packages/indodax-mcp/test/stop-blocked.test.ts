@@ -92,7 +92,7 @@ describe("stop blocked on locked balance", () => {
     const { built, live } = buildLiveServer("45");
     live.submit = async () => {
       throw OrderRejectedError(
-        "exchange rejected order with code -2010: insufficient balance. next: call indodax_balances",
+        "exchange rejected order with code -2010: insufficient balance. next: call indodax_account",
       );
     };
     built.app.stops.add({
@@ -123,7 +123,7 @@ describe("stop blocked on locked balance", () => {
     const { built, live } = buildLiveServer("45");
     live.submit = async () => {
       throw OrderRejectedError(
-        "exchange rejected order with code -2010: insufficient balance. next: call indodax_balances",
+        "exchange rejected order with code -2010: insufficient balance. next: call indodax_account",
       );
     };
     built.app.stops.add({
