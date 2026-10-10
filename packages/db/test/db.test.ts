@@ -1,7 +1,10 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import EmbeddedPostgres from "embedded-postgres";
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
+import { mkdtempSync, readFileSync, readdirSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+import postgres from "postgres";
 import { connectDatabase } from "@indodax-mcp/db/client";
 import {
   DrizzleAuditRepository,
@@ -12,27 +15,75 @@ import { tenants } from "@indodax-mcp/db/schema";
 
 const EMBEDDED_PORT = 18899;
 const EMBEDDED_URL = `postgresql://postgres:postgres@127.0.0.1:${EMBEDDED_PORT}/postgres`;
+const PACKAGE_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
+const MIGRATIONS_DIR = join(PACKAGE_ROOT, "drizzle");
+
+/**
+ * Migrations are plain CREATE TABLE scripts with no IF NOT EXISTS guard and no
+ * drop step, because the real migrator tracks applied files in its own journal.
+ * Replaying them against a database that already carries the schema therefore
+ * fails on the first CREATE.
+ *
+ * That is invisible on a fresh CI service container and fatal everywhere else:
+ * a developer's own DATABASE_URL is populated, so the suite would both fail on
+ * every run after the first and write test tables into the database the
+ * application actually uses. Isolating the run in its own throwaway database
+ * makes the suite repeatable and keeps it off the real one.
+ */
+function databaseUrlFor(url: string, database: string): string {
+  const parsed = new URL(url);
+  parsed.pathname = `/${database}`;
+  return parsed.toString();
+}
+
+/**
+ * Run every migration file in journal order against an already-open connection.
+ *
+ * `client.unsafe` is used rather than the drizzle migrator because the test
+ * needs the same SQL the application ships, including the `--> statement-
+ * breakpoint` separators that the migrator splits on internally.
+ */
+async function applyMigrations(client: postgres.Sql): Promise<void> {
+  const migrations = readdirSync(MIGRATIONS_DIR)
+    .filter((entry) => entry.endsWith(".sql"))
+    .sort();
+  for (const migration of migrations) {
+    await client.unsafe(readFileSync(join(MIGRATIONS_DIR, migration), "utf8"));
+  }
+}
+
+/**
+ * Delete a database, detaching anything still connected first.
+ *
+ * DROP DATABASE refuses to run while a session holds a connection, and the
+ * pool opened by connectDatabase is exactly such a session. Terminating
+ * backends makes teardown independent of test ordering.
+ */
+async function dropDatabase(admin: postgres.Sql, database: string): Promise<void> {
+  await admin.unsafe(
+    `SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '${database}' AND pid <> pg_backend_pid()`,
+  );
+  await admin.unsafe(`DROP DATABASE IF EXISTS "${database}"`);
+}
 
 describe("db on real PostgreSQL", () => {
   let embedded: EmbeddedPostgres | null = null;
-  let close: () => Promise<void> = async () => {};
+  let admin: postgres.Sql | null = null;
+  let closeAdmin: () => Promise<void> = async () => {};
+  let closeApp: () => Promise<void> = async () => {};
   let activeUrl = "";
 
   beforeAll(async () => {
     // CI provides an ephemeral Postgres service via DATABASE_URL. Local runs
     // without it fall back to embedded Postgres. Either way the tests below
     // run against a real PostgreSQL instance, never a mock.
+    const source = process.env.DATABASE_URL ?? "";
     console.log(
-      `db suite using ${process.env.DATABASE_URL ? "DATABASE_URL service" : "embedded postgres"}`,
+      `db suite using ${source ? "DATABASE_URL service" : "embedded postgres"} in a disposable database`,
     );
-    if (process.env.DATABASE_URL) {
-      activeUrl = process.env.DATABASE_URL;
-    } else {
-      const { mkdtempSync } = await import("node:fs");
-      const { tmpdir } = await import("node:os");
+    if (source === "") {
       const dataDir = mkdtempSync(join(tmpdir(), "pg-test-"));
-      const { readdirSync } = await import("node:fs");
-      const bunDir = join(process.cwd(), "..", "..", "node_modules", ".bun");
+      const bunDir = join(PACKAGE_ROOT, "..", "..", "node_modules", ".bun");
       const nativeEntry = readdirSync(bunDir).find((entry) =>
         entry.startsWith("@embedded-postgres+linux"),
       );
@@ -58,24 +109,49 @@ describe("db on real PostgreSQL", () => {
       await instance.start();
       embedded = instance;
       activeUrl = EMBEDDED_URL;
+    } else {
+      activeUrl = source;
     }
-    const { db, close: closeDb } = connectDatabase(activeUrl);
-    close = closeDb;
-    const { readdirSync: listDir } = await import("node:fs");
-    const drizzleDir = join(process.cwd(), "drizzle");
-    const migrations = listDir(drizzleDir)
-      .filter((entry) => entry.endsWith(".sql"))
-      .sort();
-    const client = (await import("postgres")).default(activeUrl, { max: 1 });
-    for (const migration of migrations) {
-      await client.unsafe(readFileSync(join(drizzleDir, migration), "utf8"));
+
+    // A per-run database, so the migrations start from an empty schema on every
+    // run and teardown removes everything this suite created.
+    const database = `indodax_db_test_${process.pid}_${Date.now().toString(36)}`;
+    const adminClient = postgres(activeUrl, { max: 1 });
+    admin = adminClient;
+    closeAdmin = () => adminClient.end();
+    try {
+      await adminClient.unsafe(`CREATE DATABASE "${database}"`);
+    } catch (error) {
+      await adminClient.end();
+      throw new Error(
+        `db suite could not create the throwaway database "${database}"; the configured ` +
+          `user needs CREATEDB. unset DATABASE_URL to use the embedded instance instead. ` +
+          `cause: ${error instanceof Error ? error.message : String(error)}`,
+      );
     }
-    await client.end();
-    await db.insert(tenants).values({ name: "t1" });
+
+    activeUrl = databaseUrlFor(activeUrl, database);
+    const { db, close } = connectDatabase(activeUrl);
+    closeApp = close;
+    try {
+      const migrationClient = postgres(activeUrl, { max: 1 });
+      await applyMigrations(migrationClient);
+      await migrationClient.end();
+      await db.insert(tenants).values({ name: "t1" });
+    } catch (error) {
+      await close();
+      await dropDatabase(adminClient, database);
+      throw error;
+    }
   }, 180_000);
 
   afterAll(async () => {
-    await close();
+    await closeApp();
+    if (admin !== null) {
+      const parsed = new URL(activeUrl);
+      await dropDatabase(admin, parsed.pathname.slice(1));
+      await closeAdmin();
+    }
     await embedded?.stop();
   });
 
